@@ -1,4 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api');
+const http = require('http'); // Thư viện tạo cổng ảo cho Render
+
+// --- TẠO MỘT "CỔNG ẢO" ĐỂ RENDER KHÔNG TẮT BOT ---
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot SWC đang hoat dong!\n');
+});
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+    console.log(`Đã mở cổng ảo ${port} thành công!`);
+});
+// --------------------------------------------------
 
 // Lấy "Chìa khóa" bot từ hệ thống
 const token = process.env.BOT_TOKEN;
@@ -6,7 +18,7 @@ const token = process.env.BOT_TOKEN;
 // Khởi tạo bot
 const bot = new TelegramBot(token, {polling: true});
 
-// Đường link Mini App của bạn đã làm thành công lúc nãy
+// Đường link Mini App của bạn
 const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
 
 // -----------------------------------------------------
@@ -15,7 +27,6 @@ const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     
-    // Tạo bộ nút bấm hiển thị dưới tin nhắn
     const opts = {
         parse_mode: 'HTML',
         reply_markup: {
@@ -43,20 +54,13 @@ bot.on('callback_query', (callbackQuery) => {
 
     let responseText = '';
 
-    // Kịch bản 2: Nhiệm vụ Tân Binh
     if (category === 'task_1') {
         responseText = "<b>🎯 Nhiệm vụ Tân binh:</b>\n\n1. Theo dõi kênh Telegram cộng đồng SWC.\n2. Bấm nút [MỞ ỨNG DỤNG SWC] để liên kết ví cá nhân của bạn.\n\n<i>🎁 Phần thưởng: 50 SWGT</i>";
-    } 
-    // Kịch bản 3: Nhiệm vụ Kiến thức
-    else if (category === 'task_2') {
+    } else if (category === 'task_2') {
         responseText = "<b>📚 Nhiệm vụ Kiến thức (Daily Task):</b>\n\nHôm nay, hãy đọc bài viết mới nhất về công nghệ vận tải uST và trả lời câu hỏi trắc nghiệm để nhận thưởng.\n\n<i>🎁 Phần thưởng: 10 SWGT/ngày</i>";
-    } 
-    // Kịch bản 4: Nhiệm vụ Tăng trưởng
-    else if (category === 'task_3') {
+    } else if (category === 'task_3') {
         responseText = `<b>🤝 Nhiệm vụ Tăng trưởng:</b>\n\nMời bạn bè tham gia hệ sinh thái để cùng nhau phát triển mạng lưới nhà đầu tư.\n\n👉 Gửi Link giới thiệu này cho bạn bè: https://t.me/Dau_Tu_SWC_bot?start=${message.chat.id}\n\n<i>🎁 Phần thưởng: 20 SWGT cho mỗi lượt mời thành công!</i>`;
-    } 
-    // Kịch bản 5: Đặc quyền & Đổi thưởng
-    else if (category === 'task_4') {
+    } else if (category === 'task_4') {
         responseText = "<b>👑 Đặc quyền & Đổi thưởng:</b>\n\nSử dụng token SWGT bạn kiếm được để:\n- Đổi vé tham dự sự kiện VIP.\n- Mua các khóa học đầu tư chiến lược.\n- Nâng cấp hạng thành viên cộng đồng.";
     }
 
