@@ -53,13 +53,11 @@ bot.on('callback_query', (callbackQuery) => {
     const category = callbackQuery.data;
 
     let responseText = '';
-    // Tạo sẵn một biến để chứa nút bấm nếu kịch bản đó cần
     let opts = { parse_mode: 'HTML' }; 
 
     if (category === 'task_1') {
         responseText = "<b>🎯 Nhiệm vụ Tân binh:</b>\n\n1. Theo dõi kênh Telegram cộng đồng SWC.\n2. Bấm nút <b>[🚀 MỞ ỨNG DỤNG SWC]</b> ngay bên dưới để liên kết ví cá nhân của bạn.\n\n<i>🎁 Phần thưởng: 50 SWGT</i>";
         
-        // CHÈN NÚT BẤM VÀO ĐÚNG TIN NHẮN TÂN BINH
         opts.reply_markup = {
             inline_keyboard: [
                 [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
@@ -69,7 +67,6 @@ bot.on('callback_query', (callbackQuery) => {
     } else if (category === 'task_2') {
         responseText = "<b>📚 Nhiệm vụ Kiến thức (Daily Task):</b>\n\nHôm nay, hãy đọc bài viết mới nhất về công nghệ vận tải uST và trả lời câu hỏi trắc nghiệm để nhận thưởng.\n\n<i>🎁 Phần thưởng: 10 SWGT/ngày</i>";
         
-        // Bạn có thể chèn link hovanloi.net vào đây luôn
         opts.reply_markup = {
             inline_keyboard: [
                 [{ text: "📖 Đọc bài tại hovanloi.net", url: "https://hovanloi.net" }]
@@ -86,4 +83,4 @@ bot.on('callback_query', (callbackQuery) => {
     bot.answerCallbackQuery(callbackQuery.id);
 });
 
-console.log("Hệ thống Não bộ Bot SWC đã khởi động thành công
+console.log("Hệ thống Não bộ Bot SWC đã khởi động thành công!");
