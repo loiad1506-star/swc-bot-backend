@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const http = require('http');
 const url = require('url');
 
-const userDB = {}; // Cơ sở dữ liệu tạm thời (Lưu tiền và Ví)
+const userDB = {}; // Nơi lưu trữ tiền tạm thời
 
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, {polling: true});
@@ -24,7 +24,6 @@ const server = http.createServer((req, res) => {
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         const userData = userDB[userId] || { balance: 0, wallet: '' };
-        console.log(`[API] Lấy dữ liệu user ${userId}:`, userData);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(userData));
     } 
@@ -36,7 +35,6 @@ const server = http.createServer((req, res) => {
                 const data = JSON.parse(body);
                 if (!userDB[data.userId]) userDB[data.userId] = { balance: 0, wallet: '' };
                 userDB[data.userId].wallet = data.wallet;
-                console.log(`[API] Đã lưu ví ${data.wallet} cho user ${data.userId}`);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true }));
             } catch (e) { res.writeHead(400); res.end(); }
@@ -66,10 +64,10 @@ async function checkMembership(userId) {
     }
 }
 
-// --- 3. XỬ LÝ LỆNH /start (HIỂN THỊ 5 NÚT BẤM) ---
+// --- 3. XỬ LÝ LỆNH /start ---
 bot.onText(/\/start(.*)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const refId = match[1].trim(); // Bắt ID của người giới thiệu nếu có
+    const refId = match[1].trim(); 
     
     const opts = {
         parse_mode: 'HTML',
@@ -86,7 +84,6 @@ bot.onText(/\/start(.*)/, (msg, match) => {
     
     let welcomeText = `Chào mừng bạn đến với <b>Cộng Đồng SWC Việt Nam</b>! 🚂\n\nĐây là hệ thống tự động giúp bạn nhận thưởng Token SWGT và cập nhật tiến độ công nghệ uST, uTerra nhanh nhất.\n\n👇 Hãy chọn một nhiệm vụ bên dưới để bắt đầu:`;
     
-    // Nếu họ bấm qua link giới thiệu
     if (refId && refId !== chatId.toString()) {
         welcomeText = `🎉 <i>Bạn được mời bởi thành viên ID: ${refId}</i>\n\n` + welcomeText;
     }
@@ -119,12 +116,25 @@ bot.on('callback_query', async (callbackQuery) => {
         if (status.error) {
             bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Hệ thống đang bảo trì hoặc Bot chưa được cấp quyền Admin!", show_alert: true });
         } else if (status.inChannel && status.inGroup) {
+            
             if (!userDB[userId]) userDB[userId] = { balance: 0, wallet: '' };
             
             if (userDB[userId].balance === 0) {
-                userDB[userId].balance = 20; // Cộng tiền
+                // ĐÂY LÀ LÚC TIỀN ĐƯỢC CỘNG VÀO HỆ THỐNG
+                userDB[userId].balance = 20; 
                 bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Hệ thống đã xác nhận bạn tham gia đầy đủ! +20 SWGT.", show_alert: true });
-                bot.sendMessage(chatId, "✅ <b>NHIỆM VỤ HOÀN THÀNH!</b>\n\nHệ thống đã ghi nhận bạn tham gia Cộng đồng SWC.\n🎁 <b>Phần thưởng:</b> +20 SWGT.\n\n👉 <i>Hãy bấm [🚀 MỞ ỨNG DỤNG SWC NGAY] để vào Ví kiểm tra tài sản của bạn!</i>", { parse_mode: 'HTML' });
+                
+                // ĐÃ BỔ SUNG NÚT "MỞ ỨNG DỤNG" KÈM LINK VÀO TIN NHẮN CHÚC MỪNG
+                const successOpts = {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
+                        ]
+                    }
+                };
+                bot.sendMessage(chatId, "✅ <b>NHIỆM VỤ HOÀN THÀNH!</b>\n\nHệ thống đã ghi nhận bạn tham gia Cộng đồng SWC.\n🎁 <b>Phần thưởng:</b> +20 SWGT.\n\n👉 <i>Hãy bấm nút bên dưới để vào App kiểm tra tài sản của bạn!</i>", successOpts);
+                
             } else {
                 bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này và nhận thưởng rồi nhé!", show_alert: true });
             }
