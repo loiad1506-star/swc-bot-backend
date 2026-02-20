@@ -135,9 +135,20 @@ bot.on('callback_query', async (callbackQuery) => {
                 };
                 bot.sendMessage(chatId, "✅ <b>NHIỆM VỤ HOÀN THÀNH!</b>\n\nHệ thống đã ghi nhận bạn tham gia Cộng đồng SWC.\n🎁 <b>Phần thưởng:</b> +10 SWGT.\n\n👉 <i>Hãy bấm nút bên dưới để vào App kiểm tra tài sản của bạn!</i>", successOpts);
                 
-            } else {
-                bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này và nhận thưởng rồi nhé!", show_alert: true });
-            }
+else if (data === 'task_3') {
+        const textTask3 = `<b>💎 Cơ Cấu Phần Thưởng SWGT</b>\n\n` +
+            `📌 <b>Thành viên Thường</b> sẽ được nhận thưởng khi đáp ứng các điều kiện sau:\n` +
+            `Tham gia Channel (Nhóm chính): +10 SWGT/người\n` +
+            `Tham gia Nhóm Chat (Chat 2 dòng trên nhóm): +10 SWGT/người\n\n` +
+            `⭐ <b>Thành Viên Premium (+5 SWGT)</b>\n` +
+            `Tham gia Channel (Nhóm chính): +20 SWGT/người\n` +
+            `Tham gia Nhóm Chat (Chat 2 dòng trên nhóm): +20 SWGT/người\n` +
+            `💫 Cộng ngay: +5 SWGT bonus!\n\n` +
+            `👉 <b>Gửi Link giới thiệu này cho bạn bè để bắt đầu:</b>\n` +
+            `https://t.me/Dau_Tu_SWC_bot?start=${userId}`;
+
+        bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
+    }
         } else {
             bot.answerCallbackQuery(callbackQuery.id, { text: "❌ Bạn chưa tham gia đủ Kênh và Nhóm. Hãy kiểm tra lại nhé!", show_alert: true });
         }
