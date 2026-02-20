@@ -97,6 +97,7 @@ bot.on('callback_query', async (callbackQuery) => {
     const userId = callbackQuery.from.id.toString(); 
     const data = callbackQuery.data;
 
+    // --- NÚT 1: TÂN BINH ---
     if (data === 'task_1') {
         const opts = {
             parse_mode: 'HTML',
@@ -111,6 +112,8 @@ bot.on('callback_query', async (callbackQuery) => {
         };
         bot.sendMessage(chatId, `<b>🎯 Nhiệm vụ Tân binh (Thưởng 10 SWGT):</b>\n\nĐể nhận thưởng, bạn bắt buộc phải tham gia cộng đồng của chúng tôi:\n1. Kênh tin tức: ${CHANNEL_USERNAME}\n2. Nhóm thảo luận: ${GROUP_USERNAME}\n\n👉 Tham gia xong, hãy bấm nút <b>[✅ KIỂM TRA THAM GIA]</b> để hệ thống tự động quét và trao thưởng!`, opts);
     } 
+    
+    // --- NÚT KIỂM TRA THAM GIA ---
     else if (data === 'check_join') {
         const status = await checkMembership(userId);
         if (status.error) {
@@ -120,11 +123,9 @@ bot.on('callback_query', async (callbackQuery) => {
             if (!userDB[userId]) userDB[userId] = { balance: 0, wallet: '' };
             
             if (userDB[userId].balance === 0) {
-                // ĐÂY LÀ LÚC TIỀN ĐƯỢC CỘNG VÀO HỆ THỐNG
-                userDB[userId].balance = 10; 
+                userDB[userId].balance = 10; // CỘNG 10 SWGT
                 bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Hệ thống đã xác nhận bạn tham gia đầy đủ! +10 SWGT.", show_alert: true });
                 
-                // ĐÃ BỔ SUNG NÚT "MỞ ỨNG DỤNG" KÈM LINK VÀO TIN NHẮN CHÚC MỪNG
                 const successOpts = {
                     parse_mode: 'HTML',
                     reply_markup: {
@@ -135,7 +136,21 @@ bot.on('callback_query', async (callbackQuery) => {
                 };
                 bot.sendMessage(chatId, "✅ <b>NHIỆM VỤ HOÀN THÀNH!</b>\n\nHệ thống đã ghi nhận bạn tham gia Cộng đồng SWC.\n🎁 <b>Phần thưởng:</b> +10 SWGT.\n\n👉 <i>Hãy bấm nút bên dưới để vào App kiểm tra tài sản của bạn!</i>", successOpts);
                 
-else if (data === 'task_3') {
+            } else {
+                bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này và nhận thưởng rồi nhé!", show_alert: true });
+            }
+        } else {
+            bot.answerCallbackQuery(callbackQuery.id, { text: "❌ Bạn chưa tham gia đủ Kênh và Nhóm. Hãy kiểm tra lại nhé!", show_alert: true });
+        }
+    }
+    
+    // --- NÚT 2: KIẾN THỨC ---
+    else if (data === 'task_2') {
+        bot.sendMessage(chatId, "<b>📚 Nhiệm vụ Kiến thức:</b>\nHôm nay, hãy đọc bài viết mới nhất tại web hovanloi.net.", { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📖 Đọc bài tại hovanloi.net", url: "https://hovanloi.net" }]] } });
+    } 
+    
+    // --- NÚT 3: TĂNG TRƯỞNG (ĐÃ CẬP NHẬT CHUẨN) ---
+    else if (data === 'task_3') {
         const textTask3 = `<b>💎 Cơ Cấu Phần Thưởng SWGT</b>\n\n` +
             `📌 <b>Thành viên Thường</b> sẽ được nhận thưởng khi đáp ứng các điều kiện sau:\n` +
             `Tham gia Channel (Nhóm chính): +10 SWGT/người\n` +
@@ -148,21 +163,14 @@ else if (data === 'task_3') {
             `https://t.me/Dau_Tu_SWC_bot?start=${userId}`;
 
         bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
-    }
-        } else {
-            bot.answerCallbackQuery(callbackQuery.id, { text: "❌ Bạn chưa tham gia đủ Kênh và Nhóm. Hãy kiểm tra lại nhé!", show_alert: true });
-        }
-    }
-    else if (data === 'task_2') {
-        bot.sendMessage(chatId, "<b>📚 Nhiệm vụ Kiến thức:</b>\nHôm nay, hãy đọc bài viết mới nhất tại web hovanloi.net.", { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📖 Đọc bài tại hovanloi.net", url: "https://hovanloi.net" }]] } });
     } 
-    else if (data === 'task_3') {
-        bot.sendMessage(chatId, `<b>🤝 Nhiệm vụ Tăng trưởng:</b>\n\n👉 Gửi Link giới thiệu này cho bạn bè:\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}`, { parse_mode: 'HTML' });
-    } 
+    
+    // --- NÚT 4: ĐỔI THƯỞNG ---
     else if (data === 'task_4') {
         bot.sendMessage(chatId, "<b>👑 Đặc quyền & Đổi thưởng:</b>\n\nĐổi vé tham dự sự kiện VIP hoặc mua các khóa học đầu tư chiến lược.", { parse_mode: 'HTML' });
     }
 
+    // Tắt loading cho các nút (trừ nút check_join vì nó có báo Pop-up riêng)
     if (data !== 'check_join') {
         bot.answerCallbackQuery(callbackQuery.id);
     }
