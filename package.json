@@ -1,12 +1,13 @@
 {
   "name": "swc-bot-backend",
   "version": "1.0.0",
-  "description": "Bot Telegram Cong Dong SWC",
+  "description": "Backend cho Bot SWC",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.65.0"
+    "node-telegram-bot-api": "^0.65.0",
+    "mongoose": "^8.1.1"
   }
 }
