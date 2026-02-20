@@ -109,7 +109,7 @@ bot.on('callback_query', async (callbackQuery) => {
                 ]
             }
         };
-        bot.sendMessage(chatId, `<b>🎯 Nhiệm vụ Tân binh (Thưởng 20 SWGT):</b>\n\nĐể nhận thưởng, bạn bắt buộc phải tham gia cộng đồng của chúng tôi:\n1. Kênh tin tức: ${CHANNEL_USERNAME}\n2. Nhóm thảo luận: ${GROUP_USERNAME}\n\n👉 Tham gia xong, hãy bấm nút <b>[✅ KIỂM TRA THAM GIA]</b> để hệ thống tự động quét và trao thưởng!`, opts);
+        bot.sendMessage(chatId, `<b>🎯 Nhiệm vụ Tân binh (Thưởng 10 SWGT):</b>\n\nĐể nhận thưởng, bạn bắt buộc phải tham gia cộng đồng của chúng tôi:\n1. Kênh tin tức: ${CHANNEL_USERNAME}\n2. Nhóm thảo luận: ${GROUP_USERNAME}\n\n👉 Tham gia xong, hãy bấm nút <b>[✅ KIỂM TRA THAM GIA]</b> để hệ thống tự động quét và trao thưởng!`, opts);
     } 
     else if (data === 'check_join') {
         const status = await checkMembership(userId);
@@ -121,8 +121,8 @@ bot.on('callback_query', async (callbackQuery) => {
             
             if (userDB[userId].balance === 0) {
                 // ĐÂY LÀ LÚC TIỀN ĐƯỢC CỘNG VÀO HỆ THỐNG
-                userDB[userId].balance = 20; 
-                bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Hệ thống đã xác nhận bạn tham gia đầy đủ! +20 SWGT.", show_alert: true });
+                userDB[userId].balance = 10; 
+                bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Hệ thống đã xác nhận bạn tham gia đầy đủ! +10 SWGT.", show_alert: true });
                 
                 // ĐÃ BỔ SUNG NÚT "MỞ ỨNG DỤNG" KÈM LINK VÀO TIN NHẮN CHÚC MỪNG
                 const successOpts = {
@@ -133,7 +133,7 @@ bot.on('callback_query', async (callbackQuery) => {
                         ]
                     }
                 };
-                bot.sendMessage(chatId, "✅ <b>NHIỆM VỤ HOÀN THÀNH!</b>\n\nHệ thống đã ghi nhận bạn tham gia Cộng đồng SWC.\n🎁 <b>Phần thưởng:</b> +20 SWGT.\n\n👉 <i>Hãy bấm nút bên dưới để vào App kiểm tra tài sản của bạn!</i>", successOpts);
+                bot.sendMessage(chatId, "✅ <b>NHIỆM VỤ HOÀN THÀNH!</b>\n\nHệ thống đã ghi nhận bạn tham gia Cộng đồng SWC.\n🎁 <b>Phần thưởng:</b> +10 SWGT.\n\n👉 <i>Hãy bấm nút bên dưới để vào App kiểm tra tài sản của bạn!</i>", successOpts);
                 
             } else {
                 bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này và nhận thưởng rồi nhé!", show_alert: true });
