@@ -20,13 +20,18 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
 // --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG ---
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
+    firstName: { type: String, default: '' }, // Lưu Tên
+    lastName: { type: String, default: '' },  // Lưu Họ
+    username: { type: String, default: '' },  // Lưu Nickname @
     balance: { type: Number, default: 0 },
     wallet: { type: String, default: '' },
     referredBy: { type: String, default: null }, // ID của người đã mời
     referralCount: { type: Number, default: 0 }, // Số người đã mời
     task1Done: { type: Boolean, default: false }, // Đã làm NV Tân binh chưa
     walletRewardDone: { type: Boolean, default: false }, // Đã nhận thưởng ví chưa
-    lastDailyTask: { type: Date, default: null } // Lần cuối làm NV Hàng ngày
+    lastDailyTask: { type: Date, default: null }, // Lần cuối làm NV Đọc bài
+    readTaskStartTime: { type: Date, default: null }, // Thời điểm bắt đầu mở bài đọc
+    lastShareTask: { type: Date, default: null } // Lần cuối làm NV Chia sẻ
 });
 const User = mongoose.model('User', userSchema);
 
@@ -96,13 +101,23 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     const userId = msg.from.id.toString();
     const refId = match[1].trim(); 
 
+    // Lấy thông tin Tên từ Telegram
+    const firstName = msg.from.first_name || '';
+    const lastName = msg.from.last_name || '';
+    const username = msg.from.username ? `@${msg.from.username}` : '';
+
     // Tìm hoặc tạo người dùng mới trong Két sắt MongoDB
     let user = await User.findOne({ userId: userId });
     let isNewUser = false;
 
     if (!user) {
         isNewUser = true;
-        user = new User({ userId: userId });
+        user = new User({ 
+            userId: userId,
+            firstName: firstName,
+            lastName: lastName,
+            username: username
+        });
         
         // --- XỬ LÝ NGƯỜI GIỚI THIỆU (REF) ---
         if (refId && refId !== userId) {
@@ -113,12 +128,17 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
                 referrer.referralCount += 1;
                 await referrer.save();
                 
-                // Thông báo ngay cho người mời (Yêu cầu số 6)
-                bot.sendMessage(refId, `🔥 <b>TING TING!</b>\nCó một NĐT vừa tham gia qua link giới thiệu của bạn.\n🎁 Bạn được thưởng nóng <b>+20 SWGT</b>!\n👉 <i>Mở App để kiểm tra số dư và tổng số lượt mời nhé!</i>`, {parse_mode: 'HTML'});
+                // Thông báo ngay cho người mời có kèm tên người đăng ký
+                bot.sendMessage(refId, `🔥 <b>TING TING!</b>\nCó một NĐT (${firstName}) vừa tham gia qua link giới thiệu của bạn.\n🎁 Bạn được thưởng nóng <b>+20 SWGT</b>!\n👉 <i>Mở App để kiểm tra số dư và tổng số lượt mời nhé!</i>`, {parse_mode: 'HTML'});
             }
         }
-        await user.save();
+    } else {
+        // Cập nhật tên nếu họ đổi tên trên Telegram
+        user.firstName = firstName;
+        user.lastName = lastName;
+        user.username = username;
     }
+    await user.save();
     
     const opts = {
         parse_mode: 'HTML',
@@ -147,12 +167,21 @@ bot.on('callback_query', async (callbackQuery) => {
     const userId = callbackQuery.from.id.toString(); 
     const data = callbackQuery.data;
 
-    // Lấy thông tin người dùng từ DB
+    // Lấy thông tin Tên từ Nút bấm
+    const firstName = callbackQuery.from.first_name || '';
+    const lastName = callbackQuery.from.last_name || '';
+    const username = callbackQuery.from.username ? `@${callbackQuery.from.username}` : '';
+
+    // Lấy thông tin người dùng từ DB và cập nhật Tên
     let user = await User.findOne({ userId: userId });
     if (!user) {
-        user = new User({ userId: userId });
-        await user.save();
+        user = new User({ userId: userId, firstName: firstName, lastName: lastName, username: username });
+    } else {
+        user.firstName = firstName;
+        user.lastName = lastName;
+        user.username = username;
     }
+    await user.save();
 
     // --- NÚT 1: TÂN BINH ---
     if (data === 'task_1') {
@@ -177,7 +206,7 @@ bot.on('callback_query', async (callbackQuery) => {
             bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bot chưa được cấp quyền Admin trong Nhóm/Kênh!", show_alert: true });
         } else if (status.inChannel && status.inGroup) {
             if (!user.task1Done) {
-                user.balance += 20; // Thưởng 20 SWGT như yêu cầu
+                user.balance += 20; 
                 user.task1Done = true;
                 await user.save();
                 
@@ -191,35 +220,66 @@ bot.on('callback_query', async (callbackQuery) => {
         }
     }
     
-    // --- NÚT 2: KIẾN THỨC ---
+    // --- NÚT 2: KIẾN THỨC & CHIA SẺ ---
     else if (data === 'task_2') {
-        const task2Text = `🧠 <b>NẠP KIẾN THỨC - KIẾM TIỀN MỖI NGÀY</b>\n\nDành đúng 1 phút để đọc báo cáo phân tích mới nhất về uTerra & tiềm năng vận tải dây trên hovanloi.net.\n\n⏱ <b>Luật chơi:</b> Bấm link -> Đọc bài -> Quay lại bấm xác nhận.\n🎁 <b>Phần thưởng:</b> +5 SWGT/ngày.`;
+        // Lưu lại mốc thời gian khi người dùng mở bảng nhiệm vụ để chống gian lận
+        user.readTaskStartTime = new Date();
+        await user.save();
+
+        const task2Text = `🧠 <b>NẠP KIẾN THỨC & LAN TỎA (Nhiệm vụ hàng ngày)</b>\n\n` +
+                          `<b>1. NGUỒN VỐN TRÍ TUỆ (+10 SWGT)</b>\n` +
+                          `⏱ Yêu cầu: Bấm đọc 1 bài viết bất kỳ trên web đủ 60 giây.\n\n` +
+                          `<b>2. SỨ GIẢ LAN TỎA (+10 SWGT)</b>\n` +
+                          `📢 Yêu cầu: Chia sẻ dự án lên các nhóm chat hoặc mạng xã hội.\n\n` +
+                          `<i>Lưu ý: Hệ thống đếm giờ tự động. Nếu chưa đủ 60s sẽ không thể nhận thưởng!</i>`;
         
         bot.sendMessage(chatId, task2Text, { 
             parse_mode: 'HTML', 
             reply_markup: { inline_keyboard: [
-                [{ text: "📖 BƯỚC 1: ĐỌC BÀI NGAY", url: "https://hovanloi.net" }],
-                [{ text: "🎁 BƯỚC 2: NHẬN THƯỞNG (+5 SWGT)", callback_data: 'claim_daily' }]
+                [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", url: "https://hovanloi.net" }],
+                [{ text: "🎁 NHẬN THƯỞNG ĐỌC BÀI (+10 SWGT)", callback_data: 'claim_read' }],
+                [{ text: "📢 CHIA SẺ LÊN NHÓM CHAT", url: "https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot&text=Cơ%20hội%20nhận%20SWGT%20miễn%20phí%20từ%20Cộng%20Đồng%20SWC!" }],
+                [{ text: "🎁 NHẬN THƯỞNG CHIA SẺ (+10 SWGT)", callback_data: 'claim_share' }]
             ] } 
         });
     } 
     
-    // --- XÁC NHẬN NHẬN THƯỞNG HÀNG NGÀY ---
-    else if (data === 'claim_daily') {
+    // --- XÁC NHẬN NHẬN THƯỞNG ĐỌC BÀI (CHECK 60 GIÂY) ---
+    else if (data === 'claim_read') {
         const now = new Date();
-        const lastTask = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
+        const startTime = user.readTaskStartTime ? new Date(user.readTaskStartTime) : now;
+        const timeSpent = (now - startTime) / 1000; // Đổi ra giây
         
-        // Kiểm tra xem đã qua 24 giờ kể từ lần cuối nhận chưa
+        const lastTask = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
         const diffInHours = Math.abs(now - lastTask) / 36e5;
         
-        if (diffInHours >= 24) {
-            user.balance += 5;
+        if (diffInHours < 24) {
+            const waitHours = Math.ceil(24 - diffInHours);
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng đọc bài hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
+        } else if (timeSpent < 60) {
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Bạn chưa đọc đủ 1 phút! Hãy nán lại trang web lâu hơn nhé!`, show_alert: true });
+        } else {
+            user.balance += 10;
             user.lastDailyTask = now;
             await user.save();
-            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Bạn đã đọc bài và nhận thành công +5 SWGT hôm nay!", show_alert: true });
-        } else {
+            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Bạn đã nhận thành công +10 SWGT cho nhiệm vụ đọc bài!", show_alert: true });
+        }
+    }
+
+    // --- XÁC NHẬN NHẬN THƯỞNG CHIA SẺ ---
+    else if (data === 'claim_share') {
+        const now = new Date();
+        const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
+        const diffInHours = Math.abs(now - lastShare) / 36e5;
+        
+        if (diffInHours < 24) {
             const waitHours = Math.ceil(24 - diffInHours);
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng hôm nay rồi! Vui lòng quay lại sau ${waitHours} tiếng nữa nhé.`, show_alert: true });
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng chia sẻ hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
+        } else {
+            user.balance += 10;
+            user.lastShareTask = now;
+            await user.save();
+            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Cảm ơn bạn đã lan tỏa dự án! +10 SWGT đã được cộng vào ví.", show_alert: true });
         }
     }
 
@@ -235,7 +295,8 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
     }
 
-    if (data !== 'check_join' && data !== 'claim_daily') {
+    // Bỏ qua loading cho các nút có thông báo Alert riêng
+    if (!['check_join', 'claim_read', 'claim_share'].includes(data)) {
         bot.answerCallbackQuery(callbackQuery.id);
     }
 });
