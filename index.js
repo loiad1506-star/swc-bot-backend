@@ -17,7 +17,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('✅ Đã kết nối thành công với kho dữ liệu MongoDB!'))
     .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 
-// --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG (Cập nhật thêm lưu số tin nhắn) ---
+// --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG ---
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
     firstName: { type: String, default: '' }, 
@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     lastDailyTask: { type: Date, default: null }, 
     readTaskStartTime: { type: Date, default: null }, 
     lastShareTask: { type: Date, default: null },
-    groupMessageCount: { type: Number, default: 0 } // BỔ SUNG: Theo dõi số tin nhắn trên nhóm
+    groupMessageCount: { type: Number, default: 0 }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -53,7 +53,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(userData));
     } 
-    // Lưu ví và thưởng
+    // Lưu ví và thưởng 10 SWGT
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -66,12 +66,34 @@ const server = http.createServer(async (req, res) => {
                     if (!user.walletRewardDone) {
                         user.balance += 10;
                         user.walletRewardDone = true;
-                        bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã kết nối ví thành công và được cộng <b>+10 SWGT</b> vào tài khoản!`, {parse_mode: 'HTML'});
+                        bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã kết nối ví thành công và được cộng <b>+10 SWGT</b> vào tài khoản!`, {parse_mode: 'HTML'}).catch(()=>{});
                     }
                     await user.save();
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true }));
+            } catch (e) { res.writeHead(400); res.end(); }
+        });
+    } 
+    // API Quy đổi thưởng VIP (O2O)
+    else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                const cost = data.cost;
+                let user = await User.findOne({ userId: data.userId });
+                
+                if (user && user.balance >= cost) {
+                    user.balance -= cost;
+                    await user.save();
+                    bot.sendMessage(data.userId, `🎉 <b>ĐỔI THƯỞNG THÀNH CÔNG!</b>\nBạn đã sử dụng ${cost} SWGT để đổi quyền lợi: <b>${data.itemName}</b>.\nQuản trị viên sẽ sớm liên hệ với bạn để cấp quyền!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, balance: user.balance }));
+                } else {
+                    res.writeHead(400); res.end(JSON.stringify({ success: false, message: 'Không đủ số dư' }));
+                }
             } catch (e) { res.writeHead(400); res.end(); }
         });
     } else {
@@ -114,16 +136,9 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             userId: userId, firstName: firstName, lastName: lastName, username: username 
         });
         
-        // --- XỬ LÝ REF ---
+        // --- CHỈ LƯU ID NGƯỜI MỜI (CHƯA THƯỞNG VỘI) ---
         if (refId && refId !== userId) {
             user.referredBy = refId;
-            let referrer = await User.findOne({ userId: refId });
-            if (referrer) {
-                referrer.balance += 20; 
-                referrer.referralCount += 1;
-                await referrer.save();
-                bot.sendMessage(refId, `🔥 <b>TING TING!</b>\nCó NĐT (${firstName}) vừa tham gia.\n🎁 Bạn được thưởng nóng <b>+20 SWGT</b>!`, {parse_mode: 'HTML'});
-            }
         }
     } else {
         user.firstName = firstName; user.lastName = lastName; user.username = username;
@@ -149,72 +164,39 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
         }
     };
     
-    // ĐỔI LỆNH GỬI TIN NHẮN THÀNH LỆNH GỬI ẢNH KÈM TIN NHẮN
     bot.sendPhoto(chatId, './Bia.jpg', {
         caption: welcomeText,
         parse_mode: 'HTML',
         reply_markup: opts.reply_markup
     }).catch(err => {
-        // Cầu chì an toàn: Lỡ file ảnh bị lỗi hoặc sai tên, bot vẫn gửi được chữ để không bị sập
-        console.error("Lỗi gửi ảnh Bia.jpg:", err.message);
         bot.sendMessage(chatId, welcomeText, opts);
     });
-});        
-        // --- XỬ LÝ REF ---
-        if (refId && refId !== userId) {
-            user.referredBy = refId;
-            let referrer = await User.findOne({ userId: refId });
-            if (referrer) {
-                referrer.balance += 20; 
-                referrer.referralCount += 1;
-                await referrer.save();
-                bot.sendMessage(refId, `🔥 <b>TING TING!</b>\nCó NĐT (${firstName}) vừa tham gia.\n🎁 Bạn được thưởng nóng <b>+20 SWGT</b>!`, {parse_mode: 'HTML'});
-            }
-        }
-    } else {
-        user.firstName = firstName; user.lastName = lastName; user.username = username;
-    }
-    await user.save();
-    
-    const opts = {
-        parse_mode: 'HTML',
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
-                [{ text: "2️⃣ Nhiệm vụ Kiến thức", callback_data: 'task_2' }],
-                [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
-                [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
-                [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
-            ]
-        }
-    };
-    
-    let welcomeText = `👋 <b>Chào mừng bạn đến với Cộng Đồng SWC Việt Nam!</b> 🚀\n\nBạn đã bước chân vào trung tâm kết nối của những nhà đầu tư tiên phong. Cơ hội sở hữu trước token SWGT và đón đầu xu hướng công nghệ giao thông uST đang ở ngay trước mắt, nhưng số lượng thì có hạn!\n\n🎁 <b>Quà tặng Tân Binh:</b> Nhận ngay những đồng SWGT đầu tiên hoàn toàn miễn phí.\n\n👇 <b>HÀNH ĐỘNG NGAY:</b> Bấm nút <b>"MỞ ỨNG DỤNG SWC NGAY"</b> bên dưới để kích hoạt ví và gia tăng tài sản!`;
-    
-    if (isNewUser && refId && refId !== userId) {
-        welcomeText = `🎉 <i>Bạn được mời bởi thành viên ID: ${refId}</i>\n\n` + welcomeText;
-    }
-    bot.sendMessage(chatId, welcomeText, opts);
 });
 
-// --- 4. CAMERA CHẠY NGẦM: LỌC BOT, ĐẾM TIN NHẮN & CỘNG TIỀN (CHAT-TO-EARN) ---
+// --- 4. CAMERA CHẠY NGẦM: LỌC BOT, ĐẾM TIN NHẮN, TRỪ TIỀN RỜI NHÓM ---
 bot.on('message', async (msg) => {
-    // Chỉ hoạt động khi tin nhắn nằm trong nhóm
-    if (msg.chat.type === 'private') return;
-    
-    // CHỐNG CLONE/BOT: Nếu người gửi là Bot -> Bỏ qua ngay lập tức
-    if (msg.from.is_bot) return;
+    // 4.1. BẪY RỜI NHÓM (Deduct points if left)
+    if (msg.left_chat_member) {
+        const leftUserId = msg.left_chat_member.id.toString();
+        let leftUser = await User.findOne({ userId: leftUserId });
+        if (leftUser && leftUser.task1Done) {
+            leftUser.balance = Math.max(0, leftUser.balance - 20); // Trừ 20 SWGT
+            leftUser.task1Done = false; // Bắt làm lại nhiệm vụ
+            await leftUser.save();
+            bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO!</b>\nHệ thống phát hiện bạn đã rời khỏi Cộng Đồng SWC. Tài khoản của bạn đã bị trừ <b>20 SWGT</b>. Hãy tham gia lại để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
+        }
+        return; // Dừng xử lý tại đây
+    }
 
-    // Đảm bảo chỉ bắt tin nhắn ở đúng Nhóm Thảo Luận của bạn
+    // 4.2. CHAT-TO-EARN (Chỉ hoạt động trong Nhóm)
+    if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
 
-    // LỌC ADMIN: Bỏ qua không tính điểm cho Admin/Creator
     try {
         const member = await bot.getChatMember(msg.chat.id, msg.from.id);
         if (['administrator', 'creator'].includes(member.status)) return;
-    } catch(e) { console.error("Lỗi check admin:", e.message); }
+    } catch(e) {}
 
-    // Chỉ đếm tin nhắn có văn bản
     if (!msg.text) return;
 
     const userId = msg.from.id.toString();
@@ -229,35 +211,22 @@ bot.on('message', async (msg) => {
         });
     }
 
-    // 1. Tăng bộ đếm để hoàn thành nhiệm vụ Tân Binh (Yêu cầu 2 tin)
-    user.groupMessageCount += 1;
+    user.groupMessageCount += 1; // Tăng bộ đếm xác minh
 
-    // 2. Chat-To-Earn: Tin nhắn từ 10 ký tự trở lên -> Cộng 0.3 SWGT
     if (msg.text.trim().length >= 10) {
-        // Cộng 0.3 và làm tròn 2 chữ số thập phân để tránh lỗi của JavaScript
         user.balance = Math.round((user.balance + 0.3) * 100) / 100;
     }
-
     await user.save();
 });
 
-// --- 5. XỬ LÝ NÚT BẤM (Cập nhật điều kiện Tân Binh) ---
+// --- 5. XỬ LÝ NÚT BẤM (Nâng cấp trả thưởng F1 & Milestone) ---
 bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const userId = callbackQuery.from.id.toString(); 
     const data = callbackQuery.data;
 
-    const firstName = callbackQuery.from.first_name || '';
-    const lastName = callbackQuery.from.last_name || '';
-    const username = callbackQuery.from.username ? `@${callbackQuery.from.username}` : '';
-
     let user = await User.findOne({ userId: userId });
-    if (!user) {
-        user = new User({ userId: userId, firstName: firstName, lastName: lastName, username: username });
-    } else {
-        user.firstName = firstName; user.lastName = lastName; user.username = username;
-    }
-    await user.save();
+    if (!user) return bot.answerCallbackQuery(callbackQuery.id);
 
     // --- NÚT 1: TÂN BINH ---
     if (data === 'task_1') {
@@ -271,19 +240,17 @@ bot.on('callback_query', async (callbackQuery) => {
                 ]
             }
         };
-        // Đã cập nhật Text hướng dẫn luật 2 tin nhắn
-        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n2️⃣ <b>Gửi ít nhất 2 tin nhắn chào hỏi</b> lên Group để xác minh bạn là NĐT thật.\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số. Cố gắng lên nhé!</i>`;
+        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n2️⃣ <b>Gửi ít nhất 2 tin nhắn chào hỏi</b> lên Group để xác minh NĐT thật.\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
         bot.sendMessage(chatId, task1Text, opts);
     } 
     
-    // --- KIỂM TRA THAM GIA NHÓM (CẬP NHẬT KIỂM TRA 2 TIN NHẮN) ---
+    // --- KIỂM TRA THAM GIA NHÓM ---
     else if (data === 'check_join') {
         const status = await checkMembership(userId);
         if (status.error) {
             bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bot chưa được cấp quyền Admin trong Nhóm/Kênh!", show_alert: true });
         } else if (status.inChannel && status.inGroup) {
             
-            // KIỂM TRA ĐIỀU KIỆN 2 TIN NHẮN CHÁT TRONG NHÓM
             if (user.groupMessageCount < 2) {
                 bot.answerCallbackQuery(callbackQuery.id, { 
                     text: `❌ TÀI KHOẢN CHƯA XÁC MINH!\n\nBạn đã vào nhóm nhưng chưa gửi đủ 2 tin nhắn. Bạn mới gửi: ${user.groupMessageCount}/2.\n\nHãy vào Nhóm nhắn tin chào hỏi rồi quay lại kiểm tra nhé!`, 
@@ -291,10 +258,32 @@ bot.on('callback_query', async (callbackQuery) => {
                 });
             } else {
                 if (!user.task1Done) {
+                    // 1. Thưởng cho người làm nhiệm vụ
                     user.balance += 20; 
                     user.task1Done = true;
                     await user.save();
                     
+                    // 2. KÍCH HOẠT THƯỞNG CHO NGƯỜI GIỚI THIỆU (F1)
+                    if (user.referredBy) {
+                        let referrer = await User.findOne({ userId: user.referredBy });
+                        if (referrer) {
+                            referrer.balance += 20; 
+                            referrer.referralCount += 1;
+                            
+                            let milestoneMsg = "";
+                            if (referrer.referralCount === 10) {
+                                referrer.balance += 50;
+                                milestoneMsg = "\n🌟 <b>THƯỞNG MỐC 10 NGƯỜI:</b> +50 SWGT!";
+                            } else if (referrer.referralCount === 50) {
+                                referrer.balance += 300;
+                                milestoneMsg = "\n👑 <b>THƯỞNG MỐC 50 NGƯỜI:</b> +300 SWGT!";
+                            }
+                            await referrer.save();
+                            
+                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng <b>+20 SWGT</b>!${milestoneMsg}`, {parse_mode: 'HTML'}).catch(()=>{});
+                        }
+                    }
+
                     bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Xác minh thành công, +20 SWGT.", show_alert: true });
                     bot.sendMessage(chatId, "🔥 <b>XÁC MINH TÀI KHOẢN THÀNH CÔNG!</b>\n\nHệ thống đã ghi nhận bạn là Nhà đầu tư thật.\n🎁 <b>Phần thưởng:</b> +20 SWGT.\n\n👉 <i>Bấm mở App ngay để kết nối ví nhận thêm +10 SWGT nữa nhé!</i>", { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]] }});
                 } else {
@@ -306,7 +295,7 @@ bot.on('callback_query', async (callbackQuery) => {
         }
     }
     
-    // ... (Toàn bộ các logic nút Task_2, Task_3, Task_4 cũ của bạn được GIỮ NGUYÊN HOÀN TOÀN TỪ ĐÂY) ...
+    // --- NÚT 2: KIẾN THỨC & CHIA SẺ ---
     else if (data === 'task_2') {
         user.readTaskStartTime = new Date();
         await user.save();
@@ -314,7 +303,7 @@ bot.on('callback_query', async (callbackQuery) => {
         const task2Text = `🧠 <b>NẠP KIẾN THỨC & LAN TỎA (Nhiệm vụ hàng ngày)</b>\n\n` +
                           `<b>1. NGUỒN VỐN TRÍ TUỆ (+10 SWGT)</b>\n` +
                           `⏱ Yêu cầu: Bấm đọc 1 bài viết bất kỳ trên web đủ 60 giây.\n\n` +
-                          `<b>2. SỨ GIẢ LAN TỎA (+10 SWGT)</b>\n` +
+                          `<b>2. SỨ GIẢ LAN TỎA (+15 SWGT)</b>\n` +
                           `📢 Yêu cầu: Chia sẻ dự án lên các nhóm chat hoặc mạng xã hội.\n\n` +
                           `<i>Lưu ý: Hệ thống đếm giờ tự động. Nếu chưa đủ 60s sẽ không thể nhận thưởng!</i>`;
         
@@ -323,8 +312,8 @@ bot.on('callback_query', async (callbackQuery) => {
             reply_markup: { inline_keyboard: [
                 [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", url: "https://hovanloi.net" }],
                 [{ text: "🎁 NHẬN THƯỞNG ĐỌC BÀI (+10 SWGT)", callback_data: 'claim_read' }],
-                [{ text: "📢 CHIA SẺ LÊN NHÓM CHAT", url: "https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot&text=Cơ%20hội%20nhận%20SWGT%20miễn%20phí%20từ%20Cộng%20Đồng%20SWC!" }],
-                [{ text: "🎁 NHẬN THƯỞNG CHIA SẺ (+10 SWGT)", callback_data: 'claim_share' }]
+                [{ text: "📢 CHIA SẺ LÊN MXH / NHÓM CHAT", url: "https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot&text=Cơ%20hội%20nhận%20SWGT%20miễn%20phí%20từ%20Cộng%20Đồng%20SWC!" }],
+                [{ text: "🎁 NHẬN THƯỞNG CHIA SẺ (+15 SWGT)", callback_data: 'claim_share' }]
             ] } 
         });
     } 
@@ -359,15 +348,15 @@ bot.on('callback_query', async (callbackQuery) => {
             const waitHours = Math.ceil(24 - diffInHours);
             bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng chia sẻ hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
         } else {
-            user.balance += 10;
+            user.balance += 15; // TĂNG LÊN 15 SWGT THEO YÊU CẦU
             user.lastShareTask = now;
             await user.save();
-            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Cảm ơn bạn đã lan tỏa dự án! +10 SWGT đã được cộng vào ví.", show_alert: true });
+            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Cảm ơn bạn đã lan tỏa dự án! +15 SWGT đã được cộng vào ví.", show_alert: true });
         }
     }
 
     else if (data === 'task_3') {
-        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n💎 Nhận ngay <b>+20 SWGT</b> cho mỗi lượt mời thành công. Hãy rải link ngay hôm nay trước khi thị trường bão hòa!`;
+        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n💎 Nhận ngay <b>+20 SWGT</b> cho mỗi lượt mời thành công. Hãy rải link ngay hôm nay trước khi thị trường bão hòa!\n\n👑 <b>THƯỞNG MỐC ĐẶC BIỆT:</b>\n- Đạt 10 lượt mời: Thưởng nóng <b>+50 SWGT</b>\n- Đạt 50 lượt mời: Thưởng nóng <b>+300 SWGT</b>`;
         bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
     } 
     
