@@ -130,6 +130,52 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     }
     await user.save();
     
+    let welcomeText = `👋 <b>Chào mừng bạn đến với Cộng Đồng SWC Việt Nam!</b> 🚀\n\nBạn đã bước chân vào trung tâm kết nối của những nhà đầu tư tiên phong. Cơ hội sở hữu trước token SWGT và đón đầu xu hướng công nghệ giao thông uST đang ở ngay trước mắt, nhưng số lượng thì có hạn!\n\n🎁 <b>Quà tặng Tân Binh:</b> Nhận ngay những đồng SWGT đầu tiên hoàn toàn miễn phí.\n\n👇 <b>HÀNH ĐỘNG NGAY:</b> Bấm nút <b>"MỞ ỨNG DỤNG SWC NGAY"</b> bên dưới để kích hoạt ví và gia tăng tài sản!`;
+    
+    if (isNewUser && refId && refId !== userId) {
+        welcomeText = `🎉 <i>Bạn được mời bởi thành viên ID: ${refId}</i>\n\n` + welcomeText;
+    }
+
+    const opts = {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
+                [{ text: "2️⃣ Nhiệm vụ Kiến thức", callback_data: 'task_2' }],
+                [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
+                [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
+                [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
+            ]
+        }
+    };
+    
+    // ĐỔI LỆNH GỬI TIN NHẮN THÀNH LỆNH GỬI ẢNH KÈM TIN NHẮN
+    bot.sendPhoto(chatId, './Bia.jpg', {
+        caption: welcomeText,
+        parse_mode: 'HTML',
+        reply_markup: opts.reply_markup
+    }).catch(err => {
+        // Cầu chì an toàn: Lỡ file ảnh bị lỗi hoặc sai tên, bot vẫn gửi được chữ để không bị sập
+        console.error("Lỗi gửi ảnh Bia.jpg:", err.message);
+        bot.sendMessage(chatId, welcomeText, opts);
+    });
+});        
+        // --- XỬ LÝ REF ---
+        if (refId && refId !== userId) {
+            user.referredBy = refId;
+            let referrer = await User.findOne({ userId: refId });
+            if (referrer) {
+                referrer.balance += 20; 
+                referrer.referralCount += 1;
+                await referrer.save();
+                bot.sendMessage(refId, `🔥 <b>TING TING!</b>\nCó NĐT (${firstName}) vừa tham gia.\n🎁 Bạn được thưởng nóng <b>+20 SWGT</b>!`, {parse_mode: 'HTML'});
+            }
+        }
+    } else {
+        user.firstName = firstName; user.lastName = lastName; user.username = username;
+    }
+    await user.save();
+    
     const opts = {
         parse_mode: 'HTML',
         reply_markup: {
