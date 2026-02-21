@@ -17,7 +17,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('✅ Đã kết nối thành công với kho dữ liệu MongoDB!'))
     .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 
-// --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG ---
+// --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG (Thêm Ngày điểm danh) ---
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
     firstName: { type: String, default: '' }, 
@@ -32,11 +32,12 @@ const userSchema = new mongoose.Schema({
     lastDailyTask: { type: Date, default: null }, 
     readTaskStartTime: { type: Date, default: null }, 
     lastShareTask: { type: Date, default: null },
-    groupMessageCount: { type: Number, default: 0 }
+    groupMessageCount: { type: Number, default: 0 },
+    lastCheckInDate: { type: Date, default: null } // BỔ SUNG: Lưu ngày điểm danh
 });
 const User = mongoose.model('User', userSchema);
 
-// --- 1. API SERVER CHO MINI APP ---
+// --- 1. API SERVER CHO MINI APP (Nâng cấp) ---
 const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -45,7 +46,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
-    // Lấy thông tin user
+    // 1. API Lấy thông tin User
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
@@ -53,7 +54,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(userData));
     } 
-    // Lưu ví và thưởng 10 SWGT
+    // 2. API Lưu Ví
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -66,7 +67,7 @@ const server = http.createServer(async (req, res) => {
                     if (!user.walletRewardDone) {
                         user.balance += 10;
                         user.walletRewardDone = true;
-                        bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã kết nối ví thành công và được cộng <b>+10 SWGT</b> vào tài khoản!`, {parse_mode: 'HTML'}).catch(()=>{});
+                        bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã kết nối ví thành công, +10 SWGT!`, {parse_mode: 'HTML'}).catch(()=>{});
                     }
                     await user.save();
                 }
@@ -75,28 +76,64 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     } 
-    // API Quy đổi thưởng VIP (O2O)
+    // 3. API Đổi Quà VIP (O2O)
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', async () => {
             try {
                 const data = JSON.parse(body);
-                const cost = data.cost;
                 let user = await User.findOne({ userId: data.userId });
-                
-                if (user && user.balance >= cost) {
-                    user.balance -= cost;
+                if (user && user.balance >= data.cost) {
+                    user.balance -= data.cost;
                     await user.save();
-                    bot.sendMessage(data.userId, `🎉 <b>ĐỔI THƯỞNG THÀNH CÔNG!</b>\nBạn đã sử dụng ${cost} SWGT để đổi quyền lợi: <b>${data.itemName}</b>.\nQuản trị viên sẽ sớm liên hệ với bạn để cấp quyền!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    bot.sendMessage(data.userId, `🎉 <b>ĐỔI THƯỞNG THÀNH CÔNG!</b>\nQuản trị viên sẽ liên hệ để trao quyền lợi: <b>${data.itemName}</b>.`, {parse_mode: 'HTML'}).catch(()=>{});
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, balance: user.balance }));
                 } else {
-                    res.writeHead(400); res.end(JSON.stringify({ success: false, message: 'Không đủ số dư' }));
+                    res.writeHead(400); res.end(JSON.stringify({ success: false }));
                 }
             } catch (e) { res.writeHead(400); res.end(); }
         });
-    } else {
+    }
+    // 4. API Điểm danh mỗi ngày (+2 SWGT)
+    else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (user) {
+                    const now = new Date();
+                    const lastCheckin = user.lastCheckInDate ? new Date(user.lastCheckInDate) : new Date(0);
+                    // So sánh xem đã qua ngày mới chưa
+                    if (lastCheckin.toDateString() !== now.toDateString()) {
+                        user.balance += 2; // Thưởng 2 SWGT
+                        user.lastCheckInDate = now;
+                        await user.save();
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, balance: user.balance, lastCheckInDate: now }));
+                        return;
+                    }
+                }
+                res.writeHead(400); res.end(JSON.stringify({ success: false, message: 'Hôm nay đã điểm danh' }));
+            } catch (e) { res.writeHead(400); res.end(); }
+        });
+    }
+    // 5. API Lấy Bảng xếp hạng Top 10
+    else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
+        try {
+            // Lấy 10 người có số lượt mời cao nhất
+            const topUsers = await User.find({ referralCount: { $gt: 0 } })
+                                       .sort({ referralCount: -1 })
+                                       .limit(10)
+                                       .select('firstName lastName referralCount');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(topUsers));
+        } catch (e) { res.writeHead(400); res.end(); }
+    }
+    else {
         res.writeHead(200); res.end('API SWC Online!\n');
     }
 });
