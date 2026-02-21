@@ -38,7 +38,11 @@ const userSchema = new mongoose.Schema({
     groupMessageCount: { type: Number, default: 0 },
     lastCheckInDate: { type: Date, default: null },
     youtubeTaskDone: { type: Boolean, default: false }, 
-    youtubeClickTime: { type: Date, default: null } 
+    youtubeClickTime: { type: Date, default: null },
+    // --- BỔ SUNG CÁC BIẾN CHỐNG GIAN LẬN MỚI ---
+    facebookTaskDone: { type: Boolean, default: false },
+    facebookClickTime: { type: Date, default: null },
+    shareClickTime: { type: Date, default: null }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -171,15 +175,13 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             userId: userId, firstName: firstName, lastName: lastName, username: username 
         });
         
-        // --- XỬ LÝ NGƯỜI MỜI (CẬP NHẬT ĐẾM NGƯỜI MỜI NGAY LẬP TỨC) ---
         if (refId && refId !== userId) {
             user.referredBy = refId;
             let referrer = await User.findOne({ userId: refId });
             if (referrer) {
                 referrer.balance += 10; 
-                referrer.referralCount += 1; // Tăng ngay lập tức để Mini App nhảy số
+                referrer.referralCount += 1; 
                 
-                // Xét mốc thưởng ngay khi có người mới bấm Start
                 let milestoneMsg = "";
                 if (referrer.referralCount === 10) {
                     referrer.balance += 50;
@@ -297,7 +299,6 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, task1Text, opts);
     } 
     
-    // --- KIỂM TRA THAM GIA NHÓM ---
     else if (data === 'check_join') {
         const status = await checkMembership(userId);
         if (status.error) {
@@ -318,7 +319,7 @@ bot.on('callback_query', async (callbackQuery) => {
                     if (user.referredBy) {
                         let referrer = await User.findOne({ userId: user.referredBy });
                         if (referrer) {
-                            referrer.balance += 10; // Chỉ cộng thêm tiền (số người đã đếm ở lúc Start)
+                            referrer.balance += 10; 
                             await referrer.save();
                             bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng thêm phần thưởng xác minh <b>+10 SWGT</b> (Đã hoàn tất 20 SWGT/người)!`, {parse_mode: 'HTML'}).catch(()=>{});
                         }
@@ -339,26 +340,30 @@ bot.on('callback_query', async (callbackQuery) => {
     else if (data === 'task_2') {
         const task2Text = `🧠 <b>NẠP KIẾN THỨC & LAN TỎA</b>\n\n` +
                           `<b>1. NGUỒN VỐN TRÍ TUỆ (+10 SWGT/Ngày)</b>\n` +
-                          `⏱ Bấm đọc 1 bài viết bất kỳ trên web đủ 60 giây.\n\n` +
+                          `⏱ Bấm đọc bài viết bất kỳ trên web đủ 60 giây.\n\n` +
                           `<b>2. SỨ GIẢ LAN TỎA (+15 SWGT/Ngày)</b>\n` +
-                          `📢 Chia sẻ dự án lên các mạng xã hội/nhóm chat.\n\n` +
-                          `▶️ <b>3. CỘNG ĐỒNG YOUTUBE (+20 SWGT - 1 Lần)</b>\n` +
-                          `🎥 Xem video mới nhất đủ 6 giây và Đăng ký kênh!`;
+                          `📢 Bấm nút Chia sẻ dự án đến bạn bè/nhóm.\n\n` +
+                          `▶️ <b>3. CỘNG ĐỒNG YOUTUBE (+5 SWGT - 1 Lần)</b>\n` + // Giảm thưởng Youtube
+                          `🎥 Bấm Xem video và đợi ít nhất 6 giây.\n\n` +
+                          `📘 <b>4. THEO DÕI FANPAGE (+5 SWGT - 1 Lần)</b>\n` + // Thêm FB task
+                          `👍 Bấm Mở Fanpage và nhấn Theo dõi.`;
         
         bot.sendMessage(chatId, task2Text, { 
             parse_mode: 'HTML', 
             reply_markup: { inline_keyboard: [
                 [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }],
                 [{ text: "🎁 NHẬN THƯỞNG ĐỌC BÀI", callback_data: 'claim_read' }],
-                [{ text: "▶️ XEM & ĐĂNG KÝ YOUTUBE", callback_data: 'go_youtube' }],
+                [{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }],
                 [{ text: "🎁 NHẬN THƯỞNG YOUTUBE", callback_data: 'claim_youtube' }],
-                [{ text: "📘 THEO DÕI FANPAGE", url: FACEBOOK_LINK }], 
-                [{ text: "📢 CHIA SẺ MXH", url: "https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot&text=Cơ%20hội%20nhận%20SWGT%20miễn%20phí%20từ%20Cộng%20Đồng%20SWC!" }],
+                [{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }], // Nút đi tới FB
+                [{ text: "🎁 NHẬN THƯỞNG FANPAGE", callback_data: 'claim_facebook' }], // Nút nhận thưởng FB
+                [{ text: "📢 CHIA SẺ MXH (Đợi 5s)", callback_data: 'go_share' }], // Nút đi tới Share
                 [{ text: "🎁 NHẬN THƯỞNG CHIA SẺ", callback_data: 'claim_share' }]
             ] } 
         });
     } 
 
+    // --- LOGIC ĐỌC BÀI VIẾT ---
     else if (data === 'go_read') {
         user.readTaskStartTime = new Date();
         await user.save();
@@ -380,7 +385,7 @@ bot.on('callback_query', async (callbackQuery) => {
             const waitHours = Math.ceil(24 - diffInHours);
             bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng đọc bài hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
         } else if (timeSpent < 60) {
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Bạn xem quá nhanh! Mới được ${Math.round(timeSpent)} giây. Vui lòng đọc đủ 60s!`, show_alert: true });
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Bạn thao tác quá nhanh! Mới được ${Math.round(timeSpent)} giây. Vui lòng đọc đủ 60s!`, show_alert: true });
         } else {
             user.balance += 10;
             user.lastDailyTask = now;
@@ -389,13 +394,14 @@ bot.on('callback_query', async (callbackQuery) => {
         }
     }
 
+    // --- LOGIC YOUTUBE ---
     else if (data === 'go_youtube') {
         if (user.youtubeTaskDone) {
             return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này rồi!", show_alert: true });
         }
         user.youtubeClickTime = new Date();
         await user.save();
-        bot.sendMessage(chatId, "▶️ <b>NHIỆM VỤ YOUTUBE (Bắt đầu tính giờ)</b>\n\nHãy bấm nút bên dưới mở YouTube. Đăng ký kênh và xem video ít nhất <b>6 giây</b> để thuật toán ghi nhận, sau đó quay lại đây bấm Nhận thưởng!", {
+        bot.sendMessage(chatId, "▶️ <b>NHIỆM VỤ YOUTUBE (Bắt đầu tính giờ)</b>\n\nHãy bấm nút bên dưới mở YouTube. Xem video ít nhất <b>6 giây</b> để hệ thống ghi nhận, sau đó quay lại đây bấm Nhận thưởng!", {
             parse_mode: 'HTML',
             reply_markup: { inline_keyboard: [[{ text: "👉 MỞ KÊNH YOUTUBE", url: YOUTUBE_LINK }]] }
         });
@@ -405,21 +411,70 @@ bot.on('callback_query', async (callbackQuery) => {
             return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã nhận phần thưởng YouTube này rồi!", show_alert: true });
         }
         if (!user.youtubeClickTime) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút XEM & ĐĂNG KÝ YOUTUBE ở bước trên!", show_alert: true });
+            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút XEM YOUTUBE ở bước trên!", show_alert: true });
         }
 
         const timeSpent = (new Date() - new Date(user.youtubeClickTime)) / 1000;
         if (timeSpent < 6) {
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thất bại! Bạn thao tác quá nhanh (${Math.round(timeSpent)} giây). Vui lòng xem video đủ 6 giây. Hãy làm lại nhé!`, show_alert: true });
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thất bại! Bạn thao tác quá nhanh (${Math.round(timeSpent)} giây). Vui lòng đợi đủ 6 giây rồi hãy bấm Nhận thưởng!`, show_alert: true });
         } else {
-            user.balance += 20; 
+            user.balance += 5; // Cập nhật: Thưởng 5 SWGT 
             user.youtubeTaskDone = true;
             await user.save();
-            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Xuất sắc! Hệ thống đã ghi nhận, +20 SWGT được cộng vào ví.", show_alert: true });
+            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Xuất sắc! Hệ thống đã ghi nhận, +5 SWGT được cộng vào ví.", show_alert: true });
         }
     }
 
+    // --- LOGIC FACEBOOK FANPAGE ---
+    else if (data === 'go_facebook') {
+        if (user.facebookTaskDone) {
+            return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã theo dõi Fanpage rồi!", show_alert: true });
+        }
+        user.facebookClickTime = new Date();
+        await user.save();
+        bot.sendMessage(chatId, "📘 <b>NHIỆM VỤ FANPAGE</b>\n\nHãy bấm nút bên dưới để mở Facebook. Nhấn Like/Theo dõi trang và nán lại khoảng <b>5 giây</b> trước khi quay lại nhận thưởng nhé!", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "👉 MỞ FANPAGE FACEBOOK", url: FACEBOOK_LINK }]] }
+        });
+    }
+    else if (data === 'claim_facebook') {
+        if (user.facebookTaskDone) {
+            return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã nhận phần thưởng Fanpage này rồi!", show_alert: true });
+        }
+        if (!user.facebookClickTime) {
+            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút THEO DÕI FANPAGE ở bước trên!", show_alert: true });
+        }
+
+        const timeSpent = (new Date() - new Date(user.facebookClickTime)) / 1000;
+        if (timeSpent < 5) { // Ép đợi 5s chống bấm đúp
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thất bại! Bạn thao tác quá nhanh. Vui lòng bấm mở trang và theo dõi trước khi nhận thưởng!`, show_alert: true });
+        } else {
+            user.balance += 5; 
+            user.facebookTaskDone = true;
+            await user.save();
+            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Xuất sắc! Cảm ơn bạn đã theo dõi Fanpage, +5 SWGT.", show_alert: true });
+        }
+    }
+
+    // --- LOGIC CHIA SẺ ---
+    else if (data === 'go_share') {
+        user.shareClickTime = new Date();
+        await user.save();
+        const shareUrl = "https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot&text=Cơ%20hội%20nhận%20SWGT%20miễn%20phí%20từ%20Cộng%20Đồng%20SWC!";
+        bot.sendMessage(chatId, "📢 <b>NHIỆM VỤ CHIA SẺ</b>\n\nHãy bấm nút bên dưới để chọn một người bạn hoặc một nhóm và chuyển tiếp tin nhắn. Hệ thống cần khoảng <b>5 giây</b> để quét hành vi, sau đó bạn quay lại đây để nhận thưởng!", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "👉 CHỌN NGƯỜI ĐỂ CHIA SẺ", url: shareUrl }]] }
+        });
+    }
     else if (data === 'claim_share') {
+        if (!user.shareClickTime) {
+            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút CHIA SẺ MXH ở bước trên!", show_alert: true });
+        }
+        const timeSpent = (new Date() - new Date(user.shareClickTime)) / 1000;
+        if (timeSpent < 5) { // Ép đợi 5s chống bấm đúp
+            return bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thao tác quá nhanh! Hệ thống chưa kịp ghi nhận. Vui lòng bấm nút chia sẻ và gửi cho bạn bè thật nhé.`, show_alert: true });
+        }
+
         const now = new Date();
         const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
         const diffInHours = Math.abs(now - lastShare) / 36e5;
@@ -445,7 +500,9 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
     }
 
-    if (!['check_join', 'claim_read', 'go_read', 'claim_share', 'go_youtube', 'claim_youtube'].includes(data)) {
+    // Danh sách các ID của callback query cần lọc
+    const validCallbacks = ['check_join', 'claim_read', 'go_read', 'claim_share', 'go_share', 'go_youtube', 'claim_youtube', 'go_facebook', 'claim_facebook', 'task_1', 'task_2', 'task_3', 'task_4'];
+    if (!validCallbacks.includes(data)) {
         bot.answerCallbackQuery(callbackQuery.id);
     }
 });
