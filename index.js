@@ -33,11 +33,11 @@ const userSchema = new mongoose.Schema({
     readTaskStartTime: { type: Date, default: null }, 
     lastShareTask: { type: Date, default: null },
     groupMessageCount: { type: Number, default: 0 },
-    lastCheckInDate: { type: Date, default: null } // BỔ SUNG: Lưu ngày điểm danh
+    lastCheckInDate: { type: Date, default: null } 
 });
 const User = mongoose.model('User', userSchema);
 
-// --- 1. API SERVER CHO MINI APP (Nâng cấp) ---
+// --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -107,9 +107,8 @@ const server = http.createServer(async (req, res) => {
                 if (user) {
                     const now = new Date();
                     const lastCheckin = user.lastCheckInDate ? new Date(user.lastCheckInDate) : new Date(0);
-                    // So sánh xem đã qua ngày mới chưa
                     if (lastCheckin.toDateString() !== now.toDateString()) {
-                        user.balance += 2; // Thưởng 2 SWGT
+                        user.balance += 2; 
                         user.lastCheckInDate = now;
                         await user.save();
                         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -124,7 +123,6 @@ const server = http.createServer(async (req, res) => {
     // 5. API Lấy Bảng xếp hạng Top 10
     else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
         try {
-            // Lấy 10 người có số lượt mời cao nhất
             const topUsers = await User.find({ referralCount: { $gt: 0 } })
                                        .sort({ referralCount: -1 })
                                        .limit(10)
@@ -155,7 +153,7 @@ async function checkMembership(userId) {
 // --- 3. XỬ LÝ LỆNH /start ---
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
-    if (msg.chat.type !== 'private') return; // Chặn spam trong nhóm
+    if (msg.chat.type !== 'private') return; 
 
     const userId = msg.from.id.toString();
     const refId = match[1].trim(); 
@@ -173,9 +171,18 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             userId: userId, firstName: firstName, lastName: lastName, username: username 
         });
         
-        // --- CHỈ LƯU ID NGƯỜI MỜI (CHƯA THƯỞNG VỘI) ---
+        // --- XỬ LÝ NGƯỜI MỜI (Cộng trước 10 SWGT & Bắn thông báo) ---
         if (refId && refId !== userId) {
             user.referredBy = refId;
+            
+            let referrer = await User.findOne({ userId: refId });
+            if (referrer) {
+                referrer.balance += 10; // Cộng trước 10 SWGT
+                await referrer.save();
+                
+                const notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\nĐã bấm vào link mời của bạn!\n\n🎁 Bạn vừa được cộng trước <b>10 SWGT</b>.\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" (tham gia nhóm và chat) để bạn được cộng thêm <b>10 SWGT</b> nữa nhé!`;
+                bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
+            }
         }
     } else {
         user.firstName = firstName; user.lastName = lastName; user.username = username;
@@ -212,20 +219,18 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 
 // --- 4. CAMERA CHẠY NGẦM: LỌC BOT, ĐẾM TIN NHẮN, TRỪ TIỀN RỜI NHÓM ---
 bot.on('message', async (msg) => {
-    // 4.1. BẪY RỜI NHÓM (Deduct points if left)
     if (msg.left_chat_member) {
         const leftUserId = msg.left_chat_member.id.toString();
         let leftUser = await User.findOne({ userId: leftUserId });
         if (leftUser && leftUser.task1Done) {
-            leftUser.balance = Math.max(0, leftUser.balance - 20); // Trừ 20 SWGT
-            leftUser.task1Done = false; // Bắt làm lại nhiệm vụ
+            leftUser.balance = Math.max(0, leftUser.balance - 20); 
+            leftUser.task1Done = false; 
             await leftUser.save();
             bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO!</b>\nHệ thống phát hiện bạn đã rời khỏi Cộng Đồng SWC. Tài khoản của bạn đã bị trừ <b>20 SWGT</b>. Hãy tham gia lại để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
         }
-        return; // Dừng xử lý tại đây
+        return; 
     }
 
-    // 4.2. CHAT-TO-EARN (Chỉ hoạt động trong Nhóm)
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
 
@@ -248,7 +253,7 @@ bot.on('message', async (msg) => {
         });
     }
 
-    user.groupMessageCount += 1; // Tăng bộ đếm xác minh
+    user.groupMessageCount += 1; 
 
     if (msg.text.trim().length >= 10) {
         user.balance = Math.round((user.balance + 0.3) * 100) / 100;
@@ -304,8 +309,8 @@ bot.on('callback_query', async (callbackQuery) => {
                     if (user.referredBy) {
                         let referrer = await User.findOne({ userId: user.referredBy });
                         if (referrer) {
-                            referrer.balance += 20; 
-                            referrer.referralCount += 1;
+                            referrer.balance += 10; // CỘNG NỐT 10 SWGT CUỐI CÙNG
+                            referrer.referralCount += 1; // Chỉ khi làm xong mới tính là 1 ref thành công
                             
                             let milestoneMsg = "";
                             if (referrer.referralCount === 10) {
@@ -317,7 +322,7 @@ bot.on('callback_query', async (callbackQuery) => {
                             }
                             await referrer.save();
                             
-                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng <b>+20 SWGT</b>!${milestoneMsg}`, {parse_mode: 'HTML'}).catch(()=>{});
+                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng thêm <b>+10 SWGT</b> (Đã hoàn tất 20 SWGT/người)!${milestoneMsg}`, {parse_mode: 'HTML'}).catch(()=>{});
                         }
                     }
 
@@ -385,7 +390,7 @@ bot.on('callback_query', async (callbackQuery) => {
             const waitHours = Math.ceil(24 - diffInHours);
             bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng chia sẻ hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
         } else {
-            user.balance += 15; // TĂNG LÊN 15 SWGT THEO YÊU CẦU
+            user.balance += 15; 
             user.lastShareTask = now;
             await user.save();
             bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Cảm ơn bạn đã lan tỏa dự án! +15 SWGT đã được cộng vào ví.", show_alert: true });
