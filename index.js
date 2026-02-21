@@ -9,7 +9,7 @@ const mongoURI = process.env.MONGODB_URI;
 const bot = new TelegramBot(token, {polling: true});
 const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
 
-const ADMIN_ID = '507318519'; // ID của anh Hồ Văn Lợi để nhận thông báo rút tiền/đổi quà
+const ADMIN_ID = '507318519'; // ID của anh Hồ Văn Lợi
 const CHANNEL_USERNAME = '@swc_capital_vn';
 const GROUP_USERNAME = '@swc_capital_chat';
 
@@ -42,7 +42,9 @@ const userSchema = new mongoose.Schema({
     youtubeClickTime: { type: Date, default: null },
     facebookTaskDone: { type: Boolean, default: false },
     facebookClickTime: { type: Date, default: null },
-    shareClickTime: { type: Date, default: null }
+    shareClickTime: { type: Date, default: null },
+    milestone10: { type: Boolean, default: false }, // Biến theo dõi mốc 10 người
+    milestone50: { type: Boolean, default: false }  // Biến theo dõi mốc 50 người
 });
 const User = mongoose.model('User', userSchema);
 
@@ -55,13 +57,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
+    // API: LẤY THÔNG TIN USER (Gửi kèm trạng thái mốc)
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
         if (!userData) userData = { balance: 0, wallet: '', referralCount: 0 };
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(userData));
+        res.end(JSON.stringify({ ...userData._doc }));
     } 
+    // API: LƯU VÍ
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -83,7 +87,31 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     } 
-    // API: ĐỔI QUÀ (TÍCH HỢP BÁO CÁO ADMIN TỪ CODE MỚI)
+    // API: TỰ BẤM NHẬN THƯỞNG MỐC 10 & 50
+    else if (parsedUrl.pathname === '/api/claim-milestone' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) return res.writeHead(400), res.end();
+
+                if (data.milestone === 10 && user.referralCount >= 10 && !user.milestone10) {
+                    user.balance += 50; user.milestone10 = true;
+                } else if (data.milestone === 50 && user.referralCount >= 50 && !user.milestone50) {
+                    user.balance += 300; user.milestone50 = true;
+                } else {
+                    return res.writeHead(400), res.end(JSON.stringify({ success: false, message: "Chưa đủ điều kiện hoặc đã nhận rồi!" }));
+                }
+                
+                await user.save();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, balance: user.balance }));
+            } catch (e) { res.writeHead(400); res.end(); }
+        });
+    }
+    // API: ĐỔI QUÀ VIP
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -95,23 +123,19 @@ const server = http.createServer(async (req, res) => {
                     user.balance -= data.cost;
                     await user.save();
                     
-                    // 1. Thông báo "Đang xử lý" cho User
                     const userNotify = `⏳ <b>YÊU CẦU ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu quyền lợi của bạn đang được xử lý: <b>${data.itemName}</b>\n💎 Phí đổi: ${data.cost} SWGT\n\nAdmin sẽ kiểm tra và hoàn tất cho bạn trong giây lát!`;
                     bot.sendMessage(data.userId, userNotify, {parse_mode: 'HTML'}).catch(()=>{});
                     
-                    // 2. Báo cáo cho Admin Lợi
-                    const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💎 Quà: <b>${data.itemName}</b>\n🏦 Ví: <code>${user.wallet || 'Chưa cập nhật'}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
+                    const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💎 Quà: <b>${data.itemName}</b>\n🏦 Ví: <code>${user.wallet || 'Chưa có'}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
                     bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' }).catch(()=>{});
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, balance: user.balance }));
-                } else {
-                    res.writeHead(400); res.end(JSON.stringify({ success: false }));
-                }
+                } else { res.writeHead(400); res.end(JSON.stringify({ success: false })); }
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: RÚT TIỀN (TÍCH HỢP TỪ CODE MỚI)
+    // API: YÊU CẦU RÚT TIỀN (THEO SỐ LƯỢNG NHẬP)
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -119,24 +143,24 @@ const server = http.createServer(async (req, res) => {
             try {
                 const data = JSON.parse(body);
                 let user = await User.findOne({ userId: data.userId });
-                if (user && user.balance >= 50) {
-                    const withdrawAmount = user.balance;
-                    user.balance = 0; 
+                const withdrawAmount = Number(data.amount); // Lấy số lượng từ App
+
+                if (user && user.balance >= withdrawAmount && withdrawAmount >= 50) {
+                    user.balance -= withdrawAmount; 
                     await user.save();
                     
-                    // 1. Thông báo cho User
-                    bot.sendMessage(data.userId, `⏳ <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> của bạn đã được gửi đi. Hệ thống đang phê duyệt!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    bot.sendMessage(data.userId, `⏳ <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> của bạn đang được xử lý.\n🏦 Ví nhận (ERC20): <code>${user.wallet}</code>\n\nVui lòng đợi Admin phê duyệt!`, {parse_mode: 'HTML'}).catch(()=>{});
                     
-                    // 2. Báo cáo Admin
-                    const reportWithdraw = `🚨 <b>YÊU CẦU RÚT TIỀN</b>\n\n👤 Người rút: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n🏦 Ví: <code>${user.wallet || 'Chưa cập nhật'}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
+                    const reportWithdraw = `🚨 <b>YÊU CẦU RÚT TIỀN</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n🏦 Ví ERC20: <code>${user.wallet}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
                     bot.sendMessage(ADMIN_ID, reportWithdraw, { parse_mode: 'HTML' }).catch(()=>{});
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, balance: 0 }));
-                } else { res.writeHead(400); res.end(); }
+                    res.end(JSON.stringify({ success: true, balance: user.balance }));
+                } else { res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Số dư không đủ hoặc chưa đạt mức tối thiểu!" })); }
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
+    // API: ĐIỂM DANH
     else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -160,21 +184,17 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
+    // API: BẢNG XẾP HẠNG
     else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
         try {
-            const topUsers = await User.find({ referralCount: { $gt: 0 } })
-                                       .sort({ referralCount: -1 })
-                                       .limit(10)
-                                       .select('firstName lastName referralCount');
+            const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10).select('firstName lastName referralCount');
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(topUsers));
         } catch (e) { res.writeHead(400); res.end(); }
     }
-    else {
-        res.writeHead(200); res.end('API SWC Online!\n');
-    }
+    else { res.writeHead(200); res.end('API Online'); }
 });
-server.listen(process.env.PORT || 3000, () => console.log(`[HỆ THỐNG] Máy chủ API đang chạy`));
+server.listen(process.env.PORT || 3000);
 
 // --- 2. HÀM KIỂM TRA THÀNH VIÊN ---
 async function checkMembership(userId) {
@@ -182,14 +202,11 @@ async function checkMembership(userId) {
         const channelMember = await bot.getChatMember(CHANNEL_USERNAME, userId);
         const groupMember = await bot.getChatMember(GROUP_USERNAME, userId);
         const validStatuses = ['member', 'administrator', 'creator'];
-        return { 
-            inChannel: validStatuses.includes(channelMember.status), 
-            inGroup: validStatuses.includes(groupMember.status) 
-        };
+        return { inChannel: validStatuses.includes(channelMember.status), inGroup: validStatuses.includes(groupMember.status) };
     } catch (error) { return { error: true }; }
 }
 
-// --- 3. XỬ LÝ LỆNH /start (GIỮ NGUYÊN LỜI CHÀO CHI TIẾT TỪ CODE CŨ) ---
+// --- 3. XỬ LÝ LỆNH /start ---
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
     if (msg.chat.type !== 'private') return; 
@@ -216,19 +233,13 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             if (referrer) {
                 referrer.balance += 10; 
                 referrer.referralCount += 1; 
-                
-                let milestoneMsg = "";
-                if (referrer.referralCount === 10) {
-                    referrer.balance += 50;
-                    milestoneMsg = "\n🌟 <b>THƯỞNG MỐC 10 NGƯỜI:</b> +50 SWGT!";
-                } else if (referrer.referralCount === 50) {
-                    referrer.balance += 300;
-                    milestoneMsg = "\n👑 <b>THƯỞNG MỐC 50 NGƯỜI:</b> +300 SWGT!";
-                }
-
                 await referrer.save();
                 
-                const notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\nĐã bấm vào link mời của bạn!\n\n🎁 Bạn vừa được cộng trước <b>10 SWGT</b>.\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" (tham gia nhóm và chat) để bạn được cộng thêm <b>10 SWGT</b> nữa nhé!${milestoneMsg}`;
+                let milestoneMsg = "";
+                if (referrer.referralCount === 10) milestoneMsg = "\n🌟 Bạn đã đạt mốc 10 người! Mở App ngay để TỰ BẤM NHẬN +50 SWGT nhé!"; 
+                if (referrer.referralCount === 50) milestoneMsg = "\n👑 Bạn đã đạt mốc 50 người! Mở App ngay để TỰ BẤM NHẬN +300 SWGT nhé!"; 
+
+                const notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\nĐã bấm vào link mời của bạn!\n\n🎁 Bạn vừa được cộng trước <b>10 SWGT</b>.\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" để bạn được cộng thêm <b>10 SWGT</b> nữa nhé!${milestoneMsg}`;
                 bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
             }
         }
@@ -268,26 +279,24 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 // --- 4. CAMERA CHẠY NGẦM ---
 bot.on('message', async (msg) => {
     
-    // --- A. XỬ LÝ KHI ADMIN BÁO "XONG" (TÍCH HỢP TỪ CODE MỚI) ---
+    // --- A. XỬ LÝ KHI ADMIN BÁO "XONG" ---
     if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
         const replyText = msg.text ? msg.text.toLowerCase() : '';
         if (replyText.includes('xong') || replyText.includes('done')) {
             const originalText = msg.reply_to_message.text || "";
-            // Tìm ID người dùng từ tin nhắn báo cáo cũ
             const idMatch = originalText.match(/ID: (\d+)/);
             if (idMatch) {
                 const targetUserId = idMatch[1];
                 const targetUser = await User.findOne({ userId: targetUserId });
                 
-                // Gửi thông báo sinh động cho User
                 const successMsg = `🚀 <b>HÀNH TRÌNH SWC - YÊU CẦU HOÀN TẤT!</b>\n\n` +
-                                   `Chào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển/cấp quyền lợi cho bạn!\n\n` +
-                                   `🎉 <b>TRẠNG THÁI:</b> ĐÃ XỬ LÝ XONG!\n` +
-                                   `🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC. Hãy kiểm tra lại và tiếp tục lan tỏa dự án nhé! 🚀`;
+                                   `Chào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n` +
+                                   `🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n` +
+                                   `🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC. Hãy kiểm tra ví và tiếp tục lan tỏa dự án nhé! 🚀`;
                 
                 bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{});
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo thành công cho khách hàng (ID: ${targetUserId}).`);
-                return; // Kết thúc để không chạy code chat nhóm bên dưới
+                return; 
             }
         }
     }
@@ -336,7 +345,7 @@ bot.on('message', async (msg) => {
     await user.save();
 });
 
-// --- 5. XỬ LÝ NÚT BẤM (GIỮ NGUYÊN CHI TIẾT TỪ CODE CŨ) ---
+// --- 5. XỬ LÝ NÚT BẤM CỦA BOT ---
 bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const userId = callbackQuery.from.id.toString(); 
@@ -345,7 +354,6 @@ bot.on('callback_query', async (callbackQuery) => {
     let user = await User.findOne({ userId: userId });
     if (!user) return bot.answerCallbackQuery(callbackQuery.id);
 
-    // --- NÚT 1: TÂN BINH ---
     if (data === 'task_1') {
         const opts = {
             parse_mode: 'HTML',
@@ -398,7 +406,6 @@ bot.on('callback_query', async (callbackQuery) => {
         }
     }
     
-    // --- NÚT 2: KIẾN THỨC, YOUTUBE & CHIA SẺ ---
     else if (data === 'task_2') {
         const task2Text = `🧠 <b>NẠP KIẾN THỨC & LAN TỎA</b>\n\n` +
                           `<b>1. NGUỒN VỐN TRÍ TUỆ (+10 SWGT/Ngày)</b>\n` +
@@ -425,7 +432,6 @@ bot.on('callback_query', async (callbackQuery) => {
         });
     } 
 
-    // --- LOGIC ĐỌC BÀI VIẾT ---
     else if (data === 'go_read') {
         user.readTaskStartTime = new Date();
         await user.save();
@@ -456,7 +462,6 @@ bot.on('callback_query', async (callbackQuery) => {
         }
     }
 
-    // --- LOGIC YOUTUBE ---
     else if (data === 'go_youtube') {
         if (user.youtubeTaskDone) {
             return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này rồi!", show_alert: true });
@@ -475,7 +480,6 @@ bot.on('callback_query', async (callbackQuery) => {
         if (!user.youtubeClickTime) {
             return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút XEM YOUTUBE ở bước trên!", show_alert: true });
         }
-
         const timeSpent = (new Date() - new Date(user.youtubeClickTime)) / 1000;
         if (timeSpent < 6) {
             bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thất bại! Bạn thao tác quá nhanh (${Math.round(timeSpent)} giây). Vui lòng đợi đủ 6 giây rồi hãy bấm Nhận thưởng!`, show_alert: true });
@@ -487,7 +491,6 @@ bot.on('callback_query', async (callbackQuery) => {
         }
     }
 
-    // --- LOGIC FACEBOOK FANPAGE ---
     else if (data === 'go_facebook') {
         if (user.facebookTaskDone) {
             return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã theo dõi Fanpage rồi!", show_alert: true });
@@ -506,7 +509,6 @@ bot.on('callback_query', async (callbackQuery) => {
         if (!user.facebookClickTime) {
             return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút THEO DÕI FANPAGE ở bước trên!", show_alert: true });
         }
-
         const timeSpent = (new Date() - new Date(user.facebookClickTime)) / 1000;
         if (timeSpent < 5) { 
             bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thất bại! Bạn thao tác quá nhanh. Vui lòng bấm mở trang và theo dõi trước khi nhận thưởng!`, show_alert: true });
@@ -518,7 +520,6 @@ bot.on('callback_query', async (callbackQuery) => {
         }
     }
 
-    // --- LOGIC CHIA SẺ ---
     else if (data === 'go_share') {
         user.shareClickTime = new Date();
         await user.save();
@@ -536,7 +537,6 @@ bot.on('callback_query', async (callbackQuery) => {
         if (timeSpent < 5) { 
             return bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thao tác quá nhanh! Hệ thống chưa kịp ghi nhận. Vui lòng bấm nút chia sẻ và gửi cho bạn bè thật nhé.`, show_alert: true });
         }
-
         const now = new Date();
         const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
         const diffInHours = Math.abs(now - lastShare) / 36e5;
@@ -562,7 +562,6 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
     }
 
-    // Danh sách các ID của callback query cần lọc
     const validCallbacks = ['check_join', 'claim_read', 'go_read', 'claim_share', 'go_share', 'go_youtube', 'claim_youtube', 'go_facebook', 'claim_facebook', 'task_1', 'task_2', 'task_3', 'task_4'];
     if (!validCallbacks.includes(data)) {
         bot.answerCallbackQuery(callbackQuery.id);
