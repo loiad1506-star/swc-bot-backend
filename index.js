@@ -122,7 +122,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: NHẬN THƯỞNG NHIỆM VỤ APP
+    // API: NHẬN THƯỞNG NHIỆM VỤ APP (TÍNH THEO NGÀY LỊCH, KHÔNG PHẢI 24H NỮA)
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -137,14 +137,14 @@ const server = http.createServer(async (req, res) => {
 
                 if (data.taskType === 'read') {
                     const lastDaily = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
-                    if ((now - lastDaily) >= 86400000) { reward = 10; user.lastDailyTask = now; }
+                    if (lastDaily.toDateString() !== now.toDateString()) { reward = 10; user.lastDailyTask = now; }
                 } else if (data.taskType === 'youtube' && !user.youtubeTaskDone) {
                     reward = 5; user.youtubeTaskDone = true;
                 } else if (data.taskType === 'facebook' && !user.facebookTaskDone) {
                     reward = 5; user.facebookTaskDone = true;
                 } else if (data.taskType === 'share') {
                     const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
-                    if ((now - lastShare) >= 86400000) { reward = 15; user.lastShareTask = now; }
+                    if (lastShare.toDateString() !== now.toDateString()) { reward = 15; user.lastShareTask = now; }
                 }
 
                 if (reward > 0) {
@@ -153,7 +153,7 @@ const server = http.createServer(async (req, res) => {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, balance: user.balance, reward }));
                 } else {
-                    res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Đã nhận rồi hoặc chưa đủ thời gian!" }));
+                    res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Bạn đã nhận quà hôm nay rồi, hãy quay lại vào ngày mai!" }));
                 }
             } catch (e) { res.writeHead(400); res.end(); }
         });
@@ -182,7 +182,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: YÊU CẦU RÚT TIỀN (KIỂM TRA CHẶT PREMIUM 7 NGÀY / THƯỜNG 15 NGÀY)
+    // API: YÊU CẦU RÚT TIỀN 
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -192,7 +192,6 @@ const server = http.createServer(async (req, res) => {
                 let user = await User.findOne({ userId: data.userId });
                 if (!user) return res.writeHead(400), res.end();
 
-                // KIỂM TRA THỜI GIAN MỞ KHÓA THEO HẠNG TÀI KHOẢN
                 const lockDays = user.isPremium ? 7 : 15;
                 const joinMs = user.joinDate ? new Date(user.joinDate).getTime() : new Date("2026-02-22T00:00:00Z").getTime();
                 const unlockDate = joinMs + (lockDays * 24 * 60 * 60 * 1000);
@@ -231,7 +230,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: ĐIỂM DANH
+    // API: ĐIỂM DANH (TÍNH THEO NGÀY LỊCH)
     else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -251,7 +250,7 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
                 }
-                res.writeHead(400); res.end(JSON.stringify({ success: false, message: 'Hôm nay đã điểm danh' }));
+                res.writeHead(400); res.end(JSON.stringify({ success: false, message: 'Hôm nay bạn đã điểm danh rồi, hãy quay lại vào ngày mai!' }));
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
@@ -303,7 +302,6 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             user.referredBy = refId;
             let referrer = await User.findOne({ userId: refId });
             if (referrer) {
-                // TĂNG GẤP ĐÔI ĐIỂM CHO NGƯỜI GIỚI THIỆU NẾU LÀ PREMIUM
                 const startReward = referrer.isPremium ? 20 : 10;
                 referrer.balance += startReward; 
                 referrer.referralCount += 1; 
@@ -380,7 +378,6 @@ bot.on('message', async (msg) => {
         const leftUserId = msg.left_chat_member.id.toString();
         let leftUser = await User.findOne({ userId: leftUserId });
         if (leftUser && leftUser.task1Done) {
-            // NẾU LÀ PREMIUM THÌ TRỪ 40, THƯỜNG TRỪ 20
             const penalty = leftUser.isPremium ? 40 : 20;
             leftUser.balance = Math.max(0, leftUser.balance - penalty); 
             leftUser.task1Done = false; 
@@ -530,11 +527,9 @@ bot.on('callback_query', async (callbackQuery) => {
         const now = new Date();
         const timeSpent = (now - new Date(user.readTaskStartTime)) / 1000; 
         const lastTask = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
-        const diffInHours = Math.abs(now - lastTask) / 36e5;
         
-        if (diffInHours < 24) {
-            const waitHours = Math.ceil(24 - diffInHours);
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng đọc bài hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
+        if (lastTask.toDateString() === now.toDateString()) {
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng đọc bài hôm nay rồi! Quay lại vào ngày mai nhé.`, show_alert: true });
         } else if (timeSpent < 60) {
             bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Bạn thao tác quá nhanh! Mới được ${Math.round(timeSpent)} giây. Vui lòng đọc đủ 60s!`, show_alert: true });
         } else {
@@ -622,11 +617,9 @@ bot.on('callback_query', async (callbackQuery) => {
         }
         const now = new Date();
         const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
-        const diffInHours = Math.abs(now - lastShare) / 36e5;
         
-        if (diffInHours < 24) {
-            const waitHours = Math.ceil(24 - diffInHours);
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng chia sẻ hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
+        if (lastShare.toDateString() === now.toDateString()) {
+            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng chia sẻ hôm nay rồi! Quay lại vào ngày mai nhé.`, show_alert: true });
         } else {
             user.balance += 15; 
             user.lastShareTask = now;
