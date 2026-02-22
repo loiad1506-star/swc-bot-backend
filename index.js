@@ -9,7 +9,7 @@ const mongoURI = process.env.MONGODB_URI;
 const bot = new TelegramBot(token, {polling: true});
 const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
 
-const ADMIN_ID = '507318519'; // ID của anh Hồ Văn Lợi
+const ADMIN_ID = '507318519'; 
 const CHANNEL_USERNAME = '@swc_capital_vn';
 const GROUP_USERNAME = '@swc_capital_chat';
 
@@ -21,14 +21,14 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('✅ Đã kết nối thành công với kho dữ liệu MongoDB!'))
     .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 
-// --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG (THÊM PREMIUM & NGÀY THAM GIA) ---
+// --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG ---
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
     firstName: { type: String, default: '' }, 
     lastName: { type: String, default: '' },  
     username: { type: String, default: '' },  
-    isPremium: { type: Boolean, default: false }, // Nhận diện Premium
-    joinDate: { type: Date, default: Date.now },  // Ngày tham gia để tính thời gian mở khóa
+    isPremium: { type: Boolean, default: false }, 
+    joinDate: { type: Date, default: Date.now },  
     balance: { type: Number, default: 0 },
     wallet: { type: String, default: '' },
     gatecode: { type: String, default: '' }, 
@@ -303,7 +303,9 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             user.referredBy = refId;
             let referrer = await User.findOne({ userId: refId });
             if (referrer) {
-                referrer.balance += 10; 
+                // TĂNG GẤP ĐÔI ĐIỂM CHO NGƯỜI GIỚI THIỆU NẾU LÀ PREMIUM
+                const startReward = referrer.isPremium ? 20 : 10;
+                referrer.balance += startReward; 
                 referrer.referralCount += 1; 
                 await referrer.save();
                 
@@ -311,7 +313,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
                 if (referrer.referralCount === 10) milestoneMsg = "\n🌟 Bạn đã đạt mốc 10 người! Mở App ngay để TỰ BẤM NHẬN +50 SWGT nhé!"; 
                 if (referrer.referralCount === 50) milestoneMsg = "\n👑 Bạn đã đạt mốc 50 người! Mở App ngay để TỰ BẤM NHẬN +300 SWGT nhé!"; 
 
-                const notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\nĐã bấm vào link mời của bạn!\n\n🎁 Bạn vừa được cộng trước <b>10 SWGT</b>.\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" để bạn được cộng thêm <b>10 SWGT</b> nữa nhé!${milestoneMsg}`;
+                const notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\nĐã bấm vào link mời của bạn!\n\n🎁 Bạn vừa được cộng trước <b>${startReward} SWGT</b>.\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" để bạn được cộng thêm <b>${startReward} SWGT</b> nữa nhé!${milestoneMsg}`;
                 bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
             }
         }
@@ -378,10 +380,12 @@ bot.on('message', async (msg) => {
         const leftUserId = msg.left_chat_member.id.toString();
         let leftUser = await User.findOne({ userId: leftUserId });
         if (leftUser && leftUser.task1Done) {
-            leftUser.balance = Math.max(0, leftUser.balance - 20); 
+            // NẾU LÀ PREMIUM THÌ TRỪ 40, THƯỜNG TRỪ 20
+            const penalty = leftUser.isPremium ? 40 : 20;
+            leftUser.balance = Math.max(0, leftUser.balance - penalty); 
             leftUser.task1Done = false; 
             await leftUser.save();
-            bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO!</b>\nHệ thống phát hiện bạn đã rời khỏi Cộng Đồng SWC. Tài khoản của bạn đã bị trừ <b>20 SWGT</b>. Hãy tham gia lại để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
+            bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO!</b>\nHệ thống phát hiện bạn đã rời khỏi Cộng Đồng SWC. Tài khoản của bạn đã bị trừ <b>${penalty} SWGT</b>. Hãy tham gia lại để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
         }
         return; 
     }
@@ -410,7 +414,7 @@ bot.on('message', async (msg) => {
             isPremium: isPremium
         });
     } else {
-        user.isPremium = isPremium; // Cập nhật Premium liên tục
+        user.isPremium = isPremium; 
     }
 
     user.groupMessageCount += 1; 
@@ -441,7 +445,8 @@ bot.on('callback_query', async (callbackQuery) => {
                 ]
             }
         };
-        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n\n2️⃣ <b>Gửi tin nhắn chào hỏi</b> lên Group để xác minh.\n👉 <i>Chạm vào khung bên dưới để tự động copy câu chào, sau đó ấn nút Join Group để dán và gửi:</i>\n\n<code>Xin chào cả nhà, mình là thành viên mới, rất vui được làm quen với cộng đồng đầu tư</code>\n\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
+        const totalReward = user.isPremium ? 40 : 20;
+        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>${totalReward + 10} SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+${totalReward} SWGT).\n\n2️⃣ <b>Gửi tin nhắn chào hỏi</b> lên Group để xác minh.\n👉 <i>Chạm vào khung bên dưới để tự động copy câu chào, sau đó ấn nút Join Group để dán và gửi:</i>\n\n<code>Xin chào cả nhà, mình là thành viên mới, rất vui được làm quen với cộng đồng đầu tư</code>\n\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
         bot.sendMessage(chatId, task1Text, opts);
     } 
     
@@ -458,21 +463,23 @@ bot.on('callback_query', async (callbackQuery) => {
                 });
             } else {
                 if (!user.task1Done) {
-                    user.balance += 20; 
+                    const selfReward = user.isPremium ? 40 : 20;
+                    user.balance += selfReward; 
                     user.task1Done = true;
                     await user.save();
                     
                     if (user.referredBy) {
                         let referrer = await User.findOne({ userId: user.referredBy });
                         if (referrer) {
-                            referrer.balance += 10; 
+                            const refReward = referrer.isPremium ? 20 : 10;
+                            referrer.balance += refReward; 
                             await referrer.save();
-                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng thêm phần thưởng xác minh <b>+10 SWGT</b> (Đã hoàn tất 20 SWGT/người)!`, {parse_mode: 'HTML'}).catch(()=>{});
+                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng thêm phần thưởng xác minh <b>+${refReward} SWGT</b> (Hoàn tất chuỗi nhiệm vụ Tân Binh)!`, {parse_mode: 'HTML'}).catch(()=>{});
                         }
                     }
 
-                    bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Xác minh thành công, +20 SWGT.", show_alert: true });
-                    bot.sendMessage(chatId, "🔥 <b>XÁC MINH TÀI KHOẢN THÀNH CÔNG!</b>\n\nHệ thống đã ghi nhận bạn là Nhà đầu tư thật.\n🎁 <b>Phần thưởng:</b> +20 SWGT.\n\n👉 <i>Bấm mở App ngay để kết nối ví nhận thêm +10 SWGT nữa nhé!</i>", { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]] }});
+                    bot.answerCallbackQuery(callbackQuery.id, { text: `🎉 Tuyệt vời! Xác minh thành công, +${selfReward} SWGT.`, show_alert: true });
+                    bot.sendMessage(chatId, `🔥 <b>XÁC MINH TÀI KHOẢN THÀNH CÔNG!</b>\n\nHệ thống đã ghi nhận bạn là Nhà đầu tư thật.\n🎁 <b>Phần thưởng:</b> +${selfReward} SWGT.\n\n👉 <i>Bấm mở App ngay để kết nối ví nhận thêm +10 SWGT nữa nhé!</i>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]] }});
                 } else {
                     bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này và nhận thưởng rồi nhé!", show_alert: true });
                 }
@@ -629,7 +636,8 @@ bot.on('callback_query', async (callbackQuery) => {
     }
 
     else if (data === 'task_3') {
-        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n💎 Nhận ngay <b>+20 SWGT</b> cho mỗi lượt mời thành công.\n\n👑 <b>THƯỞNG MỐC ĐẶC BIỆT:</b>\n- Đạt 10 lượt mời: Thưởng nóng <b>+50 SWGT</b>\n- Đạt 50 lượt mời: Thưởng nóng <b>+300 SWGT</b>`;
+        const inviteReward = user.isPremium ? 40 : 20;
+        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n💎 Bạn đang là <b>${user.isPremium ? 'Thành viên Premium ⭐' : 'Thành viên Thường'}</b>, nhận ngay <b>+${inviteReward} SWGT</b> cho mỗi lượt mời thành công.\n\n👑 <b>THƯỞNG MỐC ĐẶC BIỆT:</b>\n- Đạt 10 lượt mời: Thưởng nóng <b>+50 SWGT</b>\n- Đạt 50 lượt mời: Thưởng nóng <b>+300 SWGT</b>`;
         bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
     } 
     
