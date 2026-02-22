@@ -145,7 +145,7 @@ const server = http.createServer(async (req, res) => {
                 let user = await User.findOne({ userId: data.userId });
                 const withdrawAmount = Number(data.amount); // Lấy số lượng từ App
 
-                if (user && user.balance >= withdrawAmount && withdrawAmount >= 50) {
+                if (user && user.balance >= withdrawAmount && withdrawAmount >= 300) {
                     user.balance -= withdrawAmount; 
                     await user.save();
                     
