@@ -1,633 +1,733 @@
-const TelegramBot = require('node-telegram-bot-api');
-const http = require('http');
-const url = require('url');
-const mongoose = require('mongoose');
+import { useState, useEffect } from 'react';
 
-// --- CẤU HÌNH BIẾN MÔI TRƯỜNG ---
-const token = process.env.BOT_TOKEN;
-const mongoURI = process.env.MONGODB_URI;
-const bot = new TelegramBot(token, {polling: true});
-const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
-
-const ADMIN_ID = '507318519'; 
-const CHANNEL_USERNAME = '@swc_capital_vn';
-const GROUP_USERNAME = '@swc_capital_chat';
-
-const YOUTUBE_LINK = 'https://www.youtube.com/c/SkyWorldCommunityVietNam/videos'; 
-const FACEBOOK_LINK = 'https://www.facebook.com/swc.capital.vn';
-
-// --- KẾT NỐI MONGODB ---
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('✅ Đã kết nối thành công với kho dữ liệu MongoDB!'))
-    .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
-
-// --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG ---
-const userSchema = new mongoose.Schema({
-    userId: { type: String, unique: true },
-    firstName: { type: String, default: '' }, 
-    lastName: { type: String, default: '' },  
-    username: { type: String, default: '' },  
-    balance: { type: Number, default: 0 },
-    wallet: { type: String, default: '' },
-    gatecode: { type: String, default: '' }, 
-    fullName: { type: String, default: '' }, 
-    email: { type: String, default: '' }, 
-    phone: { type: String, default: '' }, 
-    referredBy: { type: String, default: null }, 
-    referralCount: { type: Number, default: 0 }, 
-    task1Done: { type: Boolean, default: false }, 
-    walletRewardDone: { type: Boolean, default: false }, 
-    lastDailyTask: { type: Date, default: null }, 
-    readTaskStartTime: { type: Date, default: null }, 
-    lastShareTask: { type: Date, default: null },
-    groupMessageCount: { type: Number, default: 0 },
-    lastCheckInDate: { type: Date, default: null },
-    youtubeTaskDone: { type: Boolean, default: false }, 
-    youtubeClickTime: { type: Date, default: null },
-    facebookTaskDone: { type: Boolean, default: false },
-    facebookClickTime: { type: Date, default: null },
-    shareClickTime: { type: Date, default: null },
-    milestone10: { type: Boolean, default: false }, 
-    milestone50: { type: Boolean, default: false }  
-});
-const User = mongoose.model('User', userSchema);
-
-// --- 1. API SERVER CHO MINI APP ---
-const server = http.createServer(async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') { res.end(); return; }
-    const parsedUrl = url.parse(req.url, true);
+function App() {
+    const [activeTab, setActiveTab] = useState('home');
+    const [balance, setBalance] = useState(0);
     
-    // API: LẤY THÔNG TIN USER
-    if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
-        const userId = parsedUrl.query.id;
-        let userData = await User.findOne({ userId: userId });
-        if (!userData) userData = { balance: 0, wallet: '', gatecode: '', fullName: '', email: '', phone: '', referralCount: 0 };
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ...userData._doc }));
-    } 
-    // API: LƯU VÍ & THÔNG TIN THANH TOÁN
-    else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-            try {
-                const data = JSON.parse(body);
-                let user = await User.findOne({ userId: data.userId });
-                if (user) {
-                    if (data.wallet) user.wallet = data.wallet;
-                    if (data.gatecode) user.gatecode = data.gatecode;
-                    if (data.fullName) user.fullName = data.fullName;
-                    if (data.email) user.email = data.email;
-                    if (data.phone) user.phone = data.phone;
+    // --- STATE CHO VÍ VÀ THÔNG TIN THANH TOÁN ---
+    const [withdrawMethod, setWithdrawMethod] = useState('gate'); 
+    const [wallet, setWallet] = useState(''); 
+    const [gatecode, setGatecode] = useState(''); 
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
 
-                    if (!user.walletRewardDone) {
-                        user.balance += 10;
-                        user.walletRewardDone = true;
-                        bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã thiết lập thông tin thanh toán thành công, +10 SWGT!`, {parse_mode: 'HTML'}).catch(()=>{});
-                    }
-                    await user.save();
-                }
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true }));
-            } catch (e) { res.writeHead(400); res.end(); }
-        });
-    } 
-    // API: TỰ BẤM NHẬN THƯỞNG MỐC 10 & 50
-    else if (parsedUrl.pathname === '/api/claim-milestone' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-            try {
-                const data = JSON.parse(body);
-                let user = await User.findOne({ userId: data.userId });
-                if (!user) return res.writeHead(400), res.end();
+    const [referrals, setReferrals] = useState(0); 
+    const [withdrawAmount, setWithdrawAmount] = useState(''); 
+    const [milestone10, setMilestone10] = useState(false); 
+    const [milestone50, setMilestone50] = useState(false); 
 
-                if (data.milestone === 10 && user.referralCount >= 10 && !user.milestone10) {
-                    user.balance += 50; user.milestone10 = true;
-                } else if (data.milestone === 50 && user.referralCount >= 50 && !user.milestone50) {
-                    user.balance += 300; user.milestone50 = true;
-                } else {
-                    return res.writeHead(400), res.end(JSON.stringify({ success: false, message: "Chưa đủ điều kiện hoặc đã nhận rồi!" }));
-                }
-                
-                await user.save();
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true, balance: user.balance }));
-            } catch (e) { res.writeHead(400); res.end(); }
-        });
-    }
-    // API: TỰ BẤM NHẬN THƯỞNG NHIỆM VỤ APP (Read, YT, FB, Share)
-    else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-            try {
-                const data = JSON.parse(body);
-                let user = await User.findOne({ userId: data.userId });
-                if (!user) return res.writeHead(400), res.end();
-
-                const now = new Date();
-                let reward = 0;
-
-                if (data.taskType === 'read') {
-                    const lastDaily = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
-                    if ((now - lastDaily) >= 86400000) { reward = 10; user.lastDailyTask = now; }
-                } else if (data.taskType === 'youtube' && !user.youtubeTaskDone) {
-                    reward = 5; user.youtubeTaskDone = true;
-                } else if (data.taskType === 'facebook' && !user.facebookTaskDone) {
-                    reward = 5; user.facebookTaskDone = true;
-                } else if (data.taskType === 'share') {
-                    const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
-                    if ((now - lastShare) >= 86400000) { reward = 15; user.lastShareTask = now; }
-                }
-
-                if (reward > 0) {
-                    user.balance += reward;
-                    await user.save();
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, balance: user.balance, reward }));
-                } else {
-                    res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Đã nhận rồi hoặc chưa đủ thời gian!" }));
-                }
-            } catch (e) { res.writeHead(400); res.end(); }
-        });
-    }
-    // API: ĐỔI QUÀ VIP
-    else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-            try {
-                const data = JSON.parse(body);
-                let user = await User.findOne({ userId: data.userId });
-                if (user && user.balance >= data.cost) {
-                    user.balance -= data.cost;
-                    await user.save();
-                    
-                    const userNotify = `⏳ <b>YÊU CẦU ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu quyền lợi của bạn đang được xử lý: <b>${data.itemName}</b>\n💎 Phí đổi: ${data.cost} SWGT\n\nAdmin sẽ kiểm tra và hoàn tất cho bạn trong giây lát!`;
-                    bot.sendMessage(data.userId, userNotify, {parse_mode: 'HTML'}).catch(()=>{});
-                    
-                    const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💎 Quà: <b>${data.itemName}</b>\n🏦 Ví: <code>${user.wallet || 'Chưa cập nhật'}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
-                    bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' }).catch(()=>{});
-
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, balance: user.balance }));
-                } else { res.writeHead(400); res.end(JSON.stringify({ success: false })); }
-            } catch (e) { res.writeHead(400); res.end(); }
-        });
-    }
-    // API: YÊU CẦU RÚT TIỀN (CHẶN THỜI GIAN & THÔNG BÁO CHO ADMIN DỰA VÀO PHƯƠNG THỨC RÚT)
-    else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-            try {
-                // KIỂM TRA THỜI GIAN MỞ KHÓA
-                const unlockDate = new Date("2026-03-25T00:00:00").getTime();
-                if (new Date().getTime() < unlockDate) {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, message: "⏳ Bạn chưa hết thời gian mở khóa. Vui lòng chờ đến khi đếm ngược kết thúc!" }));
-                }
-
-                const data = JSON.parse(body);
-                let user = await User.findOne({ userId: data.userId });
-                const withdrawAmount = Number(data.amount); 
-
-                if (user && user.balance >= withdrawAmount && withdrawAmount >= 300) {
-                    user.balance -= withdrawAmount; 
-                    await user.save();
-                    
-                    let userMsg = "";
-                    let adminReport = "";
-
-                    if (data.withdrawMethod === 'gate') {
-                        userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> (Miễn phí) qua Gate.io đang được xử lý.\n\n🔑 Gatecode/UID: <code>${user.gatecode}</code>`;
-                        adminReport = `🚨 <b>YÊU CẦU RÚT TIỀN (GATE.IO)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n\n📝 <b>Thông tin thanh toán:</b>\n- Gatecode/UID: <code>${user.gatecode}</code>\n- Họ tên: ${user.fullName || 'Không có'}\n- SĐT: ${user.phone || 'Không có'}\n- Email: ${user.email || 'Không có'}\n\n👉 <i>Admin hãy gửi SWGT nội bộ qua Gate.io và Reply tin nhắn này gõ "xong".</i>`;
-                    } else {
-                        userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> qua ví ERC20 đang được xử lý (Sẽ trừ 70 SWGT phí mạng).\n\n🏦 Ví nhận: <code>${user.wallet}</code>`;
-                        adminReport = `🚨 <b>YÊU CẦU RÚT TIỀN (ERC20)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng khách rút: <b>${withdrawAmount} SWGT</b>\n⚠️ (Nhớ trừ 70 SWGT phí mạng khi chuyển)\n🏦 Ví ERC20: <code>${user.wallet}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
-                    }
-
-                    bot.sendMessage(data.userId, userMsg, {parse_mode: 'HTML'}).catch(()=>{});
-                    bot.sendMessage(ADMIN_ID, adminReport, { parse_mode: 'HTML' }).catch(()=>{});
-
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, balance: user.balance }));
-                } else { 
-                    res.writeHead(400, { 'Content-Type': 'application/json' }); 
-                    res.end(JSON.stringify({ success: false, message: "Số dư không đủ hoặc chưa đạt mức tối thiểu!" })); 
-                }
-            } catch (e) { res.writeHead(400); res.end(); }
-        });
-    }
-    // API: ĐIỂM DANH
-    else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-            try {
-                const data = JSON.parse(body);
-                let user = await User.findOne({ userId: data.userId });
-                if (user) {
-                    const now = new Date();
-                    const lastCheckin = user.lastCheckInDate ? new Date(user.lastCheckInDate) : new Date(0);
-                    if (lastCheckin.toDateString() !== now.toDateString()) {
-                        user.balance += 2; 
-                        user.lastCheckInDate = now;
-                        await user.save();
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ success: true, balance: user.balance, lastCheckInDate: now }));
-                        return;
-                    }
-                }
-                res.writeHead(400); res.end(JSON.stringify({ success: false, message: 'Hôm nay đã điểm danh' }));
-            } catch (e) { res.writeHead(400); res.end(); }
-        });
-    }
-    // API: BẢNG XẾP HẠNG
-    else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
-        try {
-            const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10).select('firstName lastName referralCount');
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(topUsers));
-        } catch (e) { res.writeHead(400); res.end(); }
-    }
-    else { res.writeHead(200); res.end('API Online'); }
-});
-server.listen(process.env.PORT || 3000);
-
-// --- 2. HÀM KIỂM TRA THÀNH VIÊN ---
-async function checkMembership(userId) {
-    try {
-        const channelMember = await bot.getChatMember(CHANNEL_USERNAME, userId);
-        const groupMember = await bot.getChatMember(GROUP_USERNAME, userId);
-        const validStatuses = ['member', 'administrator', 'creator'];
-        return { inChannel: validStatuses.includes(channelMember.status), inGroup: validStatuses.includes(groupMember.status) };
-    } catch (error) { return { error: true }; }
-}
-
-// --- 3. XỬ LÝ LỆNH /start ---
-bot.onText(/\/start(.*)/, async (msg, match) => {
-    const chatId = msg.chat.id;
-    if (msg.chat.type !== 'private') return; 
-
-    const userId = msg.from.id.toString();
-    const refId = match[1].trim(); 
-
-    const firstName = msg.from.first_name || '';
-    const lastName = msg.from.last_name || '';
-    const username = msg.from.username ? `@${msg.from.username}` : '';
-
-    let user = await User.findOne({ userId: userId });
-    let isNewUser = false;
-
-    if (!user) {
-        isNewUser = true;
-        user = new User({ 
-            userId: userId, firstName: firstName, lastName: lastName, username: username 
-        });
-        
-        if (refId && refId !== userId) {
-            user.referredBy = refId;
-            let referrer = await User.findOne({ userId: refId });
-            if (referrer) {
-                referrer.balance += 10; 
-                referrer.referralCount += 1; 
-                await referrer.save();
-                
-                let milestoneMsg = "";
-                if (referrer.referralCount === 10) milestoneMsg = "\n🌟 Bạn đã đạt mốc 10 người! Mở App ngay để TỰ BẤM NHẬN +50 SWGT nhé!"; 
-                if (referrer.referralCount === 50) milestoneMsg = "\n👑 Bạn đã đạt mốc 50 người! Mở App ngay để TỰ BẤM NHẬN +300 SWGT nhé!"; 
-
-                const notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\nĐã bấm vào link mời của bạn!\n\n🎁 Bạn vừa được cộng trước <b>10 SWGT</b>.\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" để bạn được cộng thêm <b>10 SWGT</b> nữa nhé!${milestoneMsg}`;
-                bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
-            }
-        }
-    } else {
-        user.firstName = firstName; user.lastName = lastName; user.username = username;
-    }
-    await user.save();
-    
-    let welcomeText = `👋 <b>Chào mừng bạn đến với Cộng Đồng SWC Việt Nam!</b> 🚀\n\nBạn đã bước chân vào trung tâm kết nối của những nhà đầu tư tiên phong. Cơ hội sở hữu trước token SWGT và đón đầu xu hướng công nghệ giao thông uST đang ở ngay trước mắt, nhưng số lượng thì có hạn!\n\n🎁 <b>Quà tặng Tân Binh:</b> Nhận ngay những đồng SWGT đầu tiên hoàn toàn miễn phí.\n\n👇 <b>HÀNH ĐỘNG NGAY:</b> Bấm nút <b>"MỞ ỨNG DỤNG SWC NGAY"</b> bên dưới để kích hoạt ví và gia tăng tài sản!`;
-    
-    if (isNewUser && refId && refId !== userId) {
-        welcomeText = `🎉 <i>Bạn được mời bởi thành viên ID: ${refId}</i>\n\n` + welcomeText;
-    }
-
-    const opts = {
-        parse_mode: 'HTML',
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
-                [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
-                [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
-                [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
-                [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
-            ]
-        }
-    };
-    
-    bot.sendPhoto(chatId, './Bia.jpg', {
-        caption: welcomeText,
-        parse_mode: 'HTML',
-        reply_markup: opts.reply_markup
-    }).catch(err => {
-        bot.sendMessage(chatId, welcomeText, opts);
+    const [tasks, setTasks] = useState({
+        readTaskDone: false,
+        youtubeTaskDone: false,
+        facebookTaskDone: false,
+        shareTaskDone: false
     });
-});
-
-// --- 4. CAMERA CHẠY NGẦM ---
-bot.on('message', async (msg) => {
     
-    // --- A. XỬ LÝ KHI ADMIN BÁO "XONG" ---
-    if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
-        const replyText = msg.text ? msg.text.toLowerCase() : '';
-        if (replyText.includes('xong') || replyText.includes('done')) {
-            const originalText = msg.reply_to_message.text || "";
-            const idMatch = originalText.match(/ID: (\d+)/);
-            if (idMatch) {
-                const targetUserId = idMatch[1];
-                const targetUser = await User.findOne({ userId: targetUserId });
-                
-                const successMsg = `🚀 <b>HÀNH TRÌNH SWC - YÊU CẦU HOÀN TẤT!</b>\n\n` +
-                                   `Chào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n` +
-                                   `🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n` +
-                                   `🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC. Hãy kiểm tra ví và tiếp tục lan tỏa dự án nhé! 🚀`;
-                
-                bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{});
-                bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo thành công cho khách hàng (ID: ${targetUserId}).`);
-                return; 
-            }
-        }
-    }
+    const [taskTimers, setTaskTimers] = useState({
+        read: 0, youtube: 0, facebook: 0, share: 0
+    });
 
-    // --- B. XỬ LÝ RỜI NHÓM ---
-    if (msg.left_chat_member) {
-        const leftUserId = msg.left_chat_member.id.toString();
-        let leftUser = await User.findOne({ userId: leftUserId });
-        if (leftUser && leftUser.task1Done) {
-            leftUser.balance = Math.max(0, leftUser.balance - 20); 
-            leftUser.task1Done = false; 
-            await leftUser.save();
-            bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO!</b>\nHệ thống phát hiện bạn đã rời khỏi Cộng Đồng SWC. Tài khoản của bạn đã bị trừ <b>20 SWGT</b>. Hãy tham gia lại để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
-        }
-        return; 
-    }
+    const [userId, setUserId] = useState('');
+    const [userProfile, setUserProfile] = useState({
+        name: 'Đang tải...',
+        username: '',
+        photoUrl: ''
+    });
 
-    // --- C. XỬ LÝ CỘNG TIỀN KHI CHAT TƯƠNG TÁC ---
-    if (msg.chat.type === 'private' || msg.from.is_bot) return;
-    if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
+    const [lastCheckIn, setLastCheckIn] = useState<string | null>(null);
+    const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
-    try {
-        const member = await bot.getChatMember(msg.chat.id, msg.from.id);
-        if (['administrator', 'creator'].includes(member.status)) return;
-    } catch(e) {}
+    // --- STATE PHÂN BIỆT PREMIUM & THỜI GIAN MỞ KHÓA ---
+    const [isPremiumUser, setIsPremiumUser] = useState(false);
+    const [unlockDateMs, setUnlockDateMs] = useState(0);
+    const [lockDaysLimit, setLockDaysLimit] = useState(15);
+    const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0 });
+    const [isUnlocked, setIsUnlocked] = useState(false);
 
-    if (!msg.text) return;
+    const BACKEND_URL = 'https://swc-bot-brain.onrender.com';
 
-    const userId = msg.from.id.toString();
-    let user = await User.findOne({ userId: userId });
-    
-    if (!user) {
-        user = new User({ 
-            userId: userId, 
-            firstName: msg.from.first_name || '', 
-            lastName: msg.from.last_name || '', 
-            username: msg.from.username ? `@${msg.from.username}` : '' 
-        });
-    }
+    const theme = {
+        bg: '#0F0F0F',        
+        cardBg: '#1C1C1E',    
+        gold: '#F4D03F',      
+        textLight: '#FFFFFF', 
+        textDim: '#8E8E93',   
+        border: '#333333',
+        green: '#34C759',
+        red: '#FF3B30',
+        blue: '#5E92F3',
+        premium: '#E0B0FF' // Màu tím cho Premium
+    };
 
-    user.groupMessageCount += 1; 
+    // --- LOGIC ĐẾM NGƯỢC ---
+    useEffect(() => {
+        if (!unlockDateMs) return;
 
-    if (msg.text.trim().length >= 10) {
-        user.balance = Math.round((user.balance + 0.3) * 100) / 100;
-    }
-    await user.save();
-});
-
-// --- 5. XỬ LÝ NÚT BẤM CỦA BOT ---
-bot.on('callback_query', async (callbackQuery) => {
-    const chatId = callbackQuery.message.chat.id;
-    const userId = callbackQuery.from.id.toString(); 
-    const data = callbackQuery.data;
-
-    let user = await User.findOne({ userId: userId });
-    if (!user) return bot.answerCallbackQuery(callbackQuery.id);
-
-    if (data === 'task_1') {
-        const opts = {
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "🔵 Join Kênh Thông tin", url: "https://t.me/swc_capital_vn" }],
-                    [{ text: "💬 Join Group Cộng Đồng", url: "https://t.me/swc_capital_chat" }],
-                    [{ text: "✅ KIỂM TRA & NHẬN THƯỞNG", callback_data: 'check_join' }]
-                ]
-            }
-        };
-        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n\n2️⃣ <b>Gửi tin nhắn chào hỏi</b> lên Group để xác minh.\n👉 <i>Chạm vào khung bên dưới để tự động copy câu chào, sau đó ấn nút Join Group để dán và gửi:</i>\n\n<code>Xin chào cả nhà, mình là thành viên mới, rất vui được làm quen với cộng đồng đầu tư</code>\n\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
-        bot.sendMessage(chatId, task1Text, opts);
-    } 
-    
-    else if (data === 'check_join') {
-        const status = await checkMembership(userId);
-        if (status.error) {
-            bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bot chưa được cấp quyền Admin trong Nhóm/Kênh!", show_alert: true });
-        } else if (status.inChannel && status.inGroup) {
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = unlockDateMs - now;
             
-            if (user.groupMessageCount < 1) {
-                bot.answerCallbackQuery(callbackQuery.id, { 
-                    text: `❌ TÀI KHOẢN CHƯA XÁC MINH!\n\nBạn đã vào nhóm nhưng chưa gửi tin nhắn chào hỏi nào.\n\nHãy vào Nhóm dán câu chào rồi quay lại kiểm tra nhé!`, 
-                    show_alert: true 
+            if (distance > 0) {
+                setIsUnlocked(false);
+                setTimeLeft({
+                    days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                    mins: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
                 });
             } else {
-                if (!user.task1Done) {
-                    user.balance += 20; 
-                    user.task1Done = true;
-                    await user.save();
-                    
-                    if (user.referredBy) {
-                        let referrer = await User.findOne({ userId: user.referredBy });
-                        if (referrer) {
-                            referrer.balance += 10; 
-                            await referrer.save();
-                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng thêm phần thưởng xác minh <b>+10 SWGT</b> (Đã hoàn tất 20 SWGT/người)!`, {parse_mode: 'HTML'}).catch(()=>{});
-                        }
-                    }
-
-                    bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Xác minh thành công, +20 SWGT.", show_alert: true });
-                    bot.sendMessage(chatId, "🔥 <b>XÁC MINH TÀI KHOẢN THÀNH CÔNG!</b>\n\nHệ thống đã ghi nhận bạn là Nhà đầu tư thật.\n🎁 <b>Phần thưởng:</b> +20 SWGT.\n\n👉 <i>Bấm mở App ngay để kết nối ví nhận thêm +10 SWGT nữa nhé!</i>", { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]] }});
-                } else {
-                    bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này và nhận thưởng rồi nhé!", show_alert: true });
-                }
+                setIsUnlocked(true);
+                setTimeLeft({ days: 0, hours: 0, mins: 0 });
             }
-        } else {
-            bot.answerCallbackQuery(callbackQuery.id, { text: "❌ Bạn chưa tham gia đủ Kênh và Nhóm. Hãy làm ngay kẻo mất phần thưởng!", show_alert: true });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [unlockDateMs]);
+
+    // --- LẤY DỮ LIỆU TỪ BACKEND ---
+    const fetchUserData = (uid: string) => {
+        fetch(`${BACKEND_URL}/api/user?id=${uid}`)
+            .then(res => res.json())
+            .then(data => {
+                setBalance(data.balance || 0);
+                if (data.wallet) setWallet(data.wallet);
+                if (data.gatecode) setGatecode(data.gatecode);
+                if (data.fullName) setFullName(data.fullName);
+                if (data.email) setEmail(data.email);
+                if (data.phone) setPhone(data.phone);
+
+                setReferrals(data.referralCount || 0); 
+                if (data.lastCheckInDate) setLastCheckIn(data.lastCheckInDate);
+                setMilestone10(data.milestone10 || false);
+                setMilestone50(data.milestone50 || false);
+                
+                // KIỂM TRA PREMIUM VÀ THIẾT LẬP NGÀY MỞ KHÓA
+                const premium = data.isPremium || false;
+                setIsPremiumUser(premium);
+                const daysLimit = premium ? 7 : 15;
+                setLockDaysLimit(daysLimit);
+
+                // Lấy ngày bắt đầu tham gia (Nếu user cũ chưa có, mặc định lấy ngày 22/02/2026)
+                const joinMs = data.joinDate ? new Date(data.joinDate).getTime() : new Date("2026-02-22T00:00:00Z").getTime();
+                setUnlockDateMs(joinMs + (daysLimit * 24 * 60 * 60 * 1000));
+
+                const now = new Date().getTime();
+                const lastDaily = data.lastDailyTask ? new Date(data.lastDailyTask).getTime() : 0;
+                const lastShare = data.lastShareTask ? new Date(data.lastShareTask).getTime() : 0;
+                
+                setTasks({
+                    readTaskDone: (now - lastDaily) < 86400000, 
+                    shareTaskDone: (now - lastShare) < 86400000,
+                    youtubeTaskDone: data.youtubeTaskDone || false,
+                    facebookTaskDone: data.facebookTaskDone || false
+                });
+            })
+            .catch(err => console.error("Lỗi:", err));
+    };
+
+    useEffect(() => {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                const uid = user.id.toString();
+                setUserId(uid);
+                setUserProfile({
+                    name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+                    username: user.username ? `@${user.username}` : '@nguoidung',
+                    photoUrl: user.photo_url || ''
+                });
+                fetchUserData(uid);
+            }
         }
-    }
-    
-    else if (data === 'task_2') {
-        const task2Text = `🧠 <b>NẠP KIẾN THỨC & LAN TỎA</b>\n\n` +
-                          `<b>1. NGUỒN VỐN TRÍ TUỆ (+10 SWGT/Ngày)</b>\n` +
-                          `⏱ Bấm đọc bài viết bất kỳ trên web đủ 60 giây.\n\n` +
-                          `<b>2. SỨ GIẢ LAN TỎA (+15 SWGT/Ngày)</b>\n` +
-                          `📢 Bấm nút Chia sẻ dự án đến bạn bè/nhóm.\n\n` +
-                          `▶️ <b>3. CỘNG ĐỒNG YOUTUBE (+5 SWGT - 1 Lần)</b>\n` + 
-                          `🎥 Bấm Xem video và đợi ít nhất 6 giây.\n\n` +
-                          `📘 <b>4. THEO DÕI FANPAGE (+5 SWGT - 1 Lần)</b>\n` + 
-                          `👍 Bấm Mở Fanpage và nhấn Theo dõi.`;
         
-        bot.sendMessage(chatId, task2Text, { 
-            parse_mode: 'HTML', 
-            reply_markup: { inline_keyboard: [
-                [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }],
-                [{ text: "🎁 NHẬN THƯỞNG ĐỌC BÀI", callback_data: 'claim_read' }],
-                [{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }],
-                [{ text: "🎁 NHẬN THƯỞNG YOUTUBE", callback_data: 'claim_youtube' }],
-                [{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }], 
-                [{ text: "🎁 NHẬN THƯỞNG FANPAGE", callback_data: 'claim_facebook' }], 
-                [{ text: "📢 CHIA SẺ MXH (Đợi 5s)", callback_data: 'go_share' }], 
-                [{ text: "🎁 NHẬN THƯỞNG CHIA SẺ", callback_data: 'claim_share' }]
-            ] } 
-        });
-    } 
+        fetch(`${BACKEND_URL}/api/leaderboard`)
+            .then(res => res.json())
+            .then(data => setLeaderboard(data))
+            .catch(() => {});
+    }, []);
 
-    else if (data === 'go_read') {
-        user.readTaskStartTime = new Date();
-        await user.save();
-        bot.sendMessage(chatId, "⏱ <b>Bắt đầu tính giờ!</b>\n\nHãy nhấn vào link bên dưới để đọc bài viết. Lưu ý nán lại trên trang web ít nhất <b>60 giây</b> trước khi quay lại bấm Nhận thưởng nhé!", {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [[{ text: "👉 TỚI TRANG WEB", url: "https://swc.capital/" }]] }
+    const isCheckedInToday = lastCheckIn ? new Date(lastCheckIn).toDateString() === new Date().toDateString() : false;
+
+    const handleCheckIn = () => {
+        if (isCheckedInToday) return;
+        fetch(`${BACKEND_URL}/api/checkin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        }).then(res => res.json()).then(data => {
+            if (data.success) {
+                setBalance(data.balance);
+                setLastCheckIn(data.lastCheckInDate);
+                alert("🎉 Tuyệt vời! Bạn nhận được +2 SWGT cho hôm nay.");
+            }
         });
-    }
-    else if (data === 'claim_read') {
-        if (!user.readTaskStartTime) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút ĐỌC BÀI VIẾT để bắt đầu tính giờ!", show_alert: true });
+    };
+
+    const handleSaveWallet = () => {
+        if (withdrawMethod === 'gate' && !gatecode) return alert("⚠️ Vui lòng nhập Gatecode/UID của bạn!");
+        if (withdrawMethod === 'erc20' && !wallet) return alert("⚠️ Vui lòng nhập địa chỉ ví ERC20!");
+
+        fetch(`${BACKEND_URL}/api/save-wallet`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, wallet, gatecode, fullName, email, phone })
+        }).then(() => alert('✅ Đã lưu thông tin thanh toán thành công!'));
+    };
+
+    const handleWithdraw = () => {
+        if (!isUnlocked) {
+            return alert(`⏳ Bạn chưa hết thời gian mở khóa (${lockDaysLimit} ngày). Vui lòng chờ đến khi đếm ngược kết thúc để rút Token!`);
         }
-        const now = new Date();
-        const timeSpent = (now - new Date(user.readTaskStartTime)) / 1000; 
-        const lastTask = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
-        const diffInHours = Math.abs(now - lastTask) / 36e5;
+
+        const amount = Number(withdrawAmount);
+        if (!amount || amount < 300) return alert("⚠️ Bạn cần rút tối thiểu 300 SWGT!");
+        if (amount > balance) return alert("⚠️ Số dư của bạn không đủ để rút mức này!");
         
-        if (diffInHours < 24) {
-            const waitHours = Math.ceil(24 - diffInHours);
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng đọc bài hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
-        } else if (timeSpent < 60) {
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Bạn thao tác quá nhanh! Mới được ${Math.round(timeSpent)} giây. Vui lòng đọc đủ 60s!`, show_alert: true });
-        } else {
-            user.balance += 10;
-            user.lastDailyTask = now;
-            await user.save();
-            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Tuyệt vời! Bạn đã nhận thành công +10 SWGT cho nhiệm vụ đọc bài!", show_alert: true });
-        }
-    }
+        if (withdrawMethod === 'gate' && !gatecode) return alert("⚠️ Bạn chọn rút qua Gate.io nhưng chưa nhập Gatecode/UID ở bên dưới!");
+        if (withdrawMethod === 'erc20' && !wallet) return alert("⚠️ Bạn chọn rút qua ERC20 nhưng chưa nhập ví ở bên dưới!");
 
-    else if (data === 'go_youtube') {
-        if (user.youtubeTaskDone) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này rồi!", show_alert: true });
+        let confirmMsg = `Xác nhận rút ${amount} SWGT qua mạng Gate.io (Miễn phí)?`;
+        if (withdrawMethod === 'erc20') {
+            confirmMsg = `Xác nhận rút ${amount} SWGT qua ví ERC20?\n\n⚠️ LƯU Ý: Phí rút mạng ERC20 là 70 SWGT. Bạn sẽ bị trừ phí từ số tiền rút. Bạn có chắc chắn không?`;
         }
-        user.youtubeClickTime = new Date();
-        await user.save();
-        bot.sendMessage(chatId, "▶️ <b>NHIỆM VỤ YOUTUBE (Bắt đầu tính giờ)</b>\n\nHãy bấm nút bên dưới mở YouTube. Xem video ít nhất <b>6 giây</b> để hệ thống ghi nhận, sau đó quay lại đây bấm Nhận thưởng!", {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [[{ text: "👉 MỞ KÊNH YOUTUBE", url: YOUTUBE_LINK }]] }
-        });
-    }
-    else if (data === 'claim_youtube') {
-        if (user.youtubeTaskDone) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã nhận phần thưởng YouTube này rồi!", show_alert: true });
-        }
-        if (!user.youtubeClickTime) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút XEM YOUTUBE ở bước trên!", show_alert: true });
-        }
-        const timeSpent = (new Date() - new Date(user.youtubeClickTime)) / 1000;
-        if (timeSpent < 6) {
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thất bại! Bạn thao tác quá nhanh (${Math.round(timeSpent)} giây). Vui lòng đợi đủ 6 giây rồi hãy bấm Nhận thưởng!`, show_alert: true });
-        } else {
-            user.balance += 5; 
-            user.youtubeTaskDone = true;
-            await user.save();
-            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Xuất sắc! Hệ thống đã ghi nhận, +5 SWGT được cộng vào ví.", show_alert: true });
-        }
-    }
 
-    else if (data === 'go_facebook') {
-        if (user.facebookTaskDone) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã theo dõi Fanpage rồi!", show_alert: true });
+        if (window.confirm(confirmMsg)) {
+            fetch(`${BACKEND_URL}/api/withdraw`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, amount, withdrawMethod }) 
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    setBalance(data.balance);
+                    setWithdrawAmount(''); 
+                    alert(`✅ Yêu cầu rút tiền đã được gửi thành công!\nCổng rút Token SWGT đã mở, Admin sẽ xử lý và chuyển Token cho bạn sớm nhất.`);
+                } else { alert(data.message || "❌ Lỗi xử lý!"); }
+            });
         }
-        user.facebookClickTime = new Date();
-        await user.save();
-        bot.sendMessage(chatId, "📘 <b>NHIỆM VỤ FANPAGE</b>\n\nHãy bấm nút bên dưới để mở Facebook. Nhấn Like/Theo dõi trang và nán lại khoảng <b>5 giây</b> trước khi quay lại nhận thưởng nhé!", {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [[{ text: "👉 MỞ FANPAGE FACEBOOK", url: FACEBOOK_LINK }]] }
-        });
-    }
-    else if (data === 'claim_facebook') {
-        if (user.facebookTaskDone) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã nhận phần thưởng Fanpage này rồi!", show_alert: true });
-        }
-        if (!user.facebookClickTime) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút THEO DÕI FANPAGE ở bước trên!", show_alert: true });
-        }
-        const timeSpent = (new Date() - new Date(user.facebookClickTime)) / 1000;
-        if (timeSpent < 5) { 
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thất bại! Bạn thao tác quá nhanh. Vui lòng bấm mở trang và theo dõi trước khi nhận thưởng!`, show_alert: true });
-        } else {
-            user.balance += 5; 
-            user.facebookTaskDone = true;
-            await user.save();
-            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Xuất sắc! Cảm ơn bạn đã theo dõi Fanpage, +5 SWGT.", show_alert: true });
-        }
-    }
+    };
 
-    else if (data === 'go_share') {
-        user.shareClickTime = new Date();
-        await user.save();
-        const shareUrl = "https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot&text=Cơ%20hội%20nhận%20SWGT%20miễn%20phí%20từ%20Cộng%20Đồng%20SWC!";
-        bot.sendMessage(chatId, "📢 <b>NHIỆM VỤ CHIA SẺ</b>\n\nHãy bấm nút bên dưới để chọn một người bạn hoặc một nhóm và chuyển tiếp tin nhắn. Hệ thống cần khoảng <b>5 giây</b> để quét hành vi, sau đó bạn quay lại đây để nhận thưởng!", {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [[{ text: "👉 CHỌN NGƯỜI ĐỂ CHIA SẺ", url: shareUrl }]] }
+    const handleCopyLink = () => {
+        const link = `https://t.me/Dau_Tu_SWC_bot?start=${userId || 'ref'}`;
+        navigator.clipboard.writeText(link)
+            .then(() => alert('✅ Đã sao chép link giới thiệu thành công!'))
+            .catch(() => alert('❌ Lỗi sao chép!'));
+    };
+
+    const handleClaimMilestone = (milestone: number) => {
+        fetch(`${BACKEND_URL}/api/claim-milestone`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, milestone })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                setBalance(data.balance);
+                if (milestone === 10) setMilestone10(true);
+                if (milestone === 50) setMilestone50(true);
+                alert(`🎉 Chúc mừng! Bạn đã nhận thành công thưởng mốc ${milestone} người!`);
+            } else { alert(data.message || "❌ Chưa đủ điều kiện nhận!"); }
         });
-    }
-    else if (data === 'claim_share') {
-        if (!user.shareClickTime) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bạn chưa bấm nút CHIA SẺ MXH ở bước trên!", show_alert: true });
+    };
+
+    const redeemItem = (itemName: string, cost: number) => {
+        if (balance < cost) return alert(`⚠️ Bạn cần thêm ${cost - balance} SWGT nữa để đổi quyền lợi này!`);
+        if (window.confirm(`Xác nhận dùng ${cost} SWGT để đổi ${itemName}?`)) {
+            fetch(`${BACKEND_URL}/api/redeem`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, itemName, cost })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    setBalance(data.balance);
+                    alert("🎉 Yêu cầu đổi quà đã được gửi! Admin sẽ xử lý sớm.");
+                }
+            });
         }
-        const timeSpent = (new Date() - new Date(user.shareClickTime)) / 1000;
-        if (timeSpent < 5) { 
-            return bot.answerCallbackQuery(callbackQuery.id, { text: `⚠️ Thao tác quá nhanh! Hệ thống chưa kịp ghi nhận. Vui lòng bấm nút chia sẻ và gửi cho bạn bè thật nhé.`, show_alert: true });
-        }
-        const now = new Date();
-        const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
-        const diffInHours = Math.abs(now - lastShare) / 36e5;
+    };
+
+    const startTask = (taskType: string, url: string, duration: number) => {
+        window.open(url, '_blank'); 
+        setTaskTimers(prev => ({ ...prev, [taskType]: duration })); 
         
-        if (diffInHours < 24) {
-            const waitHours = Math.ceil(24 - diffInHours);
-            bot.answerCallbackQuery(callbackQuery.id, { text: `⏳ Bạn đã nhận thưởng chia sẻ hôm nay rồi! Quay lại sau ${waitHours} tiếng nhé.`, show_alert: true });
-        } else {
-            user.balance += 15; 
-            user.lastShareTask = now;
-            await user.save();
-            bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Cảm ơn bạn đã lan tỏa dự án! +15 SWGT đã được cộng vào ví.", show_alert: true });
+        const interval = setInterval(() => {
+            setTaskTimers(prev => {
+                if (prev[taskType as keyof typeof prev] <= 1) {
+                    clearInterval(interval);
+                    return { ...prev, [taskType]: 0 };
+                }
+                return { ...prev, [taskType]: prev[taskType as keyof typeof prev] - 1 };
+            });
+        }, 1000);
+    };
+
+    const claimTaskApp = (taskType: string) => {
+        if (taskTimers[taskType as keyof typeof taskTimers] > 0) {
+            return alert(`⏳ Vui lòng đợi ${taskTimers[taskType as keyof typeof taskTimers]} giây nữa để nhận thưởng!`);
         }
-    }
+        
+        fetch(`${BACKEND_URL}/api/claim-app-task`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, taskType })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                setBalance(data.balance);
+                setTasks(prev => ({ ...prev, [`${taskType}TaskDone`]: true }));
+                alert(`🎉 Nhận thành công +${data.reward} SWGT!`);
+            } else { alert(data.message || "❌ Lỗi: Bạn thao tác quá nhanh hoặc đã nhận rồi!"); }
+        });
+    };
 
-    else if (data === 'task_3') {
-        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n💎 Nhận ngay <b>+20 SWGT</b> cho mỗi lượt mời thành công.\n\n👑 <b>THƯỞNG MỐC ĐẶC BIỆT:</b>\n- Đạt 10 lượt mời: Thưởng nóng <b>+50 SWGT</b>\n- Đạt 50 lượt mời: Thưởng nóng <b>+300 SWGT</b>`;
-        bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
-    } 
-    
-    else if (data === 'task_4') {
-        const task4Text = `🏆 <b>KHO LƯU TRỮ ĐẶC QUYỀN VIP</b>\n\nSWGT là quyền lực của bạn! Dùng số dư quy đổi lấy "vũ khí" thực chiến:\n\n🔓 <b>1. Mở Khóa Group Private (500 SWGT)</b>\n☕️ <b>2. Cà Phê Chiến Lược 1:1 (300 SWGT)</b>\n🎟 <b>3. Voucher Ưu Đãi Đầu Tư (1000 SWGT)</b>\n\n👉 <i>Bấm mở App để quy đổi!</i>`;
-        bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 M mở APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
-    }
+    const renderHeader = () => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', backgroundColor: theme.bg }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+                <img src="/logo.png" alt="SWC Logo" style={{ width: '50px', height: '50px', borderRadius: '50%', border: `2px solid ${theme.gold}`, marginRight: '12px', objectFit: 'cover' }} />
+                <div>
+                    <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: theme.textLight }}>CỘNG ĐỒNG</h1>
+                    <p style={{ margin: 0, fontSize: '14px', color: theme.gold, fontWeight: 'bold' }}>Đầu tư uST</p>
+                </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', textAlign: 'right' }}>
+                <div style={{ marginRight: '10px' }}>
+                    <h2 style={{ margin: 0, fontSize: '16px', color: theme.textLight, fontWeight: 'bold' }}>{userProfile.name}</h2>
+                    <p style={{ margin: 0, fontSize: '13px', color: theme.textDim }}>{userProfile.username}</p>
+                </div>
+                {userProfile.photoUrl ? (
+                    <img src={userProfile.photoUrl} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', border: `2px solid ${theme.border}` }} />
+                ) : (
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: theme.cardBg, border: `2px solid ${theme.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.gold, fontSize: '20px' }}>👤</div>
+                )}
+            </div>
+        </div>
+    );
 
-    const validCallbacks = ['check_join', 'claim_read', 'go_read', 'claim_share', 'go_share', 'go_youtube', 'claim_youtube', 'go_facebook', 'claim_facebook', 'task_1', 'task_2', 'task_3', 'task_4'];
-    if (!validCallbacks.includes(data)) {
-        bot.answerCallbackQuery(callbackQuery.id);
-    }
-});
+    const renderHome = () => (
+        <div style={{ padding: '0 20px 20px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '20px' }}>
+                <div style={{ flex: 1, backgroundColor: theme.cardBg, borderRadius: '12px', padding: '15px 5px', textAlign: 'center', border: `1px solid ${theme.border}` }}>
+                    <h3 style={{ margin: 0, color: theme.gold, fontSize: '22px', fontWeight: 'bold' }}>{balance}</h3>
+                    <p style={{ margin: '5px 0 0 0', color: theme.textDim, fontSize: '13px' }}>Số dư SWGT</p>
+                </div>
+                <div style={{ flex: 1, backgroundColor: theme.cardBg, borderRadius: '12px', padding: '15px 5px', textAlign: 'center', border: `1px solid ${theme.border}` }}>
+                    <h3 style={{ margin: 0, color: theme.gold, fontSize: '22px', fontWeight: 'bold' }}>{referrals}</h3>
+                    <p style={{ margin: '5px 0 0 0', color: theme.textDim, fontSize: '13px' }}>Đã mời</p>
+                </div>
+                {/* HIỂN THỊ HẠNG TÀI KHOẢN */}
+                <div style={{ flex: 1, backgroundColor: theme.cardBg, borderRadius: '12px', padding: '15px 5px', textAlign: 'center', border: `1px solid ${theme.border}` }}>
+                    <h3 style={{ margin: 0, color: isPremiumUser ? theme.premium : theme.gold, fontSize: '18px', fontWeight: 'bold' }}>
+                        {isPremiumUser ? 'Premium⭐' : 'Thường'}
+                    </h3>
+                    <p style={{ margin: '5px 0 0 0', color: theme.textDim, fontSize: '13px' }}>Hạng TK</p>
+                </div>
+            </div>
+
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '18px', textAlign: 'center', border: `1px solid ${theme.border}`, marginBottom: '20px' }}>
+                <h3 style={{ margin: '0 0 10px 0', color: '#fff', fontSize: '16px' }}>📅 Điểm Danh Hàng Ngày</h3>
+                <button 
+                    onClick={handleCheckIn} 
+                    disabled={isCheckedInToday}
+                    style={{ width: '100%', backgroundColor: isCheckedInToday ? '#333' : theme.green, color: isCheckedInToday ? theme.textDim : '#fff', padding: '14px', borderRadius: '10px', fontWeight: 'bold', border: 'none', cursor: isCheckedInToday ? 'not-allowed' : 'pointer', fontSize: '15px' }}
+                >
+                    {isCheckedInToday ? "✅ ĐÃ ĐIỂM DANH HÔM NAY" : "✋ BẤM ĐIỂM DANH NHẬN +2 SWGT"}
+                </button>
+            </div>
+
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '20px', border: `1px solid ${theme.border}` }}>
+                <h2 style={{ color: theme.textLight, margin: '0 0 15px 0', fontSize: '18px' }}>🧠 Nạp Kiến Thức & Lan Tỏa</h2>
+                
+                <div style={{ backgroundColor: '#000', padding: '15px', borderRadius: '10px', marginBottom: '10px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div>
+                            <h4 style={{ margin: 0, color: theme.textLight, fontSize: '15px' }}>📖 Đọc bài phân tích</h4>
+                            <p style={{ margin: 0, color: theme.textDim, fontSize: '13px' }}>Đợi 60 giây (+10 SWGT)</p>
+                        </div>
+                        {tasks.readTaskDone && <span style={{ color: theme.green, fontWeight: 'bold' }}>✅ Xong</span>}
+                    </div>
+                    {!tasks.readTaskDone && (
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={() => startTask('read', 'https://swc.capital/', 60)} style={{ flex: 1, backgroundColor: theme.blue, color: '#fff', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>ĐỌC NGAY</button>
+                            <button onClick={() => claimTaskApp('read')} style={{ flex: 1, backgroundColor: taskTimers.read > 0 ? '#333' : theme.gold, color: taskTimers.read > 0 ? theme.textDim : '#000', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+                                {taskTimers.read > 0 ? `ĐỢI ${taskTimers.read}s` : 'NHẬN QUÀ'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ backgroundColor: '#000', padding: '15px', borderRadius: '10px', marginBottom: '10px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div>
+                            <h4 style={{ margin: 0, color: theme.textLight, fontSize: '15px' }}>▶️ Xem YouTube SWC</h4>
+                            <p style={{ margin: 0, color: theme.textDim, fontSize: '13px' }}>Đợi 6 giây (+5 SWGT)</p>
+                        </div>
+                        {tasks.youtubeTaskDone && <span style={{ color: theme.green, fontWeight: 'bold' }}>✅ Xong</span>}
+                    </div>
+                    {!tasks.youtubeTaskDone && (
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={() => startTask('youtube', 'https://www.youtube.com/c/SkyWorldCommunityVietNam/videos', 6)} style={{ flex: 1, backgroundColor: '#FF0000', color: '#fff', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>XEM NGAY</button>
+                            <button onClick={() => claimTaskApp('youtube')} style={{ flex: 1, backgroundColor: taskTimers.youtube > 0 ? '#333' : theme.gold, color: taskTimers.youtube > 0 ? theme.textDim : '#000', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+                                {taskTimers.youtube > 0 ? `ĐỢI ${taskTimers.youtube}s` : 'NHẬN QUÀ'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ backgroundColor: '#000', padding: '15px', borderRadius: '10px', marginBottom: '10px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div>
+                            <h4 style={{ margin: 0, color: theme.textLight, fontSize: '15px' }}>📘 Theo dõi Fanpage</h4>
+                            <p style={{ margin: 0, color: theme.textDim, fontSize: '13px' }}>Đợi 5 giây (+5 SWGT)</p>
+                        </div>
+                        {tasks.facebookTaskDone && <span style={{ color: theme.green, fontWeight: 'bold' }}>✅ Xong</span>}
+                    </div>
+                    {!tasks.facebookTaskDone && (
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={() => startTask('facebook', 'https://www.facebook.com/swc.capital.vn', 5)} style={{ flex: 1, backgroundColor: '#1877F2', color: '#fff', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>MỞ TRANG</button>
+                            <button onClick={() => claimTaskApp('facebook')} style={{ flex: 1, backgroundColor: taskTimers.facebook > 0 ? '#333' : theme.gold, color: taskTimers.facebook > 0 ? theme.textDim : '#000', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+                                {taskTimers.facebook > 0 ? `ĐỢI ${taskTimers.facebook}s` : 'NHẬN QUÀ'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ backgroundColor: '#000', padding: '15px', borderRadius: '10px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div>
+                            <h4 style={{ margin: 0, color: theme.textLight, fontSize: '15px' }}>📢 Chia sẻ dự án</h4>
+                            <p style={{ margin: 0, color: theme.textDim, fontSize: '13px' }}>Đợi 5 giây (+15 SWGT)</p>
+                        </div>
+                        {tasks.shareTaskDone && <span style={{ color: theme.green, fontWeight: 'bold' }}>✅ Xong</span>}
+                    </div>
+                    {!tasks.shareTaskDone && (
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={() => startTask('share', `https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot?start=${userId}`, 5)} style={{ flex: 1, backgroundColor: '#34C759', color: '#fff', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>CHIA SẺ</button>
+                            <button onClick={() => claimTaskApp('share')} style={{ flex: 1, backgroundColor: taskTimers.share > 0 ? '#333' : theme.gold, color: taskTimers.share > 0 ? theme.textDim : '#000', padding: '10px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+                                {taskTimers.share > 0 ? `ĐỢI ${taskTimers.share}s` : 'NHẬN QUÀ'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '25px', border: `1px solid ${theme.border}` }}>
+                <h2 style={{ color: theme.textLight, margin: '0 0 15px 0', fontSize: '18px' }}>🎯 Cách Hoạt Động</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>📱 Bước 1: Tham gia Bot SWC</span><br/>Liên kết với @Dau_Tu_SWC_bot trên Telegram để bắt đầu.</p>
+                    <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>👥 Bước 2: Mời bạn bè</span><br/>Chia sẻ link giới thiệu và mời bạn bè tham gia cộng đồng SWC.</p>
+                    <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>💰 Bước 3: Nhận SWGT</span><br/>Mỗi người bạn mời sẽ giúp bạn kiếm SWGT thưởng.</p>
+                    <div style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)', border: `1px dashed ${theme.green}`, padding: '15px', borderRadius: '10px' }}>
+                        <p style={{ margin: 0, color: theme.green, fontSize: '14px', lineHeight: '1.6' }}>
+                            <span style={{fontWeight:'bold'}}>💬 MẸO: Tương tác kiếm thêm điểm</span><br/>Mỗi tin nhắn bạn chat trong Nhóm Thảo Luận (từ 10 ký tự trở lên) tự động cộng <b style={{color: theme.gold}}>+0.3 SWGT</b>. Chat càng nhiều, tiền càng nhiều!
+                        </p>
+                    </div>
+                    <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>🔓 Bước 4: Rút tiền</span><br/>Rút ngay khi đạt 500 SWGT & đợi hết thời gian đếm ngược.</p>
+                </div>
+            </div>
+            
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '15px', border: `1px solid ${theme.border}` }}>
+                <h2 style={{ color: theme.gold, margin: '0 0 15px 0', fontSize: '18px' }}>💎 Cơ Cấu Phần Thưởng SWGT</h2>
+                <p style={{ color: theme.textLight, fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>📌 Thành viên Thường:</p>
+                <div style={{ color: theme.textDim, fontSize: '14px', margin: '0 0 15px 0', lineHeight: '1.6' }}>
+                    <p style={{ margin: 0 }}>Tham gia Channel: <span style={{color: '#34C759'}}>+10 SWGT/người</span></p>
+                    <p style={{ margin: 0 }}>Tham gia Nhóm Chat: <span style={{color: '#34C759'}}>+10 SWGT/người</span></p>
+                </div>
+                <p style={{ color: theme.gold, fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>⭐ Thành Viên Premium (+5 SWGT):</p>
+                <div style={{ color: theme.textDim, fontSize: '14px', margin: '0 0 10px 0', lineHeight: '1.6' }}>
+                    <p style={{ margin: 0 }}>Tham gia Channel: <span style={{color: '#34C759'}}>+20 SWGT/người</span></p>
+                    <p style={{ margin: 0 }}>Tham gia Nhóm Chat: <span style={{color: '#34C759'}}>+20 SWGT/người</span></p>
+                </div>
+                <p style={{ color: '#5E92F3', fontSize: '14px', fontWeight: 'bold', margin: 0 }}>💫 Cộng ngay: +5 SWGT bonus!</p>
+            </div>
+
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '20px', border: `1px solid ${theme.border}` }}>
+                <h2 style={{ color: theme.textLight, margin: '0 0 15px 0', fontSize: '18px' }}>⏱️ Điều Kiện Rút Tiền</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <p style={{ margin: 0, color: theme.textDim, fontSize: '14px' }}>✓ Tối thiểu: <span style={{color: theme.textLight, fontWeight: 'bold'}}>500 SWGT/Tài Khoản</span></p>
+                    <p style={{ margin: 0, color: theme.textDim, fontSize: '14px' }}>✓ Thời gian: <span style={{color: theme.textLight, fontWeight: 'bold'}}>Mở khóa sau {lockDaysLimit} ngày tham gia</span></p>
+                    <p style={{ margin: 0, color: theme.textDim, fontSize: '14px' }}>✓ Rút linh hoạt: <span style={{color: theme.textLight, fontWeight: 'bold'}}>Bất cứ lúc nào khi đủ điều kiện</span></p>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderRewards = () => {
+        let nextTarget = 10;
+        let nextReward = "+50 SWGT";
+        if (referrals >= 10 && referrals < 50) { nextTarget = 50; nextReward = "+300 SWGT"; }
+        else if (referrals >= 50) { nextTarget = 100; nextReward = "+1000 SWGT"; }
+        const progressPercent = Math.min((referrals / nextTarget) * 100, 100);
+
+        let displayBoard = [...leaderboard];
+        const dummyUsers = [
+            { firstName: 'Trần', lastName: 'Thành', referralCount: 24 },
+            { firstName: 'Lê', lastName: 'Minh', referralCount: 18 },
+            { firstName: 'Phạm', lastName: 'Hương', referralCount: 12 },
+            { firstName: 'Hoàng', lastName: 'Nam', referralCount: 7 }
+        ];
+        if (displayBoard.length < 5) {
+            const needed = 5 - displayBoard.length;
+            displayBoard = [...displayBoard, ...dummyUsers.slice(0, needed)];
+            displayBoard.sort((a, b) => b.referralCount - a.referralCount);
+        }
+
+        return (
+            <div style={{ padding: '0 20px 20px 20px', paddingBottom: '100px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+                    <div style={{ fontSize: '45px', marginBottom: '5px' }}>🎁</div>
+                    <h2 style={{ color: theme.gold, margin: '0 0 5px 0', fontSize: '22px', fontWeight: '900' }}>Trung Tâm Thu Nhập</h2>
+                    <p style={{ color: theme.textDim, fontSize: '14px', margin: 0 }}>Xây dựng hệ thống - Tạo thu nhập thụ động</p>
+                </div>
+
+                <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '25px', border: `1px solid ${theme.border}` }}>
+                    <h3 style={{ margin: '0 0 15px 0', color: theme.textLight, fontSize: '16px' }}>🔗 Công cụ lan tỏa</h3>
+                    <div style={{ backgroundColor: '#000', padding: '15px', borderRadius: '8px', color: theme.gold, fontSize: '15px', wordBreak: 'break-all', marginBottom: '15px', border: `1px dashed ${theme.border}` }}>
+                        https://t.me/Dau_Tu_SWC_bot?start={userId || 'ref'}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={handleCopyLink} style={{ flex: 1, backgroundColor: theme.gold, color: '#000', padding: '14px', borderRadius: '10px', fontWeight: 'bold', border: 'none', fontSize: '14px', cursor: 'pointer' }}>
+                            📋 COPY LINK
+                        </button>
+                        <a href={`https://t.me/share/url?url=https://t.me/Dau_Tu_SWC_bot?start=${userId}&text=Vào%20nhận%20ngay%20SWGT%20miễn%20phí%20từ%20hệ%20sinh%20thái%20công%20nghệ%20uST%20này%20anh%20em!`} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#5E92F3', color: '#fff', padding: '14px', borderRadius: '10px', fontWeight: 'bold', border: 'none', fontSize: '14px', textAlign: 'center', textDecoration: 'none' }}>
+                            ✈️ GỬI BẠN BÈ
+                        </a>
+                    </div>
+                </div>
+
+                <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '25px', border: `1px solid ${theme.border}` }}>
+                    <h2 style={{ color: theme.textLight, margin: '0 0 15px 0', fontSize: '18px' }}>🎯 Cách Hoạt Động</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>📱 Bước 1: Tham gia Bot SWC</span><br/>Liên kết với @Dau_Tu_SWC_bot trên Telegram để bắt đầu.</p>
+                        <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>👥 Bước 2: Mời bạn bè</span><br/>Chia sẻ link giới thiệu và mời bạn bè tham gia cộng đồng SWC.</p>
+                        <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>💰 Bước 3: Nhận SWGT</span><br/>Mỗi người bạn mời sẽ giúp bạn kiếm SWGT thưởng.</p>
+                        <div style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)', border: `1px dashed ${theme.green}`, padding: '15px', borderRadius: '10px' }}>
+                            <p style={{ margin: 0, color: theme.green, fontSize: '14px', lineHeight: '1.6' }}>
+                                <span style={{fontWeight:'bold'}}>💬 MẸO: Tương tác kiếm thêm điểm</span><br/>Mỗi tin nhắn bạn chat trong Nhóm Thảo Luận (từ 10 ký tự trở lên) tự động cộng <b style={{color: theme.gold}}>+0.3 SWGT</b>. Chat càng nhiều, tiền càng nhiều!
+                            </p>
+                        </div>
+                        <p style={{ margin: 0, color: theme.textDim, fontSize: '14px', lineHeight: '1.6' }}><span style={{color: theme.textLight, fontWeight:'bold'}}>🔓 Bước 4: Rút tiền</span><br/>Rút ngay khi đạt 500 SWGT & đợi hết thời gian đếm ngược.</p>
+                    </div>
+                </div>
+
+                <h3 style={{color: '#fff', borderBottom: `1px solid ${theme.border}`, paddingBottom: '10px', marginBottom: '15px', fontSize: '16px'}}>🚀 CỘT MỐC THƯỞNG NÓNG</h3>
+                <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '20px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
+                        <div>
+                            <p style={{ margin: 0, color: theme.textDim, fontSize: '14px' }}>Đã giới thiệu</p>
+                            <h2 style={{ margin: 0, color: theme.textLight, fontSize: '28px' }}>{referrals} <span style={{fontSize:'14px', color: theme.textDim, fontWeight:'normal'}}>người</span></h2>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ margin: 0, color: theme.gold, fontSize: '13px', fontWeight: 'bold' }}>Mục tiêu: {nextTarget} người</p>
+                            <p style={{ margin: 0, color: theme.green, fontSize: '14px', fontWeight: 'bold' }}>🎁 Thưởng {nextReward}</p>
+                        </div>
+                    </div>
+                    <div style={{ width: '100%', height: '12px', backgroundColor: '#333', borderRadius: '6px', overflow: 'hidden', marginBottom: '15px' }}>
+                        <div style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: theme.gold, transition: 'width 0.5s ease' }}></div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                        <div style={{ flex: 1, backgroundColor: '#000', borderRadius: '10px', padding: '15px', border: `1px solid ${theme.border}`, textAlign: 'center' }}>
+                            <div style={{ fontSize: '28px', marginBottom: '8px' }}>{referrals >= 10 ? '🌟' : '🔒'}</div>
+                            <p style={{ color: theme.textLight, fontSize: '14px', fontWeight: 'bold', margin: '0 0 5px 0' }}>Mốc 10 Người</p>
+                            <p style={{ color: theme.gold, fontSize: '13px', margin: '0 0 10px 0' }}>+50 SWGT</p>
+                            <button 
+                                onClick={() => handleClaimMilestone(10)} 
+                                disabled={referrals < 10 || milestone10}
+                                style={{ width: '100%', backgroundColor: milestone10 ? '#333' : (referrals >= 10 ? theme.green : '#333'), color: milestone10 ? theme.textDim : (referrals >= 10 ? '#fff' : theme.textDim), border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '13px', cursor: (referrals >= 10 && !milestone10) ? 'pointer' : 'not-allowed' }}>
+                                {milestone10 ? 'ĐÃ NHẬN' : 'BẤM NHẬN'}
+                            </button>
+                        </div>
+                        <div style={{ flex: 1, backgroundColor: '#000', borderRadius: '10px', padding: '15px', border: `1px solid ${theme.border}`, textAlign: 'center' }}>
+                            <div style={{ fontSize: '28px', marginBottom: '8px' }}>{referrals >= 50 ? '👑' : '🔒'}</div>
+                            <p style={{ color: theme.textLight, fontSize: '14px', fontWeight: 'bold', margin: '0 0 5px 0' }}>Mốc 50 Người</p>
+                            <p style={{ color: theme.gold, fontSize: '13px', margin: '0 0 10px 0' }}>+300 SWGT</p>
+                            <button 
+                                onClick={() => handleClaimMilestone(50)} 
+                                disabled={referrals < 50 || milestone50}
+                                style={{ width: '100%', backgroundColor: milestone50 ? '#333' : (referrals >= 50 ? theme.green : '#333'), color: milestone50 ? theme.textDim : (referrals >= 50 ? '#fff' : theme.textDim), border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '13px', cursor: (referrals >= 50 && !milestone50) ? 'pointer' : 'not-allowed' }}>
+                                {milestone50 ? 'ĐÃ NHẬN' : 'BẤM NHẬN'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style={{color: '#fff', borderBottom: `1px solid ${theme.border}`, paddingBottom: '10px', marginBottom: '15px', fontSize: '16px'}}>🏆 BẢNG VÀNG ĐUA TOP</h3>
+                <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '15px', border: `1px solid ${theme.border}`, marginBottom: '25px' }}>
+                    {displayBoard.slice(0, 5).map((user, index) => {
+                        let medal = "🏅";
+                        if (index === 0) medal = "🥇";
+                        else if (index === 1) medal = "🥈";
+                        else if (index === 2) medal = "🥉";
+                        return (
+                            <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: index < displayBoard.length - 1 ? `1px solid ${theme.border}` : 'none' }}>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '22px', marginRight: '12px' }}>{medal}</span>
+                                    <span style={{ color: theme.textLight, fontWeight: 'bold', fontSize: '15px' }}>{user.firstName} {user.lastName}</span>
+                                </div>
+                                <div style={{ color: theme.gold, fontWeight: 'bold', fontSize: '16px' }}>
+                                    {user.referralCount} <span style={{ fontSize: '12px', color: theme.textDim, fontWeight: 'normal' }}>người</span>
+                                </div>
+                            </div>
+                        )
+                    })}
+                    <div style={{ textAlign: 'center', paddingTop: '15px', borderTop: `1px dashed ${theme.gold}`, marginTop: '5px' }}>
+                        <p style={{ color: theme.gold, fontSize: '14px', fontWeight: 'bold', margin: 0, fontStyle: 'italic' }}>👉 Người tiếp theo trên Bảng Vàng sẽ là BẠN!</p>
+                    </div>
+                </div>
+
+                <h3 style={{color: '#fff', borderBottom: `1px solid ${theme.border}`, paddingBottom: '10px', marginBottom: '15px', fontSize: '16px'}}>💎 KHO ĐẶC QUYỀN VIP</h3>
+                <div style={{ backgroundColor: theme.cardBg, padding: '20px', borderRadius: '15px', marginBottom: '15px', border: `1px solid ${theme.border}`}}>
+                    <h4 style={{margin: '0 0 8px 0', color: '#5E92F3', fontSize: '16px'}}>☕ Cà Phê Chiến Lược</h4>
+                    <p style={{fontSize: '14px', color: theme.textDim, margin: '0 0 15px 0', lineHeight: '1.5'}}>Thảo luận danh mục trực tiếp cùng Admin Ucity.</p>
+                    <button onClick={() => redeemItem('Cà Phê Chiến Lược', 300)} style={{backgroundColor: '#5E92F3', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer'}}>Đổi lấy: 300 SWGT</button>
+                </div>
+
+                <div style={{ backgroundColor: theme.cardBg, padding: '20px', borderRadius: '15px', marginBottom: '15px', border: `1px solid ${theme.border}`}}>
+                    <h4 style={{margin: '0 0 8px 0', color: '#34C759', fontSize: '16px'}}>🔓 Mở Khóa Group Private</h4>
+                    <p style={{fontSize: '14px', color: theme.textDim, margin: '0 0 15px 0', lineHeight: '1.5'}}>Nhận tín hiệu thị trường và họp Zoom kín hàng tuần.</p>
+                    <button onClick={() => redeemItem('Group Private', 500)} style={{backgroundColor: '#34C759', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer'}}>Đổi lấy: 500 SWGT</button>
+                </div>
+            </div>
+        );
+    };
+
+    // --- TAB 3: VÍ ---
+    const renderWallet = () => (
+        <div style={{ padding: '0 20px 20px 20px' }}>
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '30px 20px', border: `1px solid ${theme.border}`, textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                    <p style={{ color: theme.textDim, fontSize: '16px', margin: 0, fontWeight: 'bold' }}>Số dư khả dụng</p>
+                    <button onClick={() => fetchUserData(userId)} style={{ background: 'none', border: 'none', color: theme.gold, cursor: 'pointer', fontSize: '18px' }}>🔄</button>
+                </div>
+                <h1 style={{ color: theme.gold, margin: '20px 0', fontSize: '55px', fontWeight: '900' }}>
+                    {balance} <span style={{fontSize: '24px', fontWeight: 'normal'}}>SWGT</span>
+                </h1>
+                
+                <input 
+                    type="number" 
+                    placeholder="Nhập số SWGT muốn rút..." 
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    style={{ width: '100%', padding: '14px', borderRadius: '10px', border: `1px solid ${theme.border}`, backgroundColor: '#000', color: theme.textLight, boxSizing: 'border-box', marginBottom: '15px', fontSize: '15px', textAlign: 'center' }}
+                />
+
+                <button onClick={handleWithdraw} style={{ width: '100%', backgroundColor: balance >= 300 ? theme.green : '#333', color: balance >= 300 ? '#fff' : theme.textDim, padding: '16px', borderRadius: '12px', fontWeight: 'bold', border: 'none', fontSize: '16px', cursor: balance >= 300 ? 'pointer' : 'not-allowed', boxShadow: balance >= 300 ? '0 4px 15px rgba(52, 199, 89, 0.3)' : 'none' }}>
+                    {balance >= 300 ? '💸 XÁC NHẬN RÚT TIỀN' : '🔒 CẦN TỐI THIỂU 300 SWGT'}
+                </button>
+            </div>
+
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '20px', border: `1px solid ${theme.border}` }}>
+                <h3 style={{ margin: '0 0 15px 0', color: theme.textLight, fontSize: '16px' }}>⏳ Đếm ngược mở khóa ({lockDaysLimit} Ngày)</h3>
+                
+                {isUnlocked ? (
+                    <div style={{ padding: '15px', backgroundColor: 'rgba(52, 199, 89, 0.1)', border: `1px dashed ${theme.green}`, borderRadius: '10px', color: theme.green, fontWeight: 'bold', fontSize: '16px', textAlign: 'center' }}>
+                        🎉 CỔNG RÚT SWGT ĐÃ MỞ!
+                    </div>
+                ) : (
+                    <div style={{ backgroundColor: '#000', padding: '20px', borderRadius: '10px', textAlign: 'center', border: `1px solid ${theme.border}` }}>
+                        <p style={{ color: theme.textDim, fontSize: '14px', margin: '0 0 15px 0' }}>Thời gian còn lại để mở khóa rút tiền:</p>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
+                            <span style={{ color: theme.textLight, fontSize: '18px', fontWeight: 'bold' }}>Còn</span>
+                            <div style={{ padding: '5px 10px', backgroundColor: '#222', borderRadius: '6px', color: theme.gold, fontSize: '18px', fontWeight: 'bold' }}>{timeLeft.days} <span style={{fontSize:'12px', color: theme.textDim, fontWeight:'normal'}}>Ngày</span></div>
+                            <div style={{ padding: '5px 10px', backgroundColor: '#222', borderRadius: '6px', color: theme.gold, fontSize: '18px', fontWeight: 'bold' }}>{timeLeft.hours} <span style={{fontSize:'12px', color: theme.textDim, fontWeight:'normal'}}>Giờ</span></div>
+                            <div style={{ padding: '5px 10px', backgroundColor: '#222', borderRadius: '6px', color: theme.gold, fontSize: '18px', fontWeight: 'bold' }}>{timeLeft.mins} <span style={{fontSize:'12px', color: theme.textDim, fontWeight:'normal'}}>Phút</span></div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div style={{ backgroundColor: theme.cardBg, borderRadius: '15px', padding: '20px', marginBottom: '25px', border: `1px solid ${theme.border}` }}>
+                <h3 style={{ margin: '0 0 15px 0', color: theme.textLight, fontSize: '16px' }}>⚙️ Thiết lập thanh toán</h3>
+                
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                    <button onClick={() => setWithdrawMethod('gate')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${withdrawMethod === 'gate' ? theme.green : theme.border}`, backgroundColor: withdrawMethod === 'gate' ? 'rgba(52, 199, 89, 0.1)' : '#000', color: withdrawMethod === 'gate' ? theme.green : theme.textDim, fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', transition: 'all 0.3s' }}>
+                        Gate.io (Miễn phí)
+                    </button>
+                    <button onClick={() => setWithdrawMethod('erc20')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${withdrawMethod === 'erc20' ? theme.red : theme.border}`, backgroundColor: withdrawMethod === 'erc20' ? 'rgba(255, 59, 48, 0.1)' : '#000', color: withdrawMethod === 'erc20' ? theme.red : theme.textDim, fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', transition: 'all 0.3s' }}>
+                        Ví ERC20 (-70 SWGT)
+                    </button>
+                </div>
+
+                {/* GIAO DIỆN GATE.IO */}
+                {withdrawMethod === 'gate' && (
+                    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                        <div style={{ backgroundColor: '#000', padding: '15px', borderRadius: '10px', border: `1px solid ${theme.border}`, marginBottom: '15px' }}>
+                            <p style={{ margin: '0 0 10px 0', color: theme.gold, fontSize: '14px', fontWeight: 'bold' }}>⭐ ƯU TIÊN VÌ KHÔNG MẤT PHÍ</p>
+                            <ol style={{ color: theme.textDim, fontSize: '13px', margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
+                                <li>Yêu cầu thành viên vào tài khoản Gate.io</li>
+                                <li>Chọn nạp tiền SWGT</li>
+                                <li>Chọn nạp Gatecode (Chỉ dành cho tài khoản Gate)</li>
+                            </ol>
+                            <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                                <img src="/gate-guide.jpg" alt="Hướng dẫn Gatecode" style={{ width: '100%', borderRadius: '8px', border: `1px solid ${theme.border}`, display: 'block' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                <button onClick={() => window.open('https://telegra.ph/H%C6%B0%E1%BB%9Bng-d%E1%BA%ABn-%C4%91%C4%83ng-k%C3%BD--t%E1%BA%A1o-m%E1%BB%9Bi-t%C3%A0i-kho%E1%BA%A3n-Gateio-to%C3%A0n-t%E1%BA%ADp-02-22', '_blank')} style={{ width: '100%', backgroundColor: theme.blue, color: '#fff', padding: '12px', borderRadius: '8px', fontWeight: 'bold', border: 'none', fontSize: '13px', cursor: 'pointer', marginTop: '15px' }}>
+                                    📖 HƯỚNG DẪN TẠO VÍ GATE.IO
+                                </button>
+                            </div>
+                        </div>
+
+                        <p style={{ color: theme.textLight, fontSize: '14px', fontWeight: 'bold', margin: '0 0 10px 0' }}>Bổ sung thông tin (Tùy chọn):</p>
+                        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="1. Họ tên" style={{ width: '100%', padding: '14px', borderRadius: '8px', border: `1px solid ${theme.border}`, backgroundColor: '#000', color: theme.textLight, boxSizing: 'border-box', marginBottom: '10px', fontSize: '14px' }} />
+                        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="2. Gmail" style={{ width: '100%', padding: '14px', borderRadius: '8px', border: `1px solid ${theme.border}`, backgroundColor: '#000', color: theme.textLight, boxSizing: 'border-box', marginBottom: '10px', fontSize: '14px' }} />
+                        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="3. Số điện thoại" style={{ width: '100%', padding: '14px', borderRadius: '8px', border: `1px solid ${theme.border}`, backgroundColor: '#000', color: theme.textLight, boxSizing: 'border-box', marginBottom: '15px', fontSize: '14px' }} />
+
+                        <p style={{ color: theme.textLight, fontSize: '14px', fontWeight: 'bold', margin: '0 0 10px 0' }}>Mã nhận tiền (Bắt buộc):</p>
+                        <input value={gatecode} onChange={(e) => setGatecode(e.target.value)} placeholder="Dán Gatecode / UID Gate.io tại đây..." style={{ width: '100%', padding: '14px', borderRadius: '8px', border: `1px solid ${theme.green}`, backgroundColor: '#000', color: theme.gold, boxSizing: 'border-box', marginBottom: '15px', fontSize: '14px' }} />
+                    </div>
+                )}
+
+                {/* GIAO DIỆN ERC20 */}
+                {withdrawMethod === 'erc20' && (
+                    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                        <div style={{ backgroundColor: 'rgba(255, 59, 48, 0.1)', border: `1px dashed ${theme.red}`, padding: '15px', borderRadius: '10px', marginBottom: '15px' }}>
+                            <p style={{ margin: '0 0 5px 0', color: theme.red, fontSize: '14px', fontWeight: 'bold' }}>⚠️ CHÚ Ý QUAN TRỌNG:</p>
+                            <p style={{ margin: 0, color: theme.red, fontSize: '13px', lineHeight: '1.5' }}>Phí rút tiền qua mạng lưới <b>Ethereum (ERC20)</b> là <b>70 SWGT</b>. Nhập sai mạng lưới sẽ mất tài sản vĩnh viễn!</p>
+                        </div>
+                        <p style={{ color: theme.textLight, fontSize: '14px', fontWeight: 'bold', margin: '0 0 10px 0' }}>Địa chỉ ví (Bắt buộc):</p>
+                        <input value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder="Dán địa chỉ ví ERC20 tại đây..." style={{ width: '100%', padding: '14px', borderRadius: '8px', border: `1px solid ${theme.red}`, backgroundColor: '#000', color: theme.gold, boxSizing: 'border-box', marginBottom: '15px', fontSize: '14px' }} />
+                    </div>
+                )}
+
+                <button onClick={handleSaveWallet} style={{ width: '100%', backgroundColor: theme.gold, color: '#000', padding: '14px', borderRadius: '10px', fontWeight: 'bold', border: 'none', fontSize: '15px', cursor: 'pointer' }}>
+                    {(withdrawMethod === 'erc20' && wallet) || (withdrawMethod === 'gate' && gatecode) ? "CẬP NHẬT THÔNG TIN THANH TOÁN" : "LƯU THÔNG TIN THANH TOÁN"}
+                </button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div style={{ backgroundColor: theme.bg, minHeight: '100vh', fontFamily: 'sans-serif', paddingBottom: '90px', boxSizing: 'border-box' }}>
+            <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+            {renderHeader()}
+            <div style={{ marginTop: '10px' }}>
+                {activeTab === 'home' && renderHome()}
+                {activeTab === 'rewards' && renderRewards()}
+                {activeTab === 'wallet' && renderWallet()}
+            </div>
+
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: theme.cardBg, borderTop: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-around', padding: '15px 0', paddingBottom: 'calc(15px + env(safe-area-inset-bottom))', zIndex: 100 }}>
+                <div onClick={() => setActiveTab('home')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: activeTab === 'home' ? theme.gold : theme.textDim, width: '33%', cursor: 'pointer' }}>
+                    <div style={{ fontSize: '26px', marginBottom: '6px' }}>🏠</div>
+                    <span style={{ fontSize: '15px', fontWeight: 'bold' }}>Trang chủ</span>
+                </div>
+                <div onClick={() => setActiveTab('rewards')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: activeTab === 'rewards' ? theme.gold : theme.textDim, width: '33%', cursor: 'pointer' }}>
+                    <div style={{ fontSize: '26px', marginBottom: '6px' }}>🎁</div>
+                    <span style={{ fontSize: '15px', fontWeight: 'bold' }}>Phần thưởng</span>
+                </div>
+                <div onClick={() => setActiveTab('wallet')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: activeTab === 'wallet' ? theme.gold : theme.textDim, width: '33%', cursor: 'pointer' }}>
+                    <div style={{ fontSize: '26px', marginBottom: '6px' }}>👛</div>
+                    <span style={{ fontSize: '15px', fontWeight: 'bold' }}>Ví</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default App;
