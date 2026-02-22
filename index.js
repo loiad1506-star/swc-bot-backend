@@ -171,12 +171,19 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: YÊU CẦU RÚT TIỀN (THEO SỐ LƯỢNG NHẬP)
+// API: YÊU CẦU RÚT TIỀN (CHẶN NẾU CHƯA HẾT 30 NGÀY)
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', async () => {
             try {
+                // KIỂM TRA ĐỒNG HỒ MỞ KHÓA
+                const unlockDate = new Date("2026-03-25T00:00:00").getTime();
+                if (new Date().getTime() < unlockDate) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: "⏳ Bạn chưa hết thời gian mở khóa. Vui lòng chờ đến khi đếm ngược kết thúc!" }));
+                }
+
                 const data = JSON.parse(body);
                 let user = await User.findOne({ userId: data.userId });
                 const withdrawAmount = Number(data.amount); 
@@ -185,14 +192,18 @@ const server = http.createServer(async (req, res) => {
                     user.balance -= withdrawAmount; 
                     await user.save();
                     
-                    bot.sendMessage(data.userId, `⏳ <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> của bạn đang được xử lý.\n🏦 Ví nhận (ERC20): <code>${user.wallet}</code>\n\nVui lòng đợi Admin phê duyệt!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    const userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nCổng rút Token SWGT đã chính thức mở. Yêu cầu rút <b>${withdrawAmount} SWGT</b> của bạn đang được xử lý.\n\n🏦 Ví nhận (ERC20): <code>${user.wallet}</code>`;
+                    bot.sendMessage(data.userId, userMsg, {parse_mode: 'HTML'}).catch(()=>{});
                     
-                    const reportWithdraw = `🚨 <b>YÊU CẦU RÚT TIỀN</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n🏦 Ví ERC20: <code>${user.wallet}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
+                    const reportWithdraw = `🚨 <b>YÊU CẦU RÚT TIỀN MỚI!</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n🏦 Ví ERC20: <code>${user.wallet}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
                     bot.sendMessage(ADMIN_ID, reportWithdraw, { parse_mode: 'HTML' }).catch(()=>{});
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, balance: user.balance }));
-                } else { res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Số dư không đủ hoặc chưa đạt mức tối thiểu!" })); }
+                } else { 
+                    res.writeHead(400, { 'Content-Type': 'application/json' }); 
+                    res.end(JSON.stringify({ success: false, message: "Số dư không đủ hoặc chưa đạt mức tối thiểu!" })); 
+                }
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
