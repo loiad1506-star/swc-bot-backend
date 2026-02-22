@@ -437,7 +437,7 @@ bot.on('callback_query', async (callbackQuery) => {
         await user.save();
         bot.sendMessage(chatId, "⏱ <b>Bắt đầu tính giờ!</b>\n\nHãy nhấn vào link bên dưới để đọc bài viết. Lưu ý nán lại trên trang web ít nhất <b>60 giây</b> trước khi quay lại bấm Nhận thưởng nhé!", {
             parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [[{ text: "👉 TỚI TRANG WEB", url: "https://hovanloi.net" }]] }
+            reply_markup: { inline_keyboard: [[{ text: "👉 TỚI TRANG WEB", url: "https://swc.capital/vi" }]] }
         });
     }
     else if (data === 'claim_read') {
