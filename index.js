@@ -43,8 +43,8 @@ const userSchema = new mongoose.Schema({
     facebookTaskDone: { type: Boolean, default: false },
     facebookClickTime: { type: Date, default: null },
     shareClickTime: { type: Date, default: null },
-    milestone10: { type: Boolean, default: false }, // Biến theo dõi mốc 10 người
-    milestone50: { type: Boolean, default: false }  // Biến theo dõi mốc 50 người
+    milestone10: { type: Boolean, default: false }, 
+    milestone50: { type: Boolean, default: false }  
 });
 const User = mongoose.model('User', userSchema);
 
@@ -57,7 +57,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
-    // API: LẤY THÔNG TIN USER (Gửi kèm trạng thái mốc)
+    // API: LẤY THÔNG TIN USER 
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
@@ -111,6 +111,42 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
+    // API: TỰ BẤM NHẬN THƯỞNG NHIỆM VỤ APP (Read, YT, FB, Share)
+    else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) return res.writeHead(400), res.end();
+
+                const now = new Date();
+                let reward = 0;
+
+                if (data.taskType === 'read') {
+                    const lastDaily = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
+                    if ((now - lastDaily) >= 86400000) { reward = 10; user.lastDailyTask = now; }
+                } else if (data.taskType === 'youtube' && !user.youtubeTaskDone) {
+                    reward = 5; user.youtubeTaskDone = true;
+                } else if (data.taskType === 'facebook' && !user.facebookTaskDone) {
+                    reward = 5; user.facebookTaskDone = true;
+                } else if (data.taskType === 'share') {
+                    const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
+                    if ((now - lastShare) >= 86400000) { reward = 15; user.lastShareTask = now; }
+                }
+
+                if (reward > 0) {
+                    user.balance += reward;
+                    await user.save();
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, balance: user.balance, reward }));
+                } else {
+                    res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Đã nhận rồi hoặc chưa đủ thời gian!" }));
+                }
+            } catch (e) { res.writeHead(400); res.end(); }
+        });
+    }
     // API: ĐỔI QUÀ VIP
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
@@ -126,7 +162,7 @@ const server = http.createServer(async (req, res) => {
                     const userNotify = `⏳ <b>YÊU CẦU ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu quyền lợi của bạn đang được xử lý: <b>${data.itemName}</b>\n💎 Phí đổi: ${data.cost} SWGT\n\nAdmin sẽ kiểm tra và hoàn tất cho bạn trong giây lát!`;
                     bot.sendMessage(data.userId, userNotify, {parse_mode: 'HTML'}).catch(()=>{});
                     
-                    const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💎 Quà: <b>${data.itemName}</b>\n🏦 Ví: <code>${user.wallet || 'Chưa có'}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
+                    const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💎 Quà: <b>${data.itemName}</b>\n🏦 Ví: <code>${user.wallet || 'Chưa cập nhật'}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
                     bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' }).catch(()=>{});
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -143,7 +179,7 @@ const server = http.createServer(async (req, res) => {
             try {
                 const data = JSON.parse(body);
                 let user = await User.findOne({ userId: data.userId });
-                const withdrawAmount = Number(data.amount); // Lấy số lượng từ App
+                const withdrawAmount = Number(data.amount); 
 
                 if (user && user.balance >= withdrawAmount && withdrawAmount >= 300) {
                     user.balance -= withdrawAmount; 
@@ -365,7 +401,7 @@ bot.on('callback_query', async (callbackQuery) => {
                 ]
             }
         };
-        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n\n2️⃣ <b>Gửi tin nhắn chào hỏi</b> lên Group để xác minh.\n👉 <i>Chạm vào khung bên dưới để tự động copy câu chào, sau đó ấn nút Join Group để dán và gửi:</i>\n\n<code>Xin chào cả nhà</code>\n\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
+        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n\n2️⃣ <b>Gửi tin nhắn chào hỏi</b> lên Group để xác minh.\n👉 <i>Chạm vào khung bên dưới để tự động copy câu chào, sau đó ấn nút Join Group để dán và gửi:</i>\n\n<code>Xin chào cả nhà, mình là thành viên mới, rất vui được làm quen với cộng đồng đầu tư</code>\n\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
         bot.sendMessage(chatId, task1Text, opts);
     } 
     
@@ -437,7 +473,8 @@ bot.on('callback_query', async (callbackQuery) => {
         await user.save();
         bot.sendMessage(chatId, "⏱ <b>Bắt đầu tính giờ!</b>\n\nHãy nhấn vào link bên dưới để đọc bài viết. Lưu ý nán lại trên trang web ít nhất <b>60 giây</b> trước khi quay lại bấm Nhận thưởng nhé!", {
             parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [[{ text: "👉 TỚI TRANG WEB", url: "https://swc.capital/vi" }]] }
+            // --- ĐÃ THAY LINK hovanloi.net THÀNH swc.capital Ở ĐÂY ---
+            reply_markup: { inline_keyboard: [[{ text: "👉 TỚI TRANG WEB", url: "https://swc.capital/" }]] }
         });
     }
     else if (data === 'claim_read') {
