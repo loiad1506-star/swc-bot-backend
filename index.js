@@ -9,7 +9,7 @@ const mongoURI = process.env.MONGODB_URI;
 const bot = new TelegramBot(token, {polling: true});
 const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
 
-const ADMIN_ID = '507318519'; // ID của anh Hồ Văn Lợi
+const ADMIN_ID = '507318519'; 
 const CHANNEL_USERNAME = '@swc_capital_vn';
 const GROUP_USERNAME = '@swc_capital_chat';
 
@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema({
     username: { type: String, default: '' },  
     balance: { type: Number, default: 0 },
     wallet: { type: String, default: '' },
+    gatecode: { type: String, default: '' }, 
+    fullName: { type: String, default: '' }, 
+    email: { type: String, default: '' }, 
+    phone: { type: String, default: '' }, 
     referredBy: { type: String, default: null }, 
     referralCount: { type: Number, default: 0 }, 
     task1Done: { type: Boolean, default: false }, 
@@ -57,15 +61,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
-    // API: LẤY THÔNG TIN USER (Gửi kèm trạng thái mốc)
+    // API: LẤY THÔNG TIN USER
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
-        if (!userData) userData = { balance: 0, wallet: '', referralCount: 0 };
+        if (!userData) userData = { balance: 0, wallet: '', gatecode: '', fullName: '', email: '', phone: '', referralCount: 0 };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ...userData._doc }));
     } 
-    // API: LƯU VÍ
+    // API: LƯU VÍ & THÔNG TIN THANH TOÁN
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -74,11 +78,16 @@ const server = http.createServer(async (req, res) => {
                 const data = JSON.parse(body);
                 let user = await User.findOne({ userId: data.userId });
                 if (user) {
-                    user.wallet = data.wallet;
+                    if (data.wallet) user.wallet = data.wallet;
+                    if (data.gatecode) user.gatecode = data.gatecode;
+                    if (data.fullName) user.fullName = data.fullName;
+                    if (data.email) user.email = data.email;
+                    if (data.phone) user.phone = data.phone;
+
                     if (!user.walletRewardDone) {
                         user.balance += 10;
                         user.walletRewardDone = true;
-                        bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã kết nối ví thành công, +10 SWGT!`, {parse_mode: 'HTML'}).catch(()=>{});
+                        bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã thiết lập thông tin thanh toán thành công, +10 SWGT!`, {parse_mode: 'HTML'}).catch(()=>{});
                     }
                     await user.save();
                 }
@@ -171,13 +180,13 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-// API: YÊU CẦU RÚT TIỀN (CHẶN NẾU CHƯA HẾT 30 NGÀY)
+    // API: YÊU CẦU RÚT TIỀN (CHẶN THỜI GIAN & THÔNG BÁO CHO ADMIN DỰA VÀO PHƯƠNG THỨC RÚT)
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', async () => {
             try {
-                // KIỂM TRA ĐỒNG HỒ MỞ KHÓA
+                // KIỂM TRA THỜI GIAN MỞ KHÓA
                 const unlockDate = new Date("2026-03-25T00:00:00").getTime();
                 if (new Date().getTime() < unlockDate) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -192,11 +201,19 @@ const server = http.createServer(async (req, res) => {
                     user.balance -= withdrawAmount; 
                     await user.save();
                     
-                    const userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nCổng rút Token SWGT đã chính thức mở. Yêu cầu rút <b>${withdrawAmount} SWGT</b> của bạn đang được xử lý.\n\n🏦 Ví nhận (ERC20): <code>${user.wallet}</code>`;
+                    let userMsg = "";
+                    let adminReport = "";
+
+                    if (data.withdrawMethod === 'gate') {
+                        userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> (Miễn phí) qua Gate.io đang được xử lý.\n\n🔑 Gatecode/UID: <code>${user.gatecode}</code>`;
+                        adminReport = `🚨 <b>YÊU CẦU RÚT TIỀN (GATE.IO)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n\n📝 <b>Thông tin thanh toán:</b>\n- Gatecode/UID: <code>${user.gatecode}</code>\n- Họ tên: ${user.fullName || 'Không có'}\n- SĐT: ${user.phone || 'Không có'}\n- Email: ${user.email || 'Không có'}\n\n👉 <i>Admin hãy gửi SWGT nội bộ qua Gate.io và Reply tin nhắn này gõ "xong".</i>`;
+                    } else {
+                        userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> qua ví ERC20 đang được xử lý (Sẽ trừ 70 SWGT phí mạng).\n\n🏦 Ví nhận: <code>${user.wallet}</code>`;
+                        adminReport = `🚨 <b>YÊU CẦU RÚT TIỀN (ERC20)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng khách rút: <b>${withdrawAmount} SWGT</b>\n⚠️ (Nhớ trừ 70 SWGT phí mạng khi chuyển)\n🏦 Ví ERC20: <code>${user.wallet}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
+                    }
+
                     bot.sendMessage(data.userId, userMsg, {parse_mode: 'HTML'}).catch(()=>{});
-                    
-                    const reportWithdraw = `🚨 <b>YÊU CẦU RÚT TIỀN MỚI!</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n🏦 Ví ERC20: <code>${user.wallet}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
-                    bot.sendMessage(ADMIN_ID, reportWithdraw, { parse_mode: 'HTML' }).catch(()=>{});
+                    bot.sendMessage(ADMIN_ID, adminReport, { parse_mode: 'HTML' }).catch(()=>{});
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, balance: user.balance }));
@@ -412,7 +429,7 @@ bot.on('callback_query', async (callbackQuery) => {
                 ]
             }
         };
-        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n\n2️⃣ <b>Gửi tin nhắn chào hỏi</b> lên Group để xác minh.\n👉 <i>Chạm vào khung bên dưới để tự động copy câu chào, sau đó ấn nút Join Group để dán và gửi:</i>\n\n<code>Xin chào cả nhà</code>\n\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
+        const task1Text = `🎯 <b>BƯỚC 1: LẤY VỐN KHỞI NGHIỆP</b>\n\nHoàn thành ngay để "bỏ túi" <b>30 SWGT</b> đầu tiên:\n\n1️⃣ <b>Join Kênh & Group Cộng Đồng SWC Việt Nam</b> (+20 SWGT).\n\n2️⃣ <b>Gửi tin nhắn chào hỏi</b> lên Group để xác minh.\n👉 <i>Chạm vào khung bên dưới để tự động copy câu chào, sau đó ấn nút Join Group để dán và gửi:</i>\n\n<code>Xin chào cả nhà, mình là thành viên mới, rất vui được làm quen với cộng đồng đầu tư</code>\n\n3️⃣ <b>Mở App Kết nối Ví Crypto</b> (+10 SWGT).\n\n⚠️ <i>Lưu ý: Rời nhóm = Trừ sạch điểm số!</i>`;
         bot.sendMessage(chatId, task1Text, opts);
     } 
     
@@ -484,7 +501,6 @@ bot.on('callback_query', async (callbackQuery) => {
         await user.save();
         bot.sendMessage(chatId, "⏱ <b>Bắt đầu tính giờ!</b>\n\nHãy nhấn vào link bên dưới để đọc bài viết. Lưu ý nán lại trên trang web ít nhất <b>60 giây</b> trước khi quay lại bấm Nhận thưởng nhé!", {
             parse_mode: 'HTML',
-            // --- ĐÃ THAY LINK hovanloi.net THÀNH swc.capital Ở ĐÂY ---
             reply_markup: { inline_keyboard: [[{ text: "👉 TỚI TRANG WEB", url: "https://swc.capital/" }]] }
         });
     }
@@ -607,7 +623,7 @@ bot.on('callback_query', async (callbackQuery) => {
     
     else if (data === 'task_4') {
         const task4Text = `🏆 <b>KHO LƯU TRỮ ĐẶC QUYỀN VIP</b>\n\nSWGT là quyền lực của bạn! Dùng số dư quy đổi lấy "vũ khí" thực chiến:\n\n🔓 <b>1. Mở Khóa Group Private (500 SWGT)</b>\n☕️ <b>2. Cà Phê Chiến Lược 1:1 (300 SWGT)</b>\n🎟 <b>3. Voucher Ưu Đãi Đầu Tư (1000 SWGT)</b>\n\n👉 <i>Bấm mở App để quy đổi!</i>`;
-        bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
+        bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 M mở APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
     }
 
     const validCallbacks = ['check_join', 'claim_read', 'go_read', 'claim_share', 'go_share', 'go_youtube', 'claim_youtube', 'go_facebook', 'claim_facebook', 'task_1', 'task_2', 'task_3', 'task_4'];
