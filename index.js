@@ -414,7 +414,7 @@ bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
 });
 
 // ==========================================
-// VŨ KHÍ 2: GỬI TIN NHẮN HÀNG LOẠT CHO ADMIN (/sendall)
+// VŨ KHÍ 2: GỬI TIN NHẮN HÀNG LOẠT CHO ADMIN (/sendall) CÓ KÈM NÚT BẤM MỞ APP
 // ==========================================
 bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) {
@@ -422,17 +422,29 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
     }
 
     const broadcastMsg = match[1]; 
-    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu chiến dịch gửi tin nhắn hàng loạt... Xin chờ giây lát.`);
+    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu chiến dịch gửi tin nhắn hàng loạt có đính kèm nút bấm... Xin chờ giây lát.`);
     
+    // ĐÍNH KÈM NÚT MỞ MINI APP VÀO MỌI TIN NHẮN BROADCAST
+    const opts = {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "🚀 MỞ APP ĐỂ NHẬP MÃ NHẬN THƯỞNG NGAY", web_app: { url: webAppUrl } }]
+            ]
+        }
+    };
+
     try {
         const users = await User.find({});
         let successCount = 0;
 
         for (let i = 0; i < users.length; i++) {
             try {
-                await bot.sendMessage(users[i].userId, broadcastMsg, {parse_mode: 'HTML'});
+                // Gửi tin nhắn kèm Nút bấm
+                await bot.sendMessage(users[i].userId, broadcastMsg, opts);
                 successCount++;
             } catch (err) {}
+            // Chống Spam Rate Limit của Telegram
             await new Promise(resolve => setTimeout(resolve, 50));
         }
 
