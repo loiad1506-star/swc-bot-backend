@@ -20,7 +20,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('✅ Đã kết nối MongoDB!'))
     .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 
-// --- TẠO CẤU TRÚC LƯU TRỮ (CẬP NHẬT 9 MỐC THƯỞNG) ---
+// --- TẠO CẤU TRÚC LƯU TRỮ ---
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
     firstName: { type: String, default: '' }, 
@@ -64,6 +64,39 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
+// ==========================================
+// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ ĐIỂM DANH LÚC 8H SÁNG (GIỜ VN)
+// ==========================================
+setInterval(async () => {
+    const now = new Date();
+    // Lấy giờ Việt Nam (UTC+7)
+    const vnHour = (now.getUTCHours() + 7) % 24;
+    const vnMinute = now.getUTCMinutes();
+
+    // Chạy đúng 1 lần vào lúc 08:00 sáng
+    if (vnHour === 8 && vnMinute === 0) {
+        console.log('Bắt đầu gửi thông báo nhắc điểm danh sáng...');
+        const todayStr = now.toDateString();
+        const users = await User.find({});
+        
+        for (let user of users) {
+            const lastCheckinStr = user.lastCheckInDate ? new Date(user.lastCheckInDate).toDateString() : '';
+            
+            // Nếu hôm nay chưa điểm danh
+            if (lastCheckinStr !== todayStr) {
+                const remindMsg = `☀️ <b>CHÀO BUỔI SÁNG!</b>\n\nPhần thưởng điểm danh SWGT ngày hôm nay của bạn đã sẵn sàng.\n\n⚠️ <i>Lưu ý: Nếu bỏ lỡ 1 ngày, chuỗi phần thưởng của bạn sẽ bị quay lại từ Ngày 1.</i>\n\n👉 Hãy bấm <b>"MỞ ỨNG DỤNG SWC NGAY"</b> ở menu bên dưới để nhận nhé!`;
+                try {
+                    await bot.sendMessage(user.userId, remindMsg, {parse_mode: 'HTML'});
+                } catch (e) {} // Bỏ qua nếu họ đã block bot
+                
+                // Nghỉ 50ms giữa mỗi tin nhắn để tránh bị Telegram chặn vì spam
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+    }
+}, 60000); // Cứ 1 phút quét kiểm tra thời gian 1 lần
+
+// --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -72,15 +105,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
-    // API: LẤY THÔNG TIN USER
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
-        if (!userData) userData = { balance: 0, referralCount: 0, checkInStreak: 0 };
+        if (!userData) userData = { balance: 0, wallet: '', gatecode: '', fullName: '', email: '', phone: '', referralCount: 0, isPremium: false, joinDate: Date.now() };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ...userData._doc }));
     } 
-    // API: LƯU VÍ
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -107,7 +138,6 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     } 
-    // API: TỰ BẤM NHẬN THƯỞNG 9 MỐC (TỔNG 3000 SWGT TỚI 500 NGƯỜI)
     else if (parsedUrl.pathname === '/api/claim-milestone' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -146,7 +176,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: ĐIỂM DANH CHUỖI 7 NGÀY LẶP LẠI THEO YÊU CẦU MỚI
+    // CẬP NHẬT: ĐIỂM DANH THEO MỐC MỚI (0.5, 1.5, 3, 3.5, 5, 7, 9)
     else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -175,10 +205,11 @@ const server = http.createServer(async (req, res) => {
                     user.checkInStreak = 1; 
                 }
 
-                const streakRewards = { 1: 0.5, 2: 1, 3: 2, 4: 2.3, 5: 3, 6: 3.3, 7: 4 };
+                // ÁP DỤNG CƠ CẤU MỚI: [0.5, 1.5, 3, 3.5, 5, 7, 9]
+                const streakRewards = { 1: 0.5, 2: 1.5, 3: 3, 4: 3.5, 5: 5, 6: 7, 7: 9 };
                 const reward = streakRewards[user.checkInStreak] || 0.5;
 
-                user.balance = Math.round((user.balance + reward) * 10) / 10; // Giữ 1 chữ số thập phân
+                user.balance = Math.round((user.balance + reward) * 10) / 10; 
                 user.lastCheckInDate = new Date();
                 await user.save();
 
@@ -187,7 +218,6 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: NHẬN THƯỞNG NHIỆM VỤ APP
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -229,7 +259,6 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: ĐỔI QUÀ VIP
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -250,7 +279,6 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: YÊU CẦU RÚT TIỀN 
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -297,7 +325,6 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: BẢNG XẾP HẠNG
     else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
         try {
             const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10).select('firstName lastName referralCount');
@@ -317,6 +344,38 @@ async function checkMembership(userId) {
         return { inChannel: validStatuses.includes(channelMember.status), inGroup: validStatuses.includes(groupMember.status) };
     } catch (error) { return { error: true }; }
 }
+
+// ==========================================
+// VŨ KHÍ GỬI TIN NHẮN HÀNG LOẠT CHO ADMIN (/sendall)
+// ==========================================
+bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) {
+        return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền sử dụng lệnh này!");
+    }
+
+    const broadcastMsg = match[1]; // Lấy nội dung tin nhắn phía sau chữ /sendall
+    
+    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu chiến dịch gửi tin nhắn hàng loạt... Xin chờ giây lát.`);
+    
+    try {
+        const users = await User.find({});
+        let successCount = 0;
+
+        for (let i = 0; i < users.length; i++) {
+            try {
+                await bot.sendMessage(users[i].userId, broadcastMsg, {parse_mode: 'HTML'});
+                successCount++;
+            } catch (err) {}
+            // Chống Spam Rate Limit của Telegram
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        bot.sendMessage(ADMIN_ID, `✅ Chiến dịch hoàn tất!\nĐã gửi tin nhắn mồi nhử thành công tới <b>${successCount}</b> người dùng.`, {parse_mode: 'HTML'});
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi khi gửi Broadcast: ${error.message}`);
+    }
+});
+
 
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -415,6 +474,9 @@ bot.on('message', async (msg) => {
         }
         return; 
     }
+
+    // Bỏ qua nếu lệnh bắt đầu bằng /sendall
+    if (msg.text && msg.text.startsWith('/sendall')) return;
 
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
@@ -537,7 +599,8 @@ bot.on('callback_query', async (callbackQuery) => {
         else { user.balance += 15; user.lastShareTask = now; await user.save(); bot.answerCallbackQuery(callbackQuery.id, { text: "🎉 Cảm ơn bạn đã lan tỏa dự án! +15 SWGT đã được cộng vào ví.", show_alert: true }); }
     }
     else if (data === 'task_3') {
-        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n👉 <b>MỞ APP VÀO MỤC PHẦN THƯỞNG ĐỂ XEM CHI TIẾT 9 MỐC THƯỞNG CỰC KHỦNG!</b>`;
+        const inviteReward = user.isPremium ? 40 : 20;
+        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n💎 Bạn đang là <b>${user.isPremium ? 'Thành viên Premium ⭐' : 'Thành viên Thường'}</b>, nhận ngay <b>+${inviteReward} SWGT</b> cho mỗi lượt mời thành công.\n\n👉 <b>MỞ APP VÀO MỤC PHẦN THƯỞNG ĐỂ XEM CHI TIẾT 9 MỐC THƯỞNG CỰC KHỦNG!</b>`;
         bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
     } 
     else if (data === 'task_4') {
