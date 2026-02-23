@@ -20,7 +20,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('✅ Đã kết nối MongoDB!'))
     .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 
-// --- TẠO CẤU TRÚC LƯU TRỮ ---
+// --- TẠO CẤU TRÚC LƯU TRỮ USER ---
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
     firstName: { type: String, default: '' }, 
@@ -64,16 +64,23 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
+// --- TẠO CẤU TRÚC LƯU TRỮ MÃ GIFTCODE ---
+const giftCodeSchema = new mongoose.Schema({
+    code: { type: String, unique: true }, // Mã code
+    reward: { type: Number, required: true }, // Số tiền thưởng
+    maxUses: { type: Number, default: 1 }, // Số lượng người được nhập
+    usedBy: { type: [String], default: [] } // Danh sách ID người đã nhập
+});
+const GiftCode = mongoose.model('GiftCode', giftCodeSchema);
+
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ ĐIỂM DANH LÚC 8H SÁNG (GIỜ VN)
+// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ ĐIỂM DANH LÚC 8H SÁNG
 // ==========================================
 setInterval(async () => {
     const now = new Date();
-    // Lấy giờ Việt Nam (UTC+7)
     const vnHour = (now.getUTCHours() + 7) % 24;
     const vnMinute = now.getUTCMinutes();
 
-    // Chạy đúng 1 lần vào lúc 08:00 sáng
     if (vnHour === 8 && vnMinute === 0) {
         console.log('Bắt đầu gửi thông báo nhắc điểm danh sáng...');
         const todayStr = now.toDateString();
@@ -81,20 +88,14 @@ setInterval(async () => {
         
         for (let user of users) {
             const lastCheckinStr = user.lastCheckInDate ? new Date(user.lastCheckInDate).toDateString() : '';
-            
-            // Nếu hôm nay chưa điểm danh
             if (lastCheckinStr !== todayStr) {
                 const remindMsg = `☀️ <b>CHÀO BUỔI SÁNG!</b>\n\nPhần thưởng điểm danh SWGT ngày hôm nay của bạn đã sẵn sàng.\n\n⚠️ <i>Lưu ý: Nếu bỏ lỡ 1 ngày, chuỗi phần thưởng của bạn sẽ bị quay lại từ Ngày 1.</i>\n\n👉 Hãy bấm <b>"MỞ ỨNG DỤNG SWC NGAY"</b> ở menu bên dưới để nhận nhé!`;
-                try {
-                    await bot.sendMessage(user.userId, remindMsg, {parse_mode: 'HTML'});
-                } catch (e) {} // Bỏ qua nếu họ đã block bot
-                
-                // Nghỉ 50ms giữa mỗi tin nhắn để tránh bị Telegram chặn vì spam
+                try { await bot.sendMessage(user.userId, remindMsg, {parse_mode: 'HTML'}); } catch (e) {} 
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
         }
     }
-}, 60000); // Cứ 1 phút quét kiểm tra thời gian 1 lần
+}, 60000); 
 
 // --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
@@ -138,6 +139,50 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     } 
+    // API NHẬP MÃ GIFTCODE (MỚI)
+    else if (parsedUrl.pathname === '/api/claim-giftcode' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                const inputCode = data.code.trim().toUpperCase(); // Bỏ khoảng trắng, viết hoa
+                
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) return res.writeHead(400), res.end();
+
+                let gift = await GiftCode.findOne({ code: inputCode });
+                
+                if (!gift) {
+                    res.writeHead(400); return res.end(JSON.stringify({ success: false, message: "❌ Mã Code không tồn tại hoặc viết sai!" }));
+                }
+                if (gift.usedBy.includes(user.userId)) {
+                    res.writeHead(400); return res.end(JSON.stringify({ success: false, message: "⚠️ Bạn đã nhập mã này rồi, không thể nhập lại!" }));
+                }
+                if (gift.usedBy.length >= gift.maxUses) {
+                    res.writeHead(400); return res.end(JSON.stringify({ success: false, message: "😭 Rất tiếc! Mã này đã có người khác nhanh tay nhập mất rồi." }));
+                }
+
+                // Hợp lệ -> Cộng tiền
+                user.balance = Math.round((user.balance + gift.reward) * 100) / 100;
+                await user.save();
+
+                // Lưu ID người dùng vào danh sách đã nhận
+                gift.usedBy.push(user.userId);
+                await gift.save();
+
+                // GỬI THÔNG BÁO NỔ GROUP (FOMO)
+                const fomoMsg = `🔥 <b>TING TING! CÓ NGƯỜI NHẬN QUÀ THÀNH CÔNG!</b> 🔥\n\nThành viên <b>${user.firstName} ${user.lastName}</b> vừa nhanh tay nhập mã <code>${inputCode}</code> và giật ngay <b>${gift.reward} SWGT</b> vào ví!\n\n👉 <i>Mọi người nhớ bật thông báo Group để không bỏ lỡ những mã Code cực khủng tiếp theo từ Admin nhé!</i>`;
+                bot.sendMessage(GROUP_USERNAME, fomoMsg, {parse_mode: 'HTML'}).catch(()=>{});
+
+                // Thông báo bot inbox riêng cho khách
+                bot.sendMessage(user.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã nhập đúng mã <code>${inputCode}</code>. Cộng ngay <b>${gift.reward} SWGT</b> vào tài khoản. Quá xuất sắc!`, {parse_mode: 'HTML'}).catch(()=>{});
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, balance: user.balance, reward: gift.reward }));
+            } catch (e) { res.writeHead(400); res.end(); }
+        });
+    }
     else if (parsedUrl.pathname === '/api/claim-milestone' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -176,7 +221,6 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // CẬP NHẬT: ĐIỂM DANH THEO MỐC MỚI (0.5, 1.5, 3, 3.5, 5, 7, 9)
     else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -205,7 +249,6 @@ const server = http.createServer(async (req, res) => {
                     user.checkInStreak = 1; 
                 }
 
-                // ÁP DỤNG CƠ CẤU MỚI: [0.5, 1.5, 3, 3.5, 5, 7, 9]
                 const streakRewards = { 1: 0.5, 2: 1.5, 3: 3, 4: 3.5, 5: 5, 6: 7, 7: 9 };
                 const reward = streakRewards[user.checkInStreak] || 0.5;
 
@@ -346,15 +389,39 @@ async function checkMembership(userId) {
 }
 
 // ==========================================
-// VŨ KHÍ GỬI TIN NHẮN HÀNG LOẠT CHO ADMIN (/sendall)
+// VŨ KHÍ 1: TẠO MÃ GIFTCODE CHO ADMIN (/createcode)
+// ==========================================
+bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+
+    const codeInput = match[1].toUpperCase();
+    const reward = parseInt(match[2]);
+    const maxUses = parseInt(match[3]);
+
+    try {
+        const existing = await GiftCode.findOne({ code: codeInput });
+        if (existing) {
+            return bot.sendMessage(ADMIN_ID, `❌ Lỗi: Mã <b>${codeInput}</b> đã tồn tại trong hệ thống!`, {parse_mode: 'HTML'});
+        }
+
+        const newGift = new GiftCode({ code: codeInput, reward: reward, maxUses: maxUses });
+        await newGift.save();
+
+        bot.sendMessage(ADMIN_ID, `✅ <b>TẠO MÃ THÀNH CÔNG!</b>\n\n🔑 Mã: <code>${codeInput}</code>\n💰 Thưởng: <b>${reward} SWGT</b>\n👥 Số lượng: <b>${maxUses} người</b>\n\n<i>Hãy mang mã này đi thả vào Group để dụ dỗ member nhé!</i>`, {parse_mode: 'HTML'});
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi hệ thống: ${e.message}`);
+    }
+});
+
+// ==========================================
+// VŨ KHÍ 2: GỬI TIN NHẮN HÀNG LOẠT CHO ADMIN (/sendall)
 // ==========================================
 bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) {
         return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền sử dụng lệnh này!");
     }
 
-    const broadcastMsg = match[1]; // Lấy nội dung tin nhắn phía sau chữ /sendall
-    
+    const broadcastMsg = match[1]; 
     bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu chiến dịch gửi tin nhắn hàng loạt... Xin chờ giây lát.`);
     
     try {
@@ -366,7 +433,6 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
                 await bot.sendMessage(users[i].userId, broadcastMsg, {parse_mode: 'HTML'});
                 successCount++;
             } catch (err) {}
-            // Chống Spam Rate Limit của Telegram
             await new Promise(resolve => setTimeout(resolve, 50));
         }
 
@@ -435,13 +501,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
         }
     };
     
-    bot.sendPhoto(chatId, './Bia.jpg', {
-        caption: welcomeText,
-        parse_mode: 'HTML',
-        reply_markup: opts.reply_markup
-    }).catch(err => {
-        bot.sendMessage(chatId, welcomeText, opts);
-    });
+    bot.sendPhoto(chatId, './Bia.jpg', { caption: welcomeText, parse_mode: 'HTML', reply_markup: opts.reply_markup }).catch(err => { bot.sendMessage(chatId, welcomeText, opts); });
 });
 
 bot.on('message', async (msg) => {
@@ -475,8 +535,8 @@ bot.on('message', async (msg) => {
         return; 
     }
 
-    // Bỏ qua nếu lệnh bắt đầu bằng /sendall
-    if (msg.text && msg.text.startsWith('/sendall')) return;
+    // Bỏ qua nếu lệnh bắt đầu bằng các lệnh của Admin
+    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode'))) return;
 
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
@@ -499,10 +559,7 @@ bot.on('message', async (msg) => {
     }
 
     user.groupMessageCount += 1; 
-
-    if (msg.text.trim().length >= 10) {
-        user.balance = Math.round((user.balance + 0.3) * 100) / 100;
-    }
+    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.3) * 100) / 100; }
     await user.save();
 });
 
@@ -522,23 +579,14 @@ bot.on('callback_query', async (callbackQuery) => {
     } 
     else if (data === 'check_join') {
         const status = await checkMembership(userId);
-        if (status.error) {
-            bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bot chưa được cấp quyền Admin trong Nhóm/Kênh!", show_alert: true });
-        } else if (status.inChannel && status.inGroup) {
+        if (status.error) { bot.answerCallbackQuery(callbackQuery.id, { text: "⚠️ Bot chưa được cấp quyền Admin trong Nhóm/Kênh!", show_alert: true }); } 
+        else if (status.inChannel && status.inGroup) {
             if (user.groupMessageCount < 1) {
                 bot.answerCallbackQuery(callbackQuery.id, { text: `❌ TÀI KHOẢN CHƯA XÁC MINH!\n\nBạn đã vào nhóm nhưng chưa gửi tin nhắn chào hỏi nào.\n\nHãy vào Nhóm dán câu chào rồi quay lại kiểm tra nhé!`, show_alert: true });
             } else {
                 if (!user.task1Done) {
                     const selfReward = user.isPremium ? 40 : 20;
                     user.balance += selfReward; user.task1Done = true; await user.save();
-                    if (user.referredBy) {
-                        let referrer = await User.findOne({ userId: user.referredBy });
-                        if (referrer) {
-                            const refReward = referrer.isPremium ? 20 : 10;
-                            referrer.balance += refReward; await referrer.save();
-                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng thêm phần thưởng xác minh <b>+${refReward} SWGT</b>!`, {parse_mode: 'HTML'}).catch(()=>{});
-                        }
-                    }
                     bot.answerCallbackQuery(callbackQuery.id, { text: `🎉 Tuyệt vời! Xác minh thành công, +${selfReward} SWGT.`, show_alert: true });
                     bot.sendMessage(chatId, `🔥 <b>XÁC MINH TÀI KHOẢN THÀNH CÔNG!</b>\n\nHệ thống đã ghi nhận bạn là Nhà đầu tư thật.\n🎁 <b>Phần thưởng:</b> +${selfReward} SWGT.\n\n👉 <i>Bấm mở App ngay để kết nối ví nhận thêm +10 SWGT nữa nhé!</i>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]] }});
                 } else { bot.answerCallbackQuery(callbackQuery.id, { text: "✅ Bạn đã hoàn thành nhiệm vụ này và nhận thưởng rồi nhé!", show_alert: true }); }
