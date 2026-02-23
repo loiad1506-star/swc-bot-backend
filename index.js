@@ -392,6 +392,8 @@ async function checkMembership(userId) {
 // VŨ KHÍ 1: TẠO MÃ GIFTCODE CHO ADMIN (/createcode)
 // ==========================================
 bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
+    // THÊM KHIÊN BẢO VỆ: Nếu chat trong Group thì phớt lờ luôn
+    if (msg.chat.type !== 'private') return; 
     if (msg.from.id.toString() !== ADMIN_ID) return;
 
     const codeInput = match[1].toUpperCase();
@@ -417,6 +419,8 @@ bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
 // VŨ KHÍ 2: GỬI TIN NHẮN HÀNG LOẠT CHO ADMIN (/sendall) CÓ KÈM NÚT BẤM MỞ APP
 // ==========================================
 bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
+    // THÊM KHIÊN BẢO VỆ: Nếu chat trong Group thì phớt lờ luôn
+    if (msg.chat.type !== 'private') return;
     if (msg.from.id.toString() !== ADMIN_ID) {
         return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền sử dụng lệnh này!");
     }
@@ -424,12 +428,11 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
     const broadcastMsg = match[1]; 
     bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu chiến dịch gửi tin nhắn hàng loạt có đính kèm nút bấm... Xin chờ giây lát.`);
     
-    // ĐÍNH KÈM NÚT MỞ MINI APP VÀO MỌI TIN NHẮN BROADCAST
     const opts = {
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: [
-                [{ text: "🚀 MỞ APP ĐỂ NHẬP MÃ NHẬN THƯỞNG NGAY", web_app: { url: webAppUrl } }]
+                [{ text: "🚀 MỞ ỨNG DỤNG ĐỂ NHẬP MÃ NGAY", web_app: { url: webAppUrl } }]
             ]
         }
     };
@@ -440,24 +443,24 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
 
         for (let i = 0; i < users.length; i++) {
             try {
-                // Gửi tin nhắn kèm Nút bấm
                 await bot.sendMessage(users[i].userId, broadcastMsg, opts);
                 successCount++;
             } catch (err) {}
-            // Chống Spam Rate Limit của Telegram
             await new Promise(resolve => setTimeout(resolve, 50));
         }
 
-bot.sendMessage(ADMIN_ID, `✅ Chiến dịch hoàn tất!\nĐã gửi tin nhắn mồi nhử thành công tới <b>${successCount}</b> người dùng.`, {parse_mode: 'HTML'});
+        bot.sendMessage(ADMIN_ID, `✅ Chiến dịch hoàn tất!\nĐã gửi tin nhắn mồi nhử thành công tới <b>${successCount}</b> người dùng.`, {parse_mode: 'HTML'});
     } catch (error) {
         bot.sendMessage(ADMIN_ID, `❌ Lỗi khi gửi Broadcast: ${error.message}`);
     }
-}); // <-- Đây là dấu đóng ngoặc kết thúc của VŨ KHÍ 2
+});
 
 // ==========================================
 // VŨ KHÍ 3: HỦY MÃ GIFTCODE KHẨN CẤP (/deletecode)
 // ==========================================
 bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
+    // THÊM KHIÊN BẢO VỆ: Nếu chat trong Group thì phớt lờ luôn
+    if (msg.chat.type !== 'private') return;
     if (msg.from.id.toString() !== ADMIN_ID) return;
 
     const codeInput = match[1].toUpperCase();
@@ -473,7 +476,6 @@ bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
         bot.sendMessage(ADMIN_ID, `❌ Lỗi hệ thống: ${e.message}`);
     }
 });
-
 
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
