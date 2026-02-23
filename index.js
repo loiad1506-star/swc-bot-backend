@@ -448,9 +448,29 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
 
-        bot.sendMessage(ADMIN_ID, `✅ Chiến dịch hoàn tất!\nĐã gửi tin nhắn mồi nhử thành công tới <b>${successCount}</b> người dùng.`, {parse_mode: 'HTML'});
+bot.sendMessage(ADMIN_ID, `✅ Chiến dịch hoàn tất!\nĐã gửi tin nhắn mồi nhử thành công tới <b>${successCount}</b> người dùng.`, {parse_mode: 'HTML'});
     } catch (error) {
         bot.sendMessage(ADMIN_ID, `❌ Lỗi khi gửi Broadcast: ${error.message}`);
+    }
+}); // <-- Đây là dấu đóng ngoặc kết thúc của VŨ KHÍ 2
+
+// ==========================================
+// VŨ KHÍ 3: HỦY MÃ GIFTCODE KHẨN CẤP (/deletecode)
+// ==========================================
+bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+
+    const codeInput = match[1].toUpperCase();
+
+    try {
+        const deleted = await GiftCode.findOneAndDelete({ code: codeInput });
+        if (deleted) {
+            bot.sendMessage(ADMIN_ID, `✅ <b>HỦY MÃ THÀNH CÔNG!</b>\n\nMã <code>${codeInput}</code> đã bị thu hồi và xóa vĩnh viễn khỏi hệ thống. Không ai có thể nhập mã này được nữa!`, {parse_mode: 'HTML'});
+        } else {
+            bot.sendMessage(ADMIN_ID, `❌ <b>LỖI:</b> Không tìm thấy mã <code>${codeInput}</code> trong hệ thống. Có thể anh gõ sai tên mã hoặc mã chưa từng được tạo.`, {parse_mode: 'HTML'});
+        }
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi hệ thống: ${e.message}`);
     }
 });
 
