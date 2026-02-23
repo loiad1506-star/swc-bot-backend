@@ -139,14 +139,14 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     } 
-    // API NHẬP MÃ GIFTCODE (MỚI)
+    // API NHẬP MÃ GIFTCODE
     else if (parsedUrl.pathname === '/api/claim-giftcode' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', async () => {
             try {
                 const data = JSON.parse(body);
-                const inputCode = data.code.trim().toUpperCase(); // Bỏ khoảng trắng, viết hoa
+                const inputCode = data.code.trim().toUpperCase(); 
                 
                 let user = await User.findOne({ userId: data.userId });
                 if (!user) return res.writeHead(400), res.end();
@@ -163,19 +163,15 @@ const server = http.createServer(async (req, res) => {
                     res.writeHead(400); return res.end(JSON.stringify({ success: false, message: "😭 Rất tiếc! Mã này đã có người khác nhanh tay nhập mất rồi." }));
                 }
 
-                // Hợp lệ -> Cộng tiền
                 user.balance = Math.round((user.balance + gift.reward) * 100) / 100;
                 await user.save();
 
-                // Lưu ID người dùng vào danh sách đã nhận
                 gift.usedBy.push(user.userId);
                 await gift.save();
 
-                // GỬI THÔNG BÁO NỔ GROUP (FOMO)
                 const fomoMsg = `🔥 <b>TING TING! CÓ NGƯỜI NHẬN QUÀ THÀNH CÔNG!</b> 🔥\n\nThành viên <b>${user.firstName} ${user.lastName}</b> vừa nhanh tay nhập mã <code>${inputCode}</code> và giật ngay <b>${gift.reward} SWGT</b> vào ví!\n\n👉 <i>Mọi người nhớ bật thông báo Group để không bỏ lỡ những mã Code cực khủng tiếp theo từ Admin nhé!</i>`;
                 bot.sendMessage(GROUP_USERNAME, fomoMsg, {parse_mode: 'HTML'}).catch(()=>{});
 
-                // Thông báo bot inbox riêng cho khách
                 bot.sendMessage(user.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã nhập đúng mã <code>${inputCode}</code>. Cộng ngay <b>${gift.reward} SWGT</b> vào tài khoản. Quá xuất sắc!`, {parse_mode: 'HTML'}).catch(()=>{});
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -322,6 +318,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
+    // ĐÃ BỔ SUNG: LOGIC VƯỢT RÀO MỞ KHÓA VỚI 1500 SWGT
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -335,9 +332,10 @@ const server = http.createServer(async (req, res) => {
                 const joinMs = user.joinDate ? new Date(user.joinDate).getTime() : new Date("2026-02-22T00:00:00Z").getTime();
                 const unlockDate = joinMs + (lockDays * 24 * 60 * 60 * 1000);
 
-                if (new Date().getTime() < unlockDate) {
+                // KIỂM TRA ĐIỀU KIỆN KÉP: CHƯA ĐẾN NGÀY VÀ SỐ DƯ < 1500 THÌ MỚI BỊ CHẶN
+                if (user.balance < 1500 && new Date().getTime() < unlockDate) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, message: `⏳ Bạn chưa hết thời gian mở khóa (${lockDays} ngày). Vui lòng chờ đến khi đếm ngược kết thúc!` }));
+                    return res.end(JSON.stringify({ success: false, message: `⏳ Bạn chưa hết thời gian mở khóa (${lockDays} ngày). Cày lên 1500 SWGT để được rút ngay nhé!` }));
                 }
 
                 const withdrawAmount = Number(data.amount); 
@@ -388,11 +386,7 @@ async function checkMembership(userId) {
     } catch (error) { return { error: true }; }
 }
 
-// ==========================================
-// VŨ KHÍ 1: TẠO MÃ GIFTCODE CHO ADMIN (/createcode)
-// ==========================================
 bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
-    // THÊM KHIÊN BẢO VỆ: Nếu chat trong Group thì phớt lờ luôn
     if (msg.chat.type !== 'private') return; 
     if (msg.from.id.toString() !== ADMIN_ID) return;
 
@@ -415,11 +409,7 @@ bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
     }
 });
 
-// ==========================================
-// VŨ KHÍ 2: GỬI TIN NHẮN HÀNG LOẠT CHO ADMIN (/sendall) CÓ KÈM NÚT BẤM MỞ APP
-// ==========================================
 bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
-    // THÊM KHIÊN BẢO VỆ: Nếu chat trong Group thì phớt lờ luôn
     if (msg.chat.type !== 'private') return;
     if (msg.from.id.toString() !== ADMIN_ID) {
         return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền sử dụng lệnh này!");
@@ -455,11 +445,7 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
     }
 });
 
-// ==========================================
-// VŨ KHÍ 3: HỦY MÃ GIFTCODE KHẨN CẤP (/deletecode)
-// ==========================================
 bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
-    // THÊM KHIÊN BẢO VỆ: Nếu chat trong Group thì phớt lờ luôn
     if (msg.chat.type !== 'private') return;
     if (msg.from.id.toString() !== ADMIN_ID) return;
 
@@ -569,8 +555,7 @@ bot.on('message', async (msg) => {
         return; 
     }
 
-    // Bỏ qua nếu lệnh bắt đầu bằng các lệnh của Admin
-    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode'))) return;
+    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode'))) return;
 
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
