@@ -527,11 +527,18 @@ bot.on('message', async (msg) => {
                     
                     const userName = targetUser ? `${targetUser.firstName} ${targetUser.lastName}`.trim() : 'Thành viên';
                     
-                    const fomoGroupMsg = `💸 <b>RÚT TIỀN THÀNH CÔNG!</b> 💸\n\n` +
-                                         `Chúc mừng <b>${rankTitle} ${userName}</b> đã rút thành công <b>${amount} SWGT</b> về ví cá nhân!\n\n` +
-                                         `👉 <i>Mọi người hãy tiếp tục tích lũy và lan tỏa dự án để sớm gặt hái thành quả như ${userName} nhé!</i> 🚀`;
+const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\n` +
+                                         `Quá đẳng cấp! Chúc mừng <b>${rankTitle} ${userName}</b> vừa "bỏ túi" thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n` +
+                                         `Người thật việc thật, nỗ lực lan tỏa SWC đã đơm hoa kết trái. Những đồng SWGT vô giá đang liên tục tìm thấy chủ nhân!\n\n` +
+                                         `👀 <i>Còn bạn thì sao? Sẽ đứng nhìn ${userName} lấy thưởng hay tự mình hành động?</i>\n` +
+                                         `👉 <b>Vào Bot làm nhiệm vụ và lấy Link mời bạn bè ngay! Cơ hội x10 tài sản không chờ đợi ai!</b> 🚀👇`;
                                          
-                    bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, { parse_mode: 'HTML' }).catch(()=>{});
+                    bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, { 
+                        parse_mode: 'HTML',
+                        reply_markup: {
+                            inline_keyboard: [[{ text: "🚀 VÀO BOT CÀY SWGT NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]]
+                        }
+                    }).catch(()=>{});
                 }
 
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo thành công cho khách hàng (ID: ${targetUserId}).`);
