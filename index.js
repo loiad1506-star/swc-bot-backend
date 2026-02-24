@@ -581,7 +581,7 @@ bot.on('message', async (msg) => {
                 
                 // Hiệu ứng FOMO
                 if (originalText.includes('RÚT TIỀN')) {
-                    const amountMatch = originalText.match(/Số lượng.*:\s*(\d+)\s*SWGT/);
+                    const amountMatch = originalText.match(/Số lượng.*:\s*([0-9,\.]+)\s*SWGT/);
                     const amount = amountMatch ? amountMatch[1] : '...';
                     
                     let rankTitle = "Tân Binh 🚀";
