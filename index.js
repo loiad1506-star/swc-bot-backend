@@ -103,6 +103,39 @@ setInterval(async () => {
     }
 }, 60000); 
 
+// ==========================================
+// TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI
+// ==========================================
+setInterval(async () => {
+    const now = new Date();
+    const vnHour = (now.getUTCHours() + 7) % 24;
+    const vnMinute = now.getUTCMinutes();
+
+    if (vnHour === 20 && vnMinute === 0) {
+        console.log('Bắt đầu gửi thông báo đua top lan tỏa...');
+        try {
+            const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(3);
+            if (topUsers.length > 0) {
+                let topText = "";
+                const medals = ['🥇', '🥈', '🥉'];
+                topUsers.forEach((u, index) => {
+                    topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.referralCount} cơ hội\n`;
+                });
+
+                const msg = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
+                            `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị, giúp thêm hàng chục người anh em bước chân vào bệ phóng thịnh vượng này:\n\n` +
+                            `${topText}\n` +
+                            `💡 <i>"Thành công lớn nhất không phải là bạn có bao nhiêu tiền, mà là bạn giúp được bao nhiêu người trở nên giàu có."</i>\n\n` +
+                            `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay tối nay nhé! Đua top tháng này để nhận phần thưởng xứng đáng! 🚀`;
+                
+                bot.sendMessage(GROUP_USERNAME, msg, { parse_mode: 'HTML' }).catch(()=>{});
+            }
+        } catch (error) { console.error("Lỗi gửi thông báo Top:", error); }
+        
+        await new Promise(resolve => setTimeout(resolve, 60000));
+    }
+}, 30000);
+
 // --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -307,7 +340,7 @@ const server = http.createServer(async (req, res) => {
 
                     if (data.withdrawMethod === 'gate') {
                         userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> (Miễn phí) qua Gate.io đang được xử lý.\n\n🔑 Gatecode/UID: <code>${user.gatecode}</code>`;
-                        adminReport = `🚨 <b>YÊU CẦU RÚT TIỀN (GATE.IO)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n⭐ Hạng TK: ${user.isPremium ? 'Premium' : 'Thường'}\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n\n📝 <b>Thông tin thanh toán:</b>\n- Gatecode/UID: <code>${user.gatecode}</code>\n- Họ tên: ${user.fullName || 'Không có'}\n- SĐT: ${user.phone || 'Không có'}\n- Email: ${user.email || 'Không có'}\n\n👉 <i>Admin hãy gửi SWGT nội bộ qua Gate.io và Reply tin nhắn này gõ "xong".</i>`;
+                        adminReport = `🚨 <b>YÊU CẦU RÚT TIỀN (GATE.IO)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n⭐ Hạng TK: ${user.isPremium ? 'Premium' : 'Thường'}\n💰 Số lượng: <b>${withdrawAmount} SWGT</b>\n\n📝 <b>Thông biến thanh toán:</b>\n- Gatecode/UID: <code>${user.gatecode}</code>\n- Họ tên: ${user.fullName || 'Không có'}\n- SĐT: ${user.phone || 'Không có'}\n- Email: ${user.email || 'Không có'}\n\n👉 <i>Admin hãy gửi SWGT nội bộ qua Gate.io và Reply tin nhắn này gõ "xong".</i>`;
                     } else {
                         userMsg = `💸 <b>YÊU CẦU RÚT TIỀN ĐANG ĐƯỢC TIẾN HÀNH!</b>\n\nYêu cầu rút <b>${withdrawAmount} SWGT</b> qua ví ERC20 đang được xử lý (Sẽ trừ 70 SWGT phí mạng).\n\n🏦 Ví nhận: <code>${user.wallet}</code>`;
                         adminReport = `🚨 <b>YÊU CẦU RÚT TIỀN (ERC20)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n⭐ Hạng TK: ${user.isPremium ? 'Premium' : 'Thường'}\n💰 Số lượng khách rút: <b>${withdrawAmount} SWGT</b>\n⚠️ (Nhớ trừ 70 SWGT phí mạng khi chuyển)\n🏦 Ví ERC20: <code>${user.wallet}</code>\n\n👉 <i>Admin hãy Reply tin nhắn này gõ "xong" để báo cho khách.</i>`;
@@ -420,6 +453,39 @@ bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
     } catch (e) {}
 });
 
+// --- LỆNH TEST/ĐẨY BẢNG XẾP HẠNG THỦ CÔNG (CHỈ DÀNH CHO ADMIN) ---
+bot.onText(/\/duatop/, async (msg) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    
+    bot.sendMessage(ADMIN_ID, "⏳ Đang lấy dữ liệu và đẩy Bảng Xếp Hạng lên Group...");
+    
+    try {
+        const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(3);
+        if (topUsers.length > 0) {
+            let topText = "";
+            const medals = ['🥇', '🥈', '🥉'];
+            topUsers.forEach((u, index) => {
+                topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.referralCount} cơ hội\n`;
+            });
+
+            const msgGroup = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
+                        `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị, giúp thêm hàng chục người anh em bước chân vào bệ phóng thịnh vượng này:\n\n` +
+                        `${topText}\n` +
+                        `💡 <i>"Thành công lớn nhất không phải là bạn có bao nhiêu tiền, mà là bạn giúp được bao nhiêu người trở nên giàu có."</i>\n\n` +
+                        `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay hôm nay nhé! Đua top tháng này để nhận phần thưởng xứng đáng! 🚀`;
+            
+            // Gửi lên Group
+            bot.sendMessage(GROUP_USERNAME, msgGroup, { parse_mode: 'HTML' }).catch(()=>{});
+            // Báo lại cho Admin
+            bot.sendMessage(ADMIN_ID, "✅ Đã nổ Bảng Xếp Hạng lên Group thành công!");
+        } else {
+            bot.sendMessage(ADMIN_ID, "⚠️ Chưa có thành viên nào có lượt trao cơ hội để xếp hạng!");
+        }
+    } catch (error) { 
+        bot.sendMessage(ADMIN_ID, "❌ Lỗi: " + error.message);
+    }
+});
+
 // --- 3. XỬ LÝ LỆNH /start ---
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -476,7 +542,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             inline_keyboard: [
                 [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
                 [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
-                [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
+                [{ text: "3️⃣ Tăng trưởng (Lan tỏa dự án)", callback_data: 'task_3' }],
                 [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
                 [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
             ]
@@ -538,7 +604,7 @@ bot.on('message', async (msg) => {
                                          `Quá đẳng cấp! Chúc mừng <b>${rankTitle} ${userName}</b> vừa "bỏ túi" thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n` +
                                          `Người thật việc thật, bill chuyển nóng hổi! Những đồng SWGT vô giá đang liên tục tìm thấy chủ nhân!\n\n` +
                                          `👀 <i>Còn bạn thì sao? Sẽ đứng nhìn ${userName} lấy thưởng hay tự mình hành động?</i>\n` +
-                                         `👉 <b>Vào Bot làm nhiệm vụ và lấy Link mời bạn bè ngay! Cơ hội x10 tài sản không chờ đợi ai!</b> 🚀👇`;
+                                         `👉 <b>Vào Bot làm nhiệm vụ và lấy Link đặc quyền ngay! Cơ hội x10 tài sản không chờ đợi ai!</b> 🚀👇`;
                     
                     const optsFomo = {
                         parse_mode: 'HTML',
@@ -591,7 +657,7 @@ bot.on('message', async (msg) => {
     }
 
     // Bỏ qua các lệnh điều khiển hệ thống (để không bị hiểu nhầm là tin nhắn chat)
-    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start'))) return;
+    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start') || msg.text.startsWith('/duatop'))) return;
 
     // --- D. XỬ LÝ CHAT 2 CHIỀU: KHÁCH HÀNG NHẮN TIN RIÊNG CHO BOT ---
     if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
@@ -676,7 +742,7 @@ bot.on('callback_query', async (callbackQuery) => {
                             const refReward = referrer.isPremium ? 20 : 10;
                             referrer.balance += refReward; 
                             await referrer.save();
-                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nThành viên (${user.firstName}) bạn mời vừa xác minh tài khoản thành công.\n🎁 Bạn được cộng thêm phần thưởng xác minh <b>+${refReward} SWGT</b> (Hoàn tất chuỗi nhiệm vụ Tân Binh)!`, {parse_mode: 'HTML'}).catch(()=>{});
+                            bot.sendMessage(user.referredBy, `🔥 <b>TING TING!</b>\nĐối tác (${user.firstName}) bạn trao cơ hội vừa xác minh tài khoản thành công.\n🎁 Bạn được tri ân thêm phần thưởng <b>+${refReward} SWGT</b> (Hoàn tất chuỗi nhiệm vụ Tân Binh)!`, {parse_mode: 'HTML'}).catch(()=>{});
                         }
                     }
 
@@ -828,7 +894,16 @@ bot.on('callback_query', async (callbackQuery) => {
 
     else if (data === 'task_3') {
         const inviteReward = user.isPremium ? 40 : 20;
-        const textTask3 = `🚀 <b>CƠ HỘI BỨT PHÁ - X10 TÀI SẢN</b>\n\nBạn đã mời được: <b>${user.referralCount || 0} người</b>.\n\n🔗 <b>Link giới thiệu của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n💎 Bạn đang là <b>${user.isPremium ? 'Thành viên Premium ⭐' : 'Thành viên Thường'}</b>, nhận ngay <b>+${inviteReward} SWGT</b> cho mỗi lượt mời thành công.\n\n👑 <b>THƯỞNG MỐC ĐẶC BIỆT:</b>\n- Đạt 10 lượt mời: Thưởng nóng <b>+50 SWGT</b>\n- Đạt 50 lượt mời: Thưởng nóng <b>+300 SWGT</b>\n\n👉 <b>MỞ APP VÀO MỤC PHẦN THƯỞNG ĐỂ TỰ TAY NHẬN MỐC CỰC KHỦNG!</b>`;
+        const textTask3 = `💎 <b>CHẶNG 3: LAN TỎA GIÁ TRỊ - KIẾN TẠO DI SẢN</b>\n\n` +
+                          `<i>"Của cho không bằng cách cho. Chúng ta không đi thuyết phục người tham gia, chúng ta đang trao cơ hội nắm giữ cổ phần công nghệ giao thông uST trước khi nó trở thành kỳ lân!"</i>\n\n` +
+                          `🤝 Bạn đã trao cơ hội thành công cho: <b>${user.referralCount || 0} đối tác</b>.\n\n` +
+                          `🔗 <b>Đường dẫn trao đặc quyền của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n` +
+                          `🎁 <b>QUÀ TẶNG TRI ÂN TỪ HỆ THỐNG:</b>\n` +
+                          `- Nhận tri ân <b>+${inviteReward} SWGT</b> cho mỗi đối tác bạn giúp đỡ kích hoạt thành công.\n` +
+                          `- Mở khóa Quỹ Thưởng Đặc Quyền khi đạt các mốc vinh danh:\n` +
+                          `  👑 Đạt 10 lượt trao cơ hội: Thưởng nóng <b>+25 SWGT</b>\n` +
+                          `  👑 Đạt 50 lượt trao cơ hội: Thưởng nóng <b>+100 SWGT</b>\n\n` +
+                          `👉 <b>MỞ APP VÀO MỤC PHẦN THƯỞNG ĐỂ NHẬN QUÂN HÀM VÀ QUÀ TẶNG CỦA BẠN!</b>`;
         bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
     } 
     
