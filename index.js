@@ -489,18 +489,51 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 // --- 4. CAMERA CHẠY NGẦM ---
 bot.on('message', async (msg) => {
     
-    // --- A. XỬ LÝ KHI ADMIN BÁO "XONG" ---
+    // --- A. XỬ LÝ KHI ADMIN BÁO "XONG" VÀ ĐẨY LÊN GROUP FOMO ---
     if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
         const replyText = msg.text ? msg.text.toLowerCase() : '';
         if (replyText.includes('xong') || replyText.includes('done')) {
             const originalText = msg.reply_to_message.text || "";
             const idMatch = originalText.match(/ID: (\d+)/);
+            
             if (idMatch) {
                 const targetUserId = idMatch[1];
                 const targetUser = await User.findOne({ userId: targetUserId });
                 
+                // 1. Gửi tin nhắn mật báo thành công cho cá nhân
                 const successMsg = `🚀 <b>HÀNH TRÌNH SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC. Hãy kiểm tra ví và tiếp tục lan tỏa dự án nhé! 🚀`;
                 bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                
+                // 2. Kích hoạt hiệu ứng FOMO: Báo lên Group nếu đó là yêu cầu "RÚT TIỀN"
+                if (originalText.includes('RÚT TIỀN')) {
+                    // Trích xuất số lượng SWGT đã rút từ tin nhắn của Admin
+                    const amountMatch = originalText.match(/Số lượng.*:\s*(\d+)\s*SWGT/);
+                    const amount = amountMatch ? amountMatch[1] : '...';
+                    
+                    // Tính toán chức vụ hiển thị
+                    let rankTitle = "Tân Binh 🚀";
+                    if (targetUser) {
+                        const refCount = targetUser.referralCount || 0;
+                        if (refCount >= 500) rankTitle = "Đại Tướng 🌟🌟🌟🌟";
+                        else if (refCount >= 350) rankTitle = "Thượng Tướng 🌟🌟🌟";
+                        else if (refCount >= 200) rankTitle = "Trung Tướng 🌟🌟";
+                        else if (refCount >= 120) rankTitle = "Thiếu Tướng 🌟";
+                        else if (refCount >= 80) rankTitle = "Đại Tá 🎖️";
+                        else if (refCount >= 50) rankTitle = "Thượng Tá 🎖️";
+                        else if (refCount >= 20) rankTitle = "Trung Tá 🎖️";
+                        else if (refCount >= 10) rankTitle = "Thiếu Tá 🎖️";
+                        else if (refCount >= 3) rankTitle = "Đại Úy 🎖️";
+                    }
+                    
+                    const userName = targetUser ? `${targetUser.firstName} ${targetUser.lastName}`.trim() : 'Thành viên';
+                    
+                    const fomoGroupMsg = `💸 <b>RÚT TIỀN THÀNH CÔNG!</b> 💸\n\n` +
+                                         `Chúc mừng <b>${rankTitle} ${userName}</b> đã rút thành công <b>${amount} SWGT</b> về ví cá nhân!\n\n` +
+                                         `👉 <i>Mọi người hãy tiếp tục tích lũy và lan tỏa dự án để sớm gặt hái thành quả như ${userName} nhé!</i> 🚀`;
+                                         
+                    bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, { parse_mode: 'HTML' }).catch(()=>{});
+                }
+
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo thành công cho khách hàng (ID: ${targetUserId}).`);
                 return; 
             }
