@@ -489,28 +489,34 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 // --- 4. CAMERA CHẠY NGẦM ---
 bot.on('message', async (msg) => {
     
-    // --- A. XỬ LÝ KHI ADMIN BÁO "XONG" VÀ ĐẨY LÊN GROUP FOMO ---
+// --- A. XỬ LÝ KHI ADMIN BÁO "XONG" VÀ ĐẨY LÊN GROUP FOMO ---
     if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
-        const replyText = msg.text ? msg.text.toLowerCase() : '';
+        // Lấy nội dung text HOẶC nội dung chú thích (caption) nếu Admin gửi kèm ảnh
+        const replyText = msg.text ? msg.text.toLowerCase() : (msg.caption ? msg.caption.toLowerCase() : '');
+        
         if (replyText.includes('xong') || replyText.includes('done')) {
-            const originalText = msg.reply_to_message.text || "";
+            const originalText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
             const idMatch = originalText.match(/ID: (\d+)/);
             
             if (idMatch) {
                 const targetUserId = idMatch[1];
                 const targetUser = await User.findOne({ userId: targetUserId });
                 
-                // 1. Gửi tin nhắn mật báo thành công cho cá nhân
-                const successMsg = `🚀 <b>HÀNH TRÌNH SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC. Hãy kiểm tra ví và tiếp tục lan tỏa dự án nhé! 🚀`;
-                bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                // 1. Gửi tin nhắn mật báo thành công cho cá nhân (Gửi kèm ảnh Bill nếu có)
+                const successMsg = `🚀 <b>ĐẦU TƯ CHIẾN LƯỢC SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC. Hãy kiểm tra ví và tiếp tục lan tỏa dự án nhé! 🚀`;
+                
+                if (msg.photo) {
+                    const photoId = msg.photo[msg.photo.length - 1].file_id; // Lấy ảnh nét nhất
+                    bot.sendPhoto(targetUserId, photoId, { caption: successMsg, parse_mode: 'HTML' }).catch(()=>{});
+                } else {
+                    bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                }
                 
                 // 2. Kích hoạt hiệu ứng FOMO: Báo lên Group nếu đó là yêu cầu "RÚT TIỀN"
                 if (originalText.includes('RÚT TIỀN')) {
-                    // Trích xuất số lượng SWGT đã rút từ tin nhắn của Admin
                     const amountMatch = originalText.match(/Số lượng.*:\s*(\d+)\s*SWGT/);
                     const amount = amountMatch ? amountMatch[1] : '...';
                     
-                    // Tính toán chức vụ hiển thị
                     let rankTitle = "Tân Binh 🚀";
                     if (targetUser) {
                         const refCount = targetUser.referralCount || 0;
@@ -527,21 +533,29 @@ bot.on('message', async (msg) => {
                     
                     const userName = targetUser ? `${targetUser.firstName} ${targetUser.lastName}`.trim() : 'Thành viên';
                     
-const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\n` +
+                    const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\n` +
                                          `Quá đẳng cấp! Chúc mừng <b>${rankTitle} ${userName}</b> vừa "bỏ túi" thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n` +
-                                         `Người thật việc thật, nỗ lực lan tỏa SWC đã đơm hoa kết trái. Những đồng SWGT vô giá đang liên tục tìm thấy chủ nhân!\n\n` +
+                                         `Người thật việc thật, bill chuyển nóng hổi! Những đồng SWGT vô giá đang liên tục tìm thấy chủ nhân!\n\n` +
                                          `👀 <i>Còn bạn thì sao? Sẽ đứng nhìn ${userName} lấy thưởng hay tự mình hành động?</i>\n` +
                                          `👉 <b>Vào Bot làm nhiệm vụ và lấy Link mời bạn bè ngay! Cơ hội x10 tài sản không chờ đợi ai!</b> 🚀👇`;
-                                         
-                    bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, { 
+                    
+                    const optsFomo = {
                         parse_mode: 'HTML',
                         reply_markup: {
                             inline_keyboard: [[{ text: "🚀 VÀO BOT CÀY SWGT NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]]
                         }
-                    }).catch(()=>{});
+                    };
+
+                    // Nếu Admin có đính kèm ảnh Bill, gửi ảnh lên Group. Nếu không, chỉ gửi Text.
+                    if (msg.photo) {
+                        const photoId = msg.photo[msg.photo.length - 1].file_id;
+                        bot.sendPhoto(GROUP_USERNAME, photoId, { caption: fomoGroupMsg, ...optsFomo }).catch(()=>{});
+                    } else {
+                        bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, optsFomo).catch(()=>{});
+                    }
                 }
 
-                bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo thành công cho khách hàng (ID: ${targetUserId}).`);
+                bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo (và Bill nếu có) thành công cho khách hàng (ID: ${targetUserId}).`);
                 return; 
             }
         }
