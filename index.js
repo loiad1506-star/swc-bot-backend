@@ -489,30 +489,31 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 // --- 4. CAMERA CHẠY NGẦM ---
 bot.on('message', async (msg) => {
     
-// --- A. XỬ LÝ KHI ADMIN BÁO "XONG" VÀ ĐẨY LÊN GROUP FOMO ---
+    // --- A. XỬ LÝ KHI ADMIN TƯƠNG TÁC (DUYỆT LỆNH HOẶC CHAT) ---
     if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
         // Lấy nội dung text HOẶC nội dung chú thích (caption) nếu Admin gửi kèm ảnh
         const replyText = msg.text ? msg.text.toLowerCase() : (msg.caption ? msg.caption.toLowerCase() : '');
+        const originalText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
+        const idMatch = originalText.match(/ID:\s*(\d+)/); // Lấy ID của user từ tin nhắn gốc
         
-        if (replyText.includes('xong') || replyText.includes('done')) {
-            const originalText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
-            const idMatch = originalText.match(/ID: (\d+)/);
+        if (idMatch) {
+            const targetUserId = idMatch[1];
+            const targetUser = await User.findOne({ userId: targetUserId });
             
-            if (idMatch) {
-                const targetUserId = idMatch[1];
-                const targetUser = await User.findOne({ userId: targetUserId });
+            // TRƯỜNG HỢP 1: ADMIN BÁO "XONG" ĐỂ DUYỆT RÚT TIỀN/ĐỔI QUÀ VÀ FOMO LÊN GROUP
+            if ((replyText.includes('xong') || replyText.includes('done')) && 
+                (originalText.includes('YÊU CẦU') || originalText.includes('RÚT TIỀN') || originalText.includes('ĐỔI QUÀ'))) {
                 
-                // 1. Gửi tin nhắn mật báo thành công cho cá nhân (Gửi kèm ảnh Bill nếu có)
                 const successMsg = `🚀 <b>ĐẦU TƯ CHIẾN LƯỢC SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC. Hãy kiểm tra ví và tiếp tục lan tỏa dự án nhé! 🚀`;
                 
                 if (msg.photo) {
-                    const photoId = msg.photo[msg.photo.length - 1].file_id; // Lấy ảnh nét nhất
+                    const photoId = msg.photo[msg.photo.length - 1].file_id; 
                     bot.sendPhoto(targetUserId, photoId, { caption: successMsg, parse_mode: 'HTML' }).catch(()=>{});
                 } else {
                     bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{});
                 }
                 
-                // 2. Kích hoạt hiệu ứng FOMO: Báo lên Group nếu đó là yêu cầu "RÚT TIỀN"
+                // Hiệu ứng FOMO
                 if (originalText.includes('RÚT TIỀN')) {
                     const amountMatch = originalText.match(/Số lượng.*:\s*(\d+)\s*SWGT/);
                     const amount = amountMatch ? amountMatch[1] : '...';
@@ -546,7 +547,6 @@ bot.on('message', async (msg) => {
                         }
                     };
 
-                    // Nếu Admin có đính kèm ảnh Bill, gửi ảnh lên Group. Nếu không, chỉ gửi Text.
                     if (msg.photo) {
                         const photoId = msg.photo[msg.photo.length - 1].file_id;
                         bot.sendPhoto(GROUP_USERNAME, photoId, { caption: fomoGroupMsg, ...optsFomo }).catch(()=>{});
@@ -557,6 +557,21 @@ bot.on('message', async (msg) => {
 
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo (và Bill nếu có) thành công cho khách hàng (ID: ${targetUserId}).`);
                 return; 
+            }
+            
+            // TRƯỜNG HỢP 2: ADMIN TRẢ LỜI LẠI TIN NHẮN TƯ VẤN CỦA KHÁCH HÀNG (CHAT 2 CHIỀU)
+            else if (originalText.includes('TIN NHẮN TỪ KHÁCH HÀNG')) {
+                const adminReplyMsg = `👨‍💻 <b>Phản hồi từ Admin SWC:</b>\n\n${msg.text || msg.caption || '[File/Ảnh đính kèm]'}`;
+                
+                if (msg.photo) {
+                    const photoId = msg.photo[msg.photo.length - 1].file_id;
+                    bot.sendPhoto(targetUserId, photoId, { caption: adminReplyMsg, parse_mode: 'HTML' }).catch(()=>{});
+                } else {
+                    bot.sendMessage(targetUserId, adminReplyMsg, { parse_mode: 'HTML' }).catch(()=>{});
+                }
+                
+                bot.sendMessage(ADMIN_ID, `✅ Đã gửi câu trả lời cho khách hàng (ID: ${targetUserId}).`);
+                return;
             }
         }
     }
@@ -575,10 +590,31 @@ bot.on('message', async (msg) => {
         return; 
     }
 
-    // Bỏ qua lệnh bot
+    // Bỏ qua các lệnh điều khiển hệ thống (để không bị hiểu nhầm là tin nhắn chat)
     if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start'))) return;
 
-    // --- C. XỬ LÝ CỘNG TIỀN KHI CHAT TƯƠNG TÁC ---
+    // --- D. XỬ LÝ CHAT 2 CHIỀU: KHÁCH HÀNG NHẮN TIN RIÊNG CHO BOT ---
+    if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
+        // Gom nội dung khách gửi (Chữ hoặc ảnh)
+        let content = msg.text || (msg.caption ? msg.caption : '[Hình ảnh/File đính kèm]');
+        let forwardToAdmin = `💬 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n👤 Khách: ${msg.from.first_name || ''} ${msg.from.last_name || ''}\n🆔 ID: <code>${msg.from.id}</code>\n\n${content}`;
+        
+        // Chuyển tiếp tới Admin
+        if (msg.photo) {
+            const photoId = msg.photo[msg.photo.length - 1].file_id;
+            bot.sendPhoto(ADMIN_ID, photoId, { caption: forwardToAdmin, parse_mode: 'HTML' }).catch(()=>{});
+        } else {
+            bot.sendMessage(ADMIN_ID, forwardToAdmin, { parse_mode: 'HTML' }).catch(()=>{});
+        }
+        
+        // Tự động phản hồi điều hướng khách hàng vào Group
+        const autoReply = `✅ <i>Tin nhắn của bạn đã được chuyển đến Admin và sẽ được phản hồi sớm nhất.</i>\n\n💡 <b>Mẹo:</b> Để được hỗ trợ nhanh nhất và trao đổi cùng mọi người, bạn có thể tham gia và đặt câu hỏi trực tiếp tại <a href="https://t.me/swc_capital_chat">Group Cộng Đồng SWC</a> nhé!`;
+        bot.sendMessage(msg.chat.id, autoReply, { parse_mode: 'HTML', disable_web_page_preview: true }).catch(()=>{});
+        
+        return; // Dừng tại đây, không cho chạy xuống phần cộng tiền Group ở dưới
+    }
+
+    // --- C. XỬ LÝ CỘNG TIỀN KHI CHAT TƯƠNG TÁC TẠI GROUP ---
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
 
