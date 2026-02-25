@@ -701,7 +701,7 @@ bot.on('message', async (msg) => {
 
     user.groupMessageCount += 1; 
 
-    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.3) * 100) / 100; }
+    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.1) * 100) / 100; }
     await user.save();
 });
 
