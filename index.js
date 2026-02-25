@@ -486,7 +486,7 @@ bot.onText(/\/duatop/, async (msg) => {
     }
 });
 
-// --- 3. XỬ LÝ LỆNH /start ---
+// --- 3. XỬ LÝ LỆNH /start (PHIÊN BẢN NÂNG CẤP QUÂN HÀM) ---
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
     if (msg.chat.type !== 'private') return; 
@@ -508,20 +508,48 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             userId: userId, firstName: firstName, lastName: lastName, username: username, isPremium: isPremium
         });
         
+        // --- XỬ LÝ NGƯỜI GIỚI THIỆU ---
         if (refId && refId !== userId) {
             user.referredBy = refId;
             let referrer = await User.findOne({ userId: refId });
             if (referrer) {
                 const startReward = referrer.isPremium ? 20 : 10;
-                referrer.balance += startReward; 
+                referrer.balance = Math.round((referrer.balance + startReward) * 100) / 100; 
                 referrer.referralCount += 1; 
                 await referrer.save();
                 
-                let milestoneMsg = "";
-                if (referrer.referralCount === 10) milestoneMsg = "\n🌟 Bạn đã đạt mốc 10 người! Mở App ngay để TỰ BẤM NHẬN +50 SWGT nhé!"; 
-                if (referrer.referralCount === 50) milestoneMsg = "\n👑 Bạn đã đạt mốc 50 người! Mở App ngay để TỰ BẤM NHẬN +300 SWGT nhé!"; 
+                // --- LOGIC KIỂM TRA THĂNG HẠNG QUÂN ĐỘI NGAY LẬP TỨC ---
+                let rankUpMsg = "";
+                
+                switch (referrer.referralCount) {
+                    case 3:   rankUpMsg = "🎖 <b>THĂNG CẤP: ĐẠI ÚY</b> (Đã mở khóa mốc 3)"; break;
+                    case 10:  rankUpMsg = "🎖 <b>THĂNG CẤP: THIẾU TÁ</b> (Đã mở khóa mốc 10)"; break;
+                    case 20:  rankUpMsg = "🎖 <b>THĂNG CẤP: TRUNG TÁ</b> (Đã mở khóa mốc 20)"; break;
+                    case 50:  rankUpMsg = "🎖 <b>THĂNG CẤP: THƯỢNG TÁ</b> (Đã mở khóa mốc 50)"; break;
+                    case 80:  rankUpMsg = "🎖 <b>THĂNG CẤP: ĐẠI TÁ</b> (Đã mở khóa mốc 80)"; break;
+                    case 120: rankUpMsg = "🌟 <b>THĂNG CẤP: THIẾU TƯỚNG</b> (Đã mở khóa mốc 120)"; break;
+                    case 200: rankUpMsg = "🌟🌟 <b>THĂNG CẤP: TRUNG TƯỚNG</b> (Đã mở khóa mốc 200)"; break;
+                    case 350: rankUpMsg = "🌟🌟🌟 <b>THĂNG CẤP: THƯỢNG TƯỚNG</b> (Đã mở khóa mốc 350)"; break;
+                    case 500: rankUpMsg = "🌟🌟🌟🌟 <b>THĂNG CẤP: ĐẠI TƯỚNG</b> (Đã mở khóa mốc 500)"; break;
+                }
 
-                const notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\nĐã bấm vào link mời của bạn!\n\n🎁 Bạn vừa được cộng trước <b>${startReward} SWGT</b>.\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" để bạn được cộng thêm <b>${startReward} SWGT</b> nữa nhé!${milestoneMsg}`;
+                let notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n` +
+                                `👤 <b>Tên:</b> ${firstName} ${lastName}\n` +
+                                `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                                `Đã bấm vào link mời của bạn!\n\n` +
+                                `🎁 Bạn vừa được cộng trước <b>${startReward} SWGT</b>.`;
+
+                if (rankUpMsg) {
+                    // Nếu đạt mốc -> Hét lên
+                    notifyMsg += `\n\n--------------------------------\n` +
+                                 `${rankUpMsg}\n` +
+                                 `🛑 <b>CHÚC MỪNG! BẠN CÓ QUÀ THĂNG HẠNG!</b>\n` +
+                                 `👉 <i>Hãy mở App ngay để bấm nút "NHẬN" trong mục Phần Thưởng nhé!</i>`;
+                } else {
+                    // Nếu chưa đạt mốc -> Nhắc nhở
+                    notifyMsg += `\n\n⚠️ <b>BƯỚC CUỐI:</b> Hãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" để bạn được cộng thêm <b>${startReward} SWGT</b> nữa nhé!`;
+                }
+
                 bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
             }
         }
@@ -530,6 +558,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     }
     await user.save();
     
+    // --- TIN NHẮN CHÀO MỪNG (GIỮ NGUYÊN) ---
     let welcomeText = `👋 <b>Chào mừng bạn đến với Cộng Đồng SWC Việt Nam!</b> 🚀\n\nBạn đã bước chân vào trung tâm kết nối của những nhà đầu tư tiên phong. Cơ hội sở hữu trước token SWGT và đón đầu xu hướng công nghệ giao thông uST đang ở ngay trước mắt, nhưng số lượng thì có hạn!\n\n🎁 <b>Quà tặng Tân Binh:</b> Nhận ngay những đồng SWGT đầu tiên hoàn toàn miễn phí.\n\n👇 <b>HÀNH ĐỘNG NGAY:</b> Bấm nút <b>"MỞ ỨNG DỤNG SWC NGAY"</b> bên dưới để kích hoạt ví và gia tăng tài sản!`;
     
     if (isNewUser && refId && refId !== userId) {
@@ -542,7 +571,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             inline_keyboard: [
                 [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
                 [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
-                [{ text: "3️⃣ Tăng trưởng (Lan tỏa dự án)", callback_data: 'task_3' }],
+                [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
                 [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
                 [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
             ]
