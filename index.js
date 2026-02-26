@@ -6,11 +6,12 @@ const mongoose = require('mongoose');
 // --- CẤU HÌNH BIẾN MÔI TRƯỜNG ---
 const token = process.env.BOT_TOKEN;
 const mongoURI = process.env.MONGODB_URI;
-// Bật chế độ lắng nghe sự kiện biến động thành viên (Chống rời nhóm ngầm)
+// Bật chế độ lắng nghe sự kiện biến động thành viên
 const bot = new TelegramBot(token, {
     polling: {
         params: {
-            allowed_updates: ["message", "callback_query", "chat_member"]
+            // Phải thêm "my_chat_member" để bot nhận diện được quyền hạn của chính nó
+            allowed_updates: ["message", "callback_query", "chat_member", "my_chat_member"]
         }
     }
 });
@@ -1224,62 +1225,64 @@ bot.on('callback_query', async (callbackQuery) => {
 });
 
 // ==========================================
-// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (CHẠY NGẦM 100%)
+// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (ĐÃ FIX LỖI)
 // ==========================================
 bot.on('chat_member', async (update) => {
     const debugUser = update.new_chat_member.user;
-    console.log(`📡 RADAR: Phát hiện ${debugUser.first_name} (ID: ${debugUser.id}) trạng thái: ${update.new_chat_member.status}`);
-    // 1. Chỉ bắt sóng trong Group và Channel chính thức
-    const chatUsername = update.chat.username ? `@${update.chat.username.toLowerCase()}` : '';
-    if (chatUsername !== CHANNEL_USERNAME.toLowerCase() && chatUsername !== GROUP_USERNAME.toLowerCase()) return;
+    const chat = update.chat;
+    
+    // Cải tiến: Check linh hoạt hơn, tránh lỗi nếu chat không có username (Group Private)
+    const chatUsername = chat.username ? chat.username.toLowerCase() : '';
+    const targetChannel = CHANNEL_USERNAME.replace('@', '').toLowerCase();
+    const targetGroup = GROUP_USERNAME.replace('@', '').toLowerCase();
+
+    // Nếu có username thì so sánh, nếu không thì cứ cho qua để tiếp tục check trạng thái
+    if (chatUsername && chatUsername !== targetChannel && chatUsername !== targetGroup) return;
+
+    console.log(`📡 RADAR: Phát hiện ${debugUser.first_name} (ID: ${debugUser.id}) đổi trạng thái thành: ${update.new_chat_member.status}`);
 
     const newStatus = update.new_chat_member.status;
     const oldStatus = update.old_chat_member.status;
     const leftUserId = update.new_chat_member.user.id.toString();
 
-    // 2. Nếu trạng thái chuyển từ đang ở trong nhóm thành "Rời đi" hoặc "Bị Kick"
+    // Phát hiện hành vi Rời đi (left) hoặc Bị kick (kicked)
     if ((oldStatus === 'member' || oldStatus === 'restricted' || oldStatus === 'administrator') && 
         (newStatus === 'left' || newStatus === 'kicked')) {
         
         let leftUser = await User.findOne({ userId: leftUserId });
         
         if (leftUser && leftUser.task1Done) {
-            // ---> PHẠT NGƯỜI RỜI NHÓM (B)
+            // ---> PHẠT NGƯỜI RỜI NHÓM
             const penalty = leftUser.isPremium ? 40 : 20;
             leftUser.balance = Math.max(0, leftUser.balance - penalty); 
             leftUser.task1Done = false; 
 
-            // ---> THU HỒI PHẦN THƯỞNG CỦA NGƯỜI MỜI (A)
+            // ---> THU HỒI PHẦN THƯỞNG CỦA NGƯỜI MỜI
             if (leftUser.referredBy) {
                 let referrer = await User.findOne({ userId: leftUser.referredBy });
                 if (referrer) {
                     const refPenalty = referrer.isPremium ? 20 : 10; 
                     
-                    // Trừ tiền và số lượt mời
                     referrer.balance = Math.max(0, referrer.balance - refPenalty);
                     referrer.referralCount = Math.max(0, referrer.referralCount - 1);
-                    referrer.weeklyReferralCount = Math.max(0, referrer.weeklyReferralCount - 1);
+                    referrer.weeklyReferralCount = Math.max(0, (referrer.weeklyReferralCount || 0) - 1);
                     
                     // Thu hồi quân hàm nếu rớt hạng
-                    const doneCount = referrer.referralCount;
-                    if (doneCount < 500) referrer.milestone500 = false;
-                    if (doneCount < 350) referrer.milestone350 = false;
-                    if (doneCount < 200) referrer.milestone200 = false;
-                    if (doneCount < 120) referrer.milestone120 = false;
-                    if (doneCount < 80) referrer.milestone80 = false;
-                    if (doneCount < 50) referrer.milestone50 = false;
-                    if (doneCount < 20) referrer.milestone20 = false;
-                    if (doneCount < 10) referrer.milestone10 = false;
-                    if (doneCount < 3) referrer.milestone3 = false;
+                    const dCount = referrer.referralCount;
+                    if (dCount < 500) referrer.milestone500 = false;
+                    if (dCount < 350) referrer.milestone350 = false;
+                    if (dCount < 200) referrer.milestone200 = false;
+                    if (dCount < 120) referrer.milestone120 = false;
+                    if (dCount < 80) referrer.milestone80 = false;
+                    if (dCount < 50) referrer.milestone50 = false;
+                    if (dCount < 20) referrer.milestone20 = false;
+                    if (dCount < 10) referrer.milestone10 = false;
+                    if (dCount < 3) referrer.milestone3 = false;
 
                     await referrer.save();
 
-                    // Bắn tin nhắn báo tin buồn cho người mời
-                    let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\n`;
-                    notifyReferrerMsg += `Thành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> mạng lưới Cộng đồng SWC.\n\n`;
-                    notifyReferrerMsg += `📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn để đảm bảo tính công bằng.\n\n`;
-                    notifyReferrerMsg += `<i>💡 Mẹo: Hãy chăm sóc và nhắc nhở đối tác của bạn ở lại tương tác cùng nhóm để giữ vững thành quả nhé!</i>`;
-                    
+                    // Báo tin buồn cho người mời
+                    let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\nThành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> mạng lưới Cộng đồng SWC.\n\n📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn.`;
                     bot.sendMessage(referrer.userId, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
                 }
             }
