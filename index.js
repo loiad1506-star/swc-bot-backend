@@ -6,12 +6,13 @@ const mongoose = require('mongoose');
 // --- CẤU HÌNH BIẾN MÔI TRƯỜNG ---
 const token = process.env.BOT_TOKEN;
 const mongoURI = process.env.MONGODB_URI;
+
 // Bật chế độ lắng nghe sự kiện biến động thành viên
 const bot = new TelegramBot(token, {
     polling: {
         params: {
-            // Phải thêm "my_chat_member" để bot nhận diện được quyền hạn của chính nó
-            allowed_updates: ["message", "callback_query", "chat_member", "my_chat_member"]
+            // FIX: Bắt buộc dùng JSON.stringify để Telegram API nhận diện đúng danh sách
+            allowed_updates: JSON.stringify(["message", "callback_query", "chat_member", "my_chat_member"])
         }
     }
 });
@@ -1201,7 +1202,7 @@ bot.on('callback_query', async (callbackQuery) => {
     else if (data === 'task_3') {
         const inviteReward = user.isPremium ? 40 : 20;
         const textTask3 = `💎 <b>CHẶNG 3: LAN TỎA GIÁ TRỊ - KIẾN TẠO DI SẢN</b>\n\n` +
-                          `<i>"Của cho không bằng cách cho. Chúng ta không đi thuyết phục người tham gia, chúng ta đang trao cơ hội nắm giữ cổ phần công nghệ giao thông uST trước khi nó trở thành kỳ lân!"</i>\n\n` +
+                          `<i>"Của cho không bằng cách cho. Chúng ta không đi thuyết phục người tham gia, chúng muốn trao cơ hội nắm giữ cổ phần công nghệ giao thông uST trước khi nó trở thành kỳ lân!"</i>\n\n` +
                           `🤝 Bạn đã trao cơ hội thành công cho: <b>${user.referralCount || 0} đối tác</b>.\n\n` +
                           `🔗 <b>Đường dẫn trao đặc quyền của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n` +
                           `🎁 <b>QUÀ TẶNG TRI ÂN TỪ HỆ THỐNG:</b>\n` +
@@ -1225,19 +1226,20 @@ bot.on('callback_query', async (callbackQuery) => {
 });
 
 // ==========================================
-// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (ĐÃ FIX LỖI)
+// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (ĐÃ FIX LỖI & TỐI ƯU)
 // ==========================================
 bot.on('chat_member', async (update) => {
     const debugUser = update.new_chat_member.user;
     const chat = update.chat;
     
-    // Cải tiến: Check linh hoạt hơn, tránh lỗi nếu chat không có username (Group Private)
     const chatUsername = chat.username ? chat.username.toLowerCase() : '';
     const targetChannel = CHANNEL_USERNAME.replace('@', '').toLowerCase();
     const targetGroup = GROUP_USERNAME.replace('@', '').toLowerCase();
 
-    // Nếu có username thì so sánh, nếu không thì cứ cho qua để tiếp tục check trạng thái
-    if (chatUsername && chatUsername !== targetChannel && chatUsername !== targetGroup) return;
+    // FIX LỖI: Chặn đứng mọi sự kiện từ các group/channel không khớp chính xác username
+    if (chatUsername !== targetChannel && chatUsername !== targetGroup) {
+        return; 
+    }
 
     console.log(`📡 RADAR: Phát hiện ${debugUser.first_name} (ID: ${debugUser.id}) đổi trạng thái thành: ${update.new_chat_member.status}`);
 
@@ -1251,11 +1253,12 @@ bot.on('chat_member', async (update) => {
         
         let leftUser = await User.findOne({ userId: leftUserId });
         
+        // Chỉ xử lý nếu user có trong DB và đã nhận thưởng task1
         if (leftUser && leftUser.task1Done) {
             // ---> PHẠT NGƯỜI RỜI NHÓM
             const penalty = leftUser.isPremium ? 40 : 20;
             leftUser.balance = Math.max(0, leftUser.balance - penalty); 
-            leftUser.task1Done = false; 
+            leftUser.task1Done = false; // Reset lại trạng thái để họ phải cày lại nếu vào lại
 
             // ---> THU HỒI PHẦN THƯỞNG CỦA NGƯỜI MỜI
             if (leftUser.referredBy) {
