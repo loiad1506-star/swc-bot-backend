@@ -492,6 +492,57 @@ bot.onText(/\/checkref (\d+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
+// Lọc nick ảo và tính lại Ref chuẩn
+bot.onText(/\/locref (\d+)/, async (msg, match) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    
+    const targetId = match[1];
+    bot.sendMessage(ADMIN_ID, "⏳ Đang quét và dọn dẹp dữ liệu rác...");
+
+    // 1. Tìm tất cả những người được mời bởi targetId
+    const allRefs = await User.find({ referredBy: targetId });
+    
+    if (allRefs.length === 0) {
+        return bot.sendMessage(ADMIN_ID, "❌ Tài khoản này không có ai bấm vào link.");
+    }
+
+    let realCount = 0;
+    let fakeCount = 0;
+    let fakeIds = [];
+
+    // 2. Phân loại Thật/Ảo
+    allRefs.forEach(r => {
+        if (r.task1Done) {
+            realCount++;
+        } else {
+            fakeCount++;
+            fakeIds.push(r._id); // Lưu ID của nick ảo trong DB
+        }
+    });
+
+    // 3. Xóa sổ các nick ảo khỏi Database
+    if (fakeIds.length > 0) {
+        await User.deleteMany({ _id: { $in: fakeIds } });
+    }
+
+    // 4. Cập nhật lại User chính
+    let user = await User.findOne({ userId: targetId });
+    let oldRef = 0;
+    if (user) {
+        oldRef = user.referralCount;
+        user.referralCount = realCount; // Trả về con số thật
+        await user.save();
+    }
+
+    let response = `✅ <b>LỌC REF THÀNH CÔNG CHO ID: <code>${targetId}</code></b>\n\n`;
+    response += `🗑 <b>Đã xóa vĩnh viễn:</b> ${fakeCount} nick rác (Chưa làm nhiệm vụ).\n`;
+    response += `✅ <b>Giữ lại:</b> ${realCount} nick thật (Đã Join Group).\n\n`;
+    response += `📉 <b>Cập nhật lượt mời:</b> ${oldRef} ➡️ <b>${realCount}</b> người.\n\n`;
+    response += `⚠️ <b>Lưu ý về Tiền:</b> Số lượt mời đã chuẩn. Bây giờ bạn hãy nhẩm tính số tiền thực tế họ đáng được nhận, rồi dùng lệnh <code>/setref ${targetId} ${realCount} [Số_tiền_chuẩn]</code> để trừ đi số tiền ảo họ đang có nhé!`;
+
+    bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+});
+
 // 3. Phạt gian lận
 bot.onText(/\/phat (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
