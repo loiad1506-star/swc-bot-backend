@@ -6,7 +6,14 @@ const mongoose = require('mongoose');
 // --- CẤU HÌNH BIẾN MÔI TRƯỜNG ---
 const token = process.env.BOT_TOKEN;
 const mongoURI = process.env.MONGODB_URI;
-const bot = new TelegramBot(token, {polling: true});
+// Bật chế độ lắng nghe sự kiện biến động thành viên (Chống rời nhóm ngầm)
+const bot = new TelegramBot(token, {
+    polling: {
+        params: {
+            allowed_updates: ["message", "callback_query", "chat_member"]
+        }
+    }
+});
 const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
 
 const ADMIN_ID = '507318519'; 
@@ -954,60 +961,6 @@ bot.on('message', async (msg) => {
         }
     }
 
-// B. XỬ LÝ KHÁCH RỜI NHÓM (BỊ PHẠT TRỪ TIỀN & THU HỒI QUÀ CỦA NGƯỜI MỜI)
-    if (msg.left_chat_member) {
-        const leftUserId = msg.left_chat_member.id.toString();
-        let leftUser = await User.findOne({ userId: leftUserId });
-        
-        if (leftUser && leftUser.task1Done) {
-            // 1. Phạt người rời nhóm (B)
-            const penalty = leftUser.isPremium ? 40 : 20;
-            leftUser.balance = Math.max(0, leftUser.balance - penalty); 
-            leftUser.task1Done = false; 
-
-            // 2. TÍNH NĂNG MỚI: Thu hồi phần thưởng của Người giới thiệu (A)
-            if (leftUser.referredBy) {
-                let referrer = await User.findOne({ userId: leftUser.referredBy });
-                if (referrer) {
-                    const refPenalty = referrer.isPremium ? 20 : 10; // Trừ đúng số tiền đã thưởng
-                    
-                    // Trừ tiền và trừ lượt mời (Cả Tổng và Tuần)
-                    referrer.balance = Math.max(0, referrer.balance - refPenalty);
-                    referrer.referralCount = Math.max(0, referrer.referralCount - 1);
-                    referrer.weeklyReferralCount = Math.max(0, referrer.weeklyReferralCount - 1);
-                    
-                    // Thu hồi quân hàm nếu bị rớt hạng
-                    const doneCount = referrer.referralCount;
-                    if (doneCount < 500) referrer.milestone500 = false;
-                    if (doneCount < 350) referrer.milestone350 = false;
-                    if (doneCount < 200) referrer.milestone200 = false;
-                    if (doneCount < 120) referrer.milestone120 = false;
-                    if (doneCount < 80) referrer.milestone80 = false;
-                    if (doneCount < 50) referrer.milestone50 = false;
-                    if (doneCount < 20) referrer.milestone20 = false;
-                    if (doneCount < 10) referrer.milestone10 = false;
-                    if (doneCount < 3) referrer.milestone3 = false;
-
-                    await referrer.save();
-
-                    // Bắn thông báo cảnh cáo cho Người giới thiệu (A)
-                    let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\n`;
-                    notifyReferrerMsg += `Thành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> nhóm Cộng đồng SWC.\n\n`;
-                    notifyReferrerMsg += `📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn.\n\n`;
-                    notifyReferrerMsg += `<i>💡 Mẹo: Hãy chăm sóc và nhắc nhở đối tác của bạn ở lại nhóm để đảm bảo quyền lợi nhé!</i>`;
-                    
-                    bot.sendMessage(referrer.userId, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
-                }
-            }
-
-            await leftUser.save();
-            
-            // Gửi tin nhắn phạt người rời nhóm (B)
-            bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO!</b>\nHệ thống phát hiện bạn đã rời khỏi Cộng Đồng SWC. Tài khoản của bạn đã bị trừ <b>${penalty} SWGT</b>. Hãy tham gia lại để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
-        }
-        return; 
-    }
-
     // D. XỬ LÝ CỘNG TIỀN KHI CHAT TƯƠNG TÁC TẠI GROUP CHÍNH
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
@@ -1267,5 +1220,72 @@ bot.on('callback_query', async (callbackQuery) => {
     const validCallbacks = ['check_join', 'claim_read', 'go_read', 'claim_share', 'go_share', 'go_youtube', 'claim_youtube', 'go_facebook', 'claim_facebook', 'task_1', 'task_2', 'task_3', 'task_4'];
     if (!validCallbacks.includes(data)) {
         bot.answerCallbackQuery(callbackQuery.id);
+    }
+});
+
+// ==========================================
+// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (CHẠY NGẦM 100%)
+// ==========================================
+bot.on('chat_member', async (update) => {
+    // 1. Chỉ bắt sóng trong Group và Channel chính thức
+    const chatUsername = update.chat.username ? `@${update.chat.username.toLowerCase()}` : '';
+    if (chatUsername !== CHANNEL_USERNAME.toLowerCase() && chatUsername !== GROUP_USERNAME.toLowerCase()) return;
+
+    const newStatus = update.new_chat_member.status;
+    const oldStatus = update.old_chat_member.status;
+    const leftUserId = update.new_chat_member.user.id.toString();
+
+    // 2. Nếu trạng thái chuyển từ đang ở trong nhóm thành "Rời đi" hoặc "Bị Kick"
+    if ((oldStatus === 'member' || oldStatus === 'restricted' || oldStatus === 'administrator') && 
+        (newStatus === 'left' || newStatus === 'kicked')) {
+        
+        let leftUser = await User.findOne({ userId: leftUserId });
+        
+        if (leftUser && leftUser.task1Done) {
+            // ---> PHẠT NGƯỜI RỜI NHÓM (B)
+            const penalty = leftUser.isPremium ? 40 : 20;
+            leftUser.balance = Math.max(0, leftUser.balance - penalty); 
+            leftUser.task1Done = false; 
+
+            // ---> THU HỒI PHẦN THƯỞNG CỦA NGƯỜI MỜI (A)
+            if (leftUser.referredBy) {
+                let referrer = await User.findOne({ userId: leftUser.referredBy });
+                if (referrer) {
+                    const refPenalty = referrer.isPremium ? 20 : 10; 
+                    
+                    // Trừ tiền và số lượt mời
+                    referrer.balance = Math.max(0, referrer.balance - refPenalty);
+                    referrer.referralCount = Math.max(0, referrer.referralCount - 1);
+                    referrer.weeklyReferralCount = Math.max(0, referrer.weeklyReferralCount - 1);
+                    
+                    // Thu hồi quân hàm nếu rớt hạng
+                    const doneCount = referrer.referralCount;
+                    if (doneCount < 500) referrer.milestone500 = false;
+                    if (doneCount < 350) referrer.milestone350 = false;
+                    if (doneCount < 200) referrer.milestone200 = false;
+                    if (doneCount < 120) referrer.milestone120 = false;
+                    if (doneCount < 80) referrer.milestone80 = false;
+                    if (doneCount < 50) referrer.milestone50 = false;
+                    if (doneCount < 20) referrer.milestone20 = false;
+                    if (doneCount < 10) referrer.milestone10 = false;
+                    if (doneCount < 3) referrer.milestone3 = false;
+
+                    await referrer.save();
+
+                    // Bắn tin nhắn báo tin buồn cho người mời
+                    let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\n`;
+                    notifyReferrerMsg += `Thành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> mạng lưới Cộng đồng SWC.\n\n`;
+                    notifyReferrerMsg += `📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn để đảm bảo tính công bằng.\n\n`;
+                    notifyReferrerMsg += `<i>💡 Mẹo: Hãy chăm sóc và nhắc nhở đối tác của bạn ở lại tương tác cùng nhóm để giữ vững thành quả nhé!</i>`;
+                    
+                    bot.sendMessage(referrer.userId, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                }
+            }
+
+            await leftUser.save();
+            
+            // Bắn tin nhắn phạt kẻ bỏ trốn
+            bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO TỪ HỆ THỐNG!</b>\nRadar phát hiện bạn đã rời khỏi Cộng Đồng SWC. Bạn đã bị trừ <b>${penalty} SWGT</b>. Hãy tham gia lại và làm lại nhiệm vụ để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
+        }
     }
 });
