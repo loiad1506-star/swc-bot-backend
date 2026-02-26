@@ -954,36 +954,57 @@ bot.on('message', async (msg) => {
         }
     }
 
-    // B. XỬ LÝ KHÁCH RỜI NHÓM (BỊ PHẠT TRỪ TIỀN)
+// B. XỬ LÝ KHÁCH RỜI NHÓM (BỊ PHẠT TRỪ TIỀN & THU HỒI QUÀ CỦA NGƯỜI MỜI)
     if (msg.left_chat_member) {
         const leftUserId = msg.left_chat_member.id.toString();
         let leftUser = await User.findOne({ userId: leftUserId });
+        
         if (leftUser && leftUser.task1Done) {
+            // 1. Phạt người rời nhóm (B)
             const penalty = leftUser.isPremium ? 40 : 20;
             leftUser.balance = Math.max(0, leftUser.balance - penalty); 
             leftUser.task1Done = false; 
+
+            // 2. TÍNH NĂNG MỚI: Thu hồi phần thưởng của Người giới thiệu (A)
+            if (leftUser.referredBy) {
+                let referrer = await User.findOne({ userId: leftUser.referredBy });
+                if (referrer) {
+                    const refPenalty = referrer.isPremium ? 20 : 10; // Trừ đúng số tiền đã thưởng
+                    
+                    // Trừ tiền và trừ lượt mời (Cả Tổng và Tuần)
+                    referrer.balance = Math.max(0, referrer.balance - refPenalty);
+                    referrer.referralCount = Math.max(0, referrer.referralCount - 1);
+                    referrer.weeklyReferralCount = Math.max(0, referrer.weeklyReferralCount - 1);
+                    
+                    // Thu hồi quân hàm nếu bị rớt hạng
+                    const doneCount = referrer.referralCount;
+                    if (doneCount < 500) referrer.milestone500 = false;
+                    if (doneCount < 350) referrer.milestone350 = false;
+                    if (doneCount < 200) referrer.milestone200 = false;
+                    if (doneCount < 120) referrer.milestone120 = false;
+                    if (doneCount < 80) referrer.milestone80 = false;
+                    if (doneCount < 50) referrer.milestone50 = false;
+                    if (doneCount < 20) referrer.milestone20 = false;
+                    if (doneCount < 10) referrer.milestone10 = false;
+                    if (doneCount < 3) referrer.milestone3 = false;
+
+                    await referrer.save();
+
+                    // Bắn thông báo cảnh cáo cho Người giới thiệu (A)
+                    let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\n`;
+                    notifyReferrerMsg += `Thành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> nhóm Cộng đồng SWC.\n\n`;
+                    notifyReferrerMsg += `📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn.\n\n`;
+                    notifyReferrerMsg += `<i>💡 Mẹo: Hãy chăm sóc và nhắc nhở đối tác của bạn ở lại nhóm để đảm bảo quyền lợi nhé!</i>`;
+                    
+                    bot.sendMessage(referrer.userId, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                }
+            }
+
             await leftUser.save();
+            
+            // Gửi tin nhắn phạt người rời nhóm (B)
             bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO!</b>\nHệ thống phát hiện bạn đã rời khỏi Cộng Đồng SWC. Tài khoản của bạn đã bị trừ <b>${penalty} SWGT</b>. Hãy tham gia lại để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
         }
-        return; 
-    }
-
-    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start') || msg.text.startsWith('/duatop') || msg.text.startsWith('/toptuan') || msg.text.startsWith('/checktop') || msg.text.startsWith('/phat') || msg.text.startsWith('/setref') || msg.text.startsWith('/checkref') || msg.text.startsWith('/resetref') || msg.text.startsWith('/locref'))) return;
-
-    // C. XỬ LÝ CHAT 2 CHIỀU: KHÁCH HÀNG NHẮN CHO BOT ĐỂ BOT CHUYỂN TỚI ADMIN
-    if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
-        let content = msg.text || (msg.caption ? msg.caption : '[Hình ảnh/File đính kèm]');
-        let forwardToAdmin = `💬 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n👤 Khách: ${msg.from.first_name || ''} ${msg.from.last_name || ''}\n🆔 ID: <code>${msg.from.id}</code>\n\n${content}`;
-        
-        if (msg.photo) {
-            const photoId = msg.photo[msg.photo.length - 1].file_id;
-            bot.sendPhoto(ADMIN_ID, photoId, { caption: forwardToAdmin, parse_mode: 'HTML' }).catch(()=>{});
-        } else {
-            bot.sendMessage(ADMIN_ID, forwardToAdmin, { parse_mode: 'HTML' }).catch(()=>{});
-        }
-        
-        const autoReply = `✅ <i>Tin nhắn của bạn đã được chuyển đến Admin và sẽ được phản hồi sớm nhất.</i>\n\n💡 <b>Mẹo:</b> Để được hỗ trợ nhanh nhất và trao đổi cùng mọi người, bạn có thể tham gia và đặt câu hỏi trực tiếp tại <a href="https://t.me/swc_capital_chat">Group Cộng Đồng SWC</a> nhé!`;
-        bot.sendMessage(msg.chat.id, autoReply, { parse_mode: 'HTML', disable_web_page_preview: true }).catch(()=>{});
         return; 
     }
 
