@@ -1227,6 +1227,8 @@ bot.on('callback_query', async (callbackQuery) => {
 // HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (CHẠY NGẦM 100%)
 // ==========================================
 bot.on('chat_member', async (update) => {
+    const debugUser = update.new_chat_member.user;
+    console.log(`📡 RADAR: Phát hiện ${debugUser.first_name} (ID: ${debugUser.id}) trạng thái: ${update.new_chat_member.status}`);
     // 1. Chỉ bắt sóng trong Group và Channel chính thức
     const chatUsername = update.chat.username ? `@${update.chat.username.toLowerCase()}` : '';
     if (chatUsername !== CHANNEL_USERNAME.toLowerCase() && chatUsername !== GROUP_USERNAME.toLowerCase()) return;
