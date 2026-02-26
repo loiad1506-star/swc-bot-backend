@@ -1226,7 +1226,7 @@ bot.on('callback_query', async (callbackQuery) => {
 });
 
 // ==========================================
-// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (ĐÃ FIX LỖI & TỐI ƯU)
+// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT (ĐIỀU KIỆN 21 NGÀY)
 // ==========================================
 bot.on('chat_member', async (update) => {
     const debugUser = update.new_chat_member.user;
@@ -1236,7 +1236,7 @@ bot.on('chat_member', async (update) => {
     const targetChannel = CHANNEL_USERNAME.replace('@', '').toLowerCase();
     const targetGroup = GROUP_USERNAME.replace('@', '').toLowerCase();
 
-    // FIX LỖI: Chặn đứng mọi sự kiện từ các group/channel không khớp chính xác username
+    // Chặn đứng mọi sự kiện từ các group/channel không khớp chính xác username
     if (chatUsername !== targetChannel && chatUsername !== targetGroup) {
         return; 
     }
@@ -1253,47 +1253,55 @@ bot.on('chat_member', async (update) => {
         
         let leftUser = await User.findOne({ userId: leftUserId });
         
-        // Chỉ xử lý nếu user có trong DB và đã nhận thưởng task1
         if (leftUser && leftUser.task1Done) {
-            // ---> PHẠT NGƯỜI RỜI NHÓM
-            const penalty = leftUser.isPremium ? 40 : 20;
-            leftUser.balance = Math.max(0, leftUser.balance - penalty); 
-            leftUser.task1Done = false; // Reset lại trạng thái để họ phải cày lại nếu vào lại
+            // TÍNH TOÁN THỜI GIAN ĐÃ THAM GIA
+            const joinDate = new Date(leftUser.joinDate || Date.now());
+            const daysSinceJoin = (Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24);
 
-            // ---> THU HỒI PHẦN THƯỞNG CỦA NGƯỜI MỜI
-            if (leftUser.referredBy) {
-                let referrer = await User.findOne({ userId: leftUser.referredBy });
-                if (referrer) {
-                    const refPenalty = referrer.isPremium ? 20 : 10; 
-                    
-                    referrer.balance = Math.max(0, referrer.balance - refPenalty);
-                    referrer.referralCount = Math.max(0, referrer.referralCount - 1);
-                    referrer.weeklyReferralCount = Math.max(0, (referrer.weeklyReferralCount || 0) - 1);
-                    
-                    // Thu hồi quân hàm nếu rớt hạng
-                    const dCount = referrer.referralCount;
-                    if (dCount < 500) referrer.milestone500 = false;
-                    if (dCount < 350) referrer.milestone350 = false;
-                    if (dCount < 200) referrer.milestone200 = false;
-                    if (dCount < 120) referrer.milestone120 = false;
-                    if (dCount < 80) referrer.milestone80 = false;
-                    if (dCount < 50) referrer.milestone50 = false;
-                    if (dCount < 20) referrer.milestone20 = false;
-                    if (dCount < 10) referrer.milestone10 = false;
-                    if (dCount < 3) referrer.milestone3 = false;
+            // CHỈ PHẠT NẾU RỜI NHÓM TRƯỚC 21 NGÀY
+            if (daysSinceJoin <= 21) {
+                // ---> PHẠT NGƯỜI RỜI NHÓM
+                const penalty = leftUser.isPremium ? 40 : 20;
+                leftUser.balance = Math.max(0, leftUser.balance - penalty); 
+                leftUser.task1Done = false; // Reset trạng thái
 
-                    await referrer.save();
+                // ---> THU HỒI PHẦN THƯỞNG CỦA NGƯỜI MỜI
+                if (leftUser.referredBy) {
+                    let referrer = await User.findOne({ userId: leftUser.referredBy });
+                    if (referrer) {
+                        const refPenalty = referrer.isPremium ? 20 : 10; 
+                        
+                        referrer.balance = Math.max(0, referrer.balance - refPenalty);
+                        referrer.referralCount = Math.max(0, referrer.referralCount - 1);
+                        referrer.weeklyReferralCount = Math.max(0, (referrer.weeklyReferralCount || 0) - 1);
+                        
+                        // Thu hồi quân hàm nếu rớt hạng
+                        const dCount = referrer.referralCount;
+                        if (dCount < 500) referrer.milestone500 = false;
+                        if (dCount < 350) referrer.milestone350 = false;
+                        if (dCount < 200) referrer.milestone200 = false;
+                        if (dCount < 120) referrer.milestone120 = false;
+                        if (dCount < 80) referrer.milestone80 = false;
+                        if (dCount < 50) referrer.milestone50 = false;
+                        if (dCount < 20) referrer.milestone20 = false;
+                        if (dCount < 10) referrer.milestone10 = false;
+                        if (dCount < 3) referrer.milestone3 = false;
 
-                    // Báo tin buồn cho người mời
-                    let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\nThành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> mạng lưới Cộng đồng SWC.\n\n📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn.`;
-                    bot.sendMessage(referrer.userId, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                        await referrer.save();
+
+                        // Báo tin buồn cho người mời
+                        let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\nThành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> mạng lưới Cộng đồng SWC khi chưa gắn bó đủ 21 ngày.\n\n📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn.`;
+                        bot.sendMessage(referrer.userId, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                    }
                 }
-            }
 
-            await leftUser.save();
-            
-            // Bắn tin nhắn phạt kẻ bỏ trốn
-            bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO TỪ HỆ THỐNG!</b>\nRadar phát hiện bạn đã rời khỏi Cộng Đồng SWC. Bạn đã bị trừ <b>${penalty} SWGT</b>. Hãy tham gia lại và làm lại nhiệm vụ để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
+                await leftUser.save();
+                
+                // Bắn tin nhắn phạt kẻ bỏ trốn
+                bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO TỪ HỆ THỐNG!</b>\nRadar phát hiện bạn đã rời khỏi Cộng Đồng SWC khi chưa đủ 21 ngày gắn bó. Bạn đã bị trừ <b>${penalty} SWGT</b>. Hãy tham gia lại và làm lại nhiệm vụ để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
+            } else {
+                console.log(`✅ Bỏ qua phạt do ${leftUser.userId} đã tham gia được ${Math.round(daysSinceJoin)} ngày (An toàn > 21 ngày).`);
+            }
         }
     }
 });
