@@ -449,7 +449,7 @@ async function checkMembership(userId) {
 // 👮 BỘ CÔNG CỤ CẢNH SÁT TRƯỞNG & QUẢN LÝ (Dành riêng cho Admin)
 // =========================================================
 
-// Xem Top 10 + Lấy ID
+// 1. Xem Top 10 + Lấy ID
 bot.onText(/\/checktop/, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10);
@@ -463,7 +463,36 @@ bot.onText(/\/checktop/, async (msg) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-// Phạt gian lận
+// 2. Soi danh sách Ref của 1 người cụ thể (MỚI THÊM)
+bot.onText(/\/checkref (\d+)/, async (msg, match) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    
+    const targetId = match[1];
+    bot.sendMessage(ADMIN_ID, "⏳ Đang trích xuất dữ liệu...");
+
+    const refs = await User.find({ referredBy: targetId }).sort({ joinDate: -1 });
+    
+    if (refs.length === 0) {
+        return bot.sendMessage(ADMIN_ID, "❌ Tài khoản này chưa mời được ai bấm vào link.");
+    }
+
+    let response = `🕵️‍♂️ <b>DANH SÁCH KHÁCH CỦA ID: <code>${targetId}</code></b>\nTổng số đã bấm link: ${refs.length} người\n\n`;
+    
+    const displayRefs = refs.slice(0, 50); 
+    
+    displayRefs.forEach((r, index) => {
+        // Kiểm tra xem người này đã làm xong Nhiệm vụ 1 (vào Group chat) chưa
+        const status = r.task1Done ? "✅ Đã Join & Chat" : "❌ Chưa xong NV";
+        response += `${index + 1}. <b>${r.firstName} ${r.lastName}</b>\n`;
+        response += `   Trạng thái: ${status} | ID: <code>${r.userId}</code>\n`;
+    });
+
+    if (refs.length > 50) response += `\n<i>... và ${refs.length - 50} người khác.</i>`;
+
+    bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+});
+
+// 3. Phạt gian lận
 bot.onText(/\/phat (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
@@ -486,7 +515,7 @@ bot.onText(/\/phat (\d+)/, async (msg, match) => {
     bot.sendMessage(targetId, `⚠️ <b>CẢNH BÁO VI PHẠM!</b>\n\nHệ thống phát hiện tài khoản của bạn có dấu hiệu gian lận lượt mời (Ref ảo/Cheating).\n\n👮‍♂️ <b>Quyết định của Admin:</b>\n- Reset toàn bộ số lượt mời về 0.\n- Thu hồi phần thưởng gian lận.\n\nHãy tham gia trung thực để xây dựng cộng đồng vững mạnh!`, { parse_mode: 'HTML' });
 });
 
-// Set số liệu thủ công
+// 4. Set số liệu thủ công
 bot.onText(/\/setref (\d+) (\d+) (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1]; const newRef = parseInt(match[2]); const newBal = parseFloat(match[3]);
@@ -575,7 +604,13 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             user.referredBy = refId;
             let referrer = await User.findOne({ userId: refId });
             if (referrer) {
-                bot.sendMessage(refId, `🔔 <b>CÓ NGƯỜI BẤM LINK CỦA BẠN!</b>\n\n👤 ${firstName} ${lastName}\n\n⚠️ <i>Lưu ý: Bạn sẽ nhận được thưởng khi người này hoàn thành Nhiệm vụ 1 (Join Group). Hãy nhắn nhắc họ làm ngay nhé!</i>`, {parse_mode: 'HTML'}).catch(()=>{});
+                // ĐÃ SỬA LẠI CÂU CHÀO GIỐNG CŨ NHƯNG THÊM LƯU Ý
+                let notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n` +
+                                `👤 <b>Tên:</b> ${firstName} ${lastName}\n` +
+                                `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                                `Đã bấm vào link mời của bạn!\n\n` +
+                                `⚠️ <b>LƯU Ý QUAN TRỌNG:</b>\nHãy nhắn tin hướng dẫn họ làm "Nhiệm vụ Tân binh" (Join Group & Chat) để hệ thống xác minh tài khoản thật. Ngay sau khi họ hoàn tất, bạn sẽ được cộng thưởng SWGT và tính 1 lượt mời thành công nhé!`;
+                bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
             }
         }
     } else {
@@ -699,7 +734,7 @@ bot.on('message', async (msg) => {
         return; 
     }
 
-    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start') || msg.text.startsWith('/duatop') || msg.text.startsWith('/checktop') || msg.text.startsWith('/phat') || msg.text.startsWith('/setref'))) return;
+    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start') || msg.text.startsWith('/duatop') || msg.text.startsWith('/checktop') || msg.text.startsWith('/phat') || msg.text.startsWith('/setref') || msg.text.startsWith('/checkref'))) return;
 
     // C. XỬ LÝ CHAT 2 CHIỀU: KHÁCH HÀNG NHẮN CHO BOT ĐỂ BOT CHUYỂN TỚI ADMIN
     if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
