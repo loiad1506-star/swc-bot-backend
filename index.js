@@ -965,8 +965,8 @@ bot.on('message', async (msg) => {
         }
     }
 
-    // ==========================================
-    // B. XỬ LÝ KHÁCH HÀNG NHẮN TIN CHO BOT (CHUYỂN TIẾP VỀ ADMIN)
+// ==========================================
+    // B. XỬ LÝ KHÁCH HÀNG NHẮN TIN CHO BOT (CHUYỂN TIẾP & AUTO-REPLY FAQ)
     // ==========================================
     if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
         // Bỏ qua các lệnh có dấu / (như /start)
@@ -977,11 +977,9 @@ bot.on('message', async (msg) => {
         const username = msg.from.username ? `@${msg.from.username}` : 'Không có';
         const content = msg.text || msg.caption || '[Khách gửi Tệp/Ảnh/Video]';
 
-        const alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n\n💬 <b>Nội dung:</b>\n${content}\n\n👉 <i>Admin hãy Reply (Trả lời) tin nhắn này để chat lại với khách nhé! Hoặc bấm nút bên dưới để vào chat trực tiếp.</i>`;
-
-        const replyMarkup = {
-            inline_keyboard: [[{ text: "💬 Chat trực tiếp với khách", url: `tg://user?id=${userId}` }]]
-        };
+        // 1. CHUYỂN TIẾP TIN NHẮN CHO ADMIN
+        const alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n\n💬 <b>Nội dung:</b>\n${content}\n\n👉 <i>Admin hãy Reply (Trả lời) tin nhắn này để chat lại với khách nhé!</i>`;
+        const replyMarkup = { inline_keyboard: [[{ text: "💬 Chat trực tiếp với khách", url: `tg://user?id=${userId}` }]] };
 
         if (msg.photo) {
             const photoId = msg.photo[msg.photo.length - 1].file_id;
@@ -989,8 +987,28 @@ bot.on('message', async (msg) => {
         } else {
             bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkup }).catch(()=>{});
         }
+
+        // 2. GỬI TIN NHẮN AUTO-REPLY KÈM MENU FAQ CHO KHÁCH HÀNG
+        const autoReplyMsg = `👋 Chào <b>${name}</b>, hệ thống đã ghi nhận yêu cầu của bạn và chuyển đến Ban Tổ Chức.\n\nTrong lúc chờ Admin phản hồi, bạn có thể tham gia <b>Group Cộng Đồng Đầu Tư Chiến Lược</b> để bắt nhịp ngay với các anh em đang tạo ra dòng tiền mỗi ngày!\n\n👇 <b>HOẶC XEM NHANH CÁC BÍ MẬT TÀI CHÍNH DƯỚI ĐÂY:</b>`;
         
-        return; // Dừng luồng ở đây để không bị chạy xuống phần tính tiền Group
+        const faqMenu = {
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "💬 VÀO GROUP CHAT CỘNG ĐỒNG NGAY", url: "https://t.me/swc_capital_chat" }],
+                    [{ text: "👮 Trợ lý này mang lại giá trị gì?", callback_data: 'faq_1' }],
+                    [{ text: "🚀 Bí quyết tạo Dòng Tiền với Vốn 0đ?", callback_data: 'faq_4' }],
+                    [{ text: "🎁 Cách cày SWGT tạo thu nhập thụ động?", callback_data: 'faq_2' }],
+                    [{ text: "💸 Hướng dẫn Chốt lời & Rút tiền", callback_data: 'faq_3' }],
+                    [{ text: "⏳ Thanh khoản & Thời gian rút tiền?", callback_data: 'faq_5' }],
+                    [{ text: "💎 Các Thương Vụ Đầu Tư Chiến Lược là gì?", callback_data: 'faq_6' }]
+                ]
+            }
+        };
+
+        bot.sendMessage(userId, autoReplyMsg, faqMenu).catch(()=>{});
+        
+        return; // Dừng luồng ở đây
     }
 
     // ==========================================
@@ -1050,6 +1068,43 @@ bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const userId = callbackQuery.from.id.toString(); 
     const data = callbackQuery.data;
+    
+// ==========================================
+    // C. KHỐI XỬ LÝ CÂU HỎI THƯỜNG GẶP (FAQ) TỰ ĐỘNG
+    // ==========================================
+    if (data.startsWith('faq_')) {
+        bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
+        
+        let answerText = "";
+        if (data === 'faq_1') {
+            answerText = `👮  <b>HỎI: Trợ lý này mang lại giá trị gì?</b>\n\n<b>ĐÁP:</b> Bot Đầu Tư Chiến Lược là "vũ khí" giúp bạn tiếp cận các vòng gọi vốn kín, thương vụ Pre-IPO và cơ hội tạo dòng tiền thụ động.\n\nBằng cách tích lũy SWGT thông qua Bot, bạn không chỉ có thu nhập ngay lập tức mà còn dùng nó như "tấm vé VIP" để quy đổi thành quyền tham gia vào các deal đầu tư siêu lợi nhuận dành riêng cho cộng đồng tinh hoa!`;
+        } 
+        else if (data === 'faq_2') {
+            answerText = `🎁 <b>HỎI: Cách cày SWGT tạo thu nhập thụ động mỗi ngày?</b>\n\n<b>ĐÁP:</b> Rất đơn giản để xây dựng thói quen tạo dòng tiền! Mở Menu Bot và chọn "Nhiệm vụ Tân binh". Mỗi ngày bạn chỉ cần:\n\n1. Mở App điểm danh nhận lãi suất đều đặn.\n2. Thu nạp kiến thức đầu tư (Đọc bài 60s, Xem Youtube).\n3. Tương tác trên Group Chat (hệ thống tự động trả SWGT cho tin nhắn chất lượng).\n\n👉 Dòng tiền nhỏ giọt mỗi ngày sẽ tạo nên dòng sông tài sản!`;
+        }
+        else if (data === 'faq_3') {
+            answerText = `💸 <b>HỎI: Hướng dẫn Chốt lời & Rút tiền ra sao?</b>\n\n<b>ĐÁP:</b> Khi số dư tài sản đạt tối thiểu <b>300 SWGT</b>, bạn có thể chốt lời ngay! Mở Mini App, vào mục <b>"Rút tiền"</b>.\n\nHệ thống hỗ trợ chuyển lợi nhuận qua mã Gatecode (Sàn Gate.io) hoàn toàn miễn phí, hoặc ví ERC20 (có phí mạng). Mọi lệnh rút đều được Admin duyệt siêu tốc để tiền nhanh chóng "ting ting" về ví bạn!`;
+        }
+        else if (data === 'faq_4') {
+            answerText = `🚀 <b>HỎI: Bí quyết tạo Dòng Tiền lớn với Vốn 0 đồng?</b>\n\n<b>ĐÁP:</b> <i>"Đòn bẩy (Leverage) chính là chìa khóa của người giàu!"</i>\nBạn không cần vốn, hãy dùng đòn bẩy cộng đồng. Khi bạn lan tỏa cơ hội đầu tư này, bạn nhận ngay <b>20 - 40 SWGT</b> cho mỗi đối tác chất lượng bước vào cộng đồng.\n\nHệ thống còn thưởng nóng hàng trăm SWGT khi bạn đạt các mốc Quân hàm. Hãy lấy Link giới thiệu trong mục <b>"3️⃣ Tăng trưởng"</b> và xây dựng cỗ máy in tiền tự động cho riêng mình!`;
+        }
+        else if (data === 'faq_5') {
+            answerText = `⏳ <b>HỎI: Thanh khoản và thời gian rút tiền?</b>\n\n<b>ĐÁP:</b> Lệnh rút tiền được kiểm duyệt chéo để bảo vệ dòng vốn của cộng đồng, thường tiền sẽ về ví trong <b>24h - 48h</b> làm việc.\n\n⚠️ <b>ĐẶC QUYỀN VIP:</b> Nhằm bảo vệ giá trị token, tài khoản thường có thời gian khóa 15 ngày, Premium là 7 ngày. Nhưng nếu bạn chứng minh được năng lực (cày đạt mốc <b>1500 SWGT</b>), hệ thống sẽ "Phá băng" toàn bộ. Bạn được quyền rút tiền bất cứ lúc nào, thanh khoản tức thì!`;
+        }
+        else if (data === 'faq_6') {
+            answerText = `💎 <b>HỎI: Các Thương Vụ Đầu Tư Chiến Lược là gì?</b>\n\n<b>ĐÁP:</b> Tham gia cộng đồng, bạn sẽ được phím những "kèo" thay đổi vị thế: Từ cổ phần doanh nghiệp công nghệ tiềm năng trước thềm niêm yết (Pre-IPO), các dự án startup công nghệ cao, cho đến các ngách đầu tư Bất động sản tạo dòng tiền bền vững.\n\nĐây là những thương vụ "Private Sale" (bán kín) mà nhà đầu tư cá nhân bên ngoài hiếm khi chạm tới được. SWGT chính là chìa khóa để bạn bước vào sân chơi của các cá mập!`;
+        }
+
+        // Gửi câu trả lời kèm nút mở App luôn để thúc đẩy hành động
+        bot.sendMessage(chatId, answerText, { 
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [[{ text: "🚀 MỞ APP & BẮT ĐẦU TẠO DÒNG TIỀN", web_app: { url: webAppUrl } }]]
+            }
+        });
+        return;
+    }
+
 
     // ==========================================
     // A. KHỐI XỬ LÝ DÀNH RIÊNG CHO MENU ADMIN (BẤM NÚT)
