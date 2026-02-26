@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, default: '' }, 
     referredBy: { type: String, default: null }, 
     referralCount: { type: Number, default: 0 }, 
+    weeklyReferralCount: { type: Number, default: 0 }, // TÍNH NĂNG MỚI: Đếm lượt mời theo tuần
     
     checkInStreak: { type: Number, default: 0 },
     lastCheckInDate: { type: Date, default: null },
@@ -110,7 +111,7 @@ setInterval(async () => {
 }, 60000); 
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI (GIỜ VN)
+// TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI (GIỜ VN) - ĐÃ CẬP NHẬT THEO TUẦN
 // ==========================================
 setInterval(async () => {
     const now = new Date();
@@ -121,25 +122,66 @@ setInterval(async () => {
     if (vnHour === 20 && vnMinute === 0) {
         console.log('Bắt đầu gửi thông báo đua top lan tỏa...');
         try {
-            const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(3);
+            const topUsers = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(3);
             if (topUsers.length > 0) {
                 let topText = "";
                 const medals = ['🥇', '🥈', '🥉'];
                 topUsers.forEach((u, index) => {
-                    topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.referralCount} cơ hội\n`;
+                    topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.weeklyReferralCount} cơ hội\n`;
                 });
 
-                const msg = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
+                const msg = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA TUẦN NÀY - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
                             `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị, giúp thêm hàng chục người anh em bước chân vào bệ phóng thịnh vượng này:\n\n` +
                             `${topText}\n` +
                             `💡 <i>"Thành công lớn nhất không phải là bạn có bao nhiêu tiền, mà là bạn giúp được bao nhiêu người trở nên giàu có."</i>\n\n` +
-                            `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay tối nay nhé! Đua top tháng này để nhận phần thưởng xứng đáng! 🚀`;
+                            `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay tối nay nhé! Đua top tuần này để nhận phần thưởng xứng đáng! 🚀`;
                 
                 bot.sendMessage(GROUP_USERNAME, msg, { parse_mode: 'HTML' }).catch(()=>{});
             }
         } catch (error) { console.error("Lỗi gửi thông báo Top:", error); }
         
         await new Promise(resolve => setTimeout(resolve, 60000));
+    }
+}, 30000);
+
+// ==========================================
+// TÍNH NĂNG MỚI: TỰ ĐỘNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
+// ==========================================
+setInterval(async () => {
+    const now = new Date();
+    const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const vnDay = vnTime.getUTCDay(); // 0 là Chủ Nhật
+    const vnHour = vnTime.getUTCHours();
+    const vnMinute = vnTime.getUTCMinutes();
+
+    // Chạy đúng vào 23h59 phút tối Chủ Nhật
+    if (vnDay === 0 && vnHour === 23 && vnMinute === 59) {
+        console.log('Bắt đầu chốt Top Tuần...');
+        try {
+            const topUsers = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(3);
+            if (topUsers.length > 0) {
+                let topText = "";
+                const medals = ['🥇', '🥈', '🥉'];
+                topUsers.forEach((u, index) => {
+                    topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Mời ${u.weeklyReferralCount} khách\n`;
+                });
+
+                const msg = `🏆 <b>TỔNG KẾT ĐẠI SỨ LAN TỎA TUẦN NÀY</b> 🏆\n\n` +
+                            `Khép lại một tuần hoạt động bùng nổ, xin vinh danh những chiến binh xuất sắc nhất đã mang cơ hội SWC đến với nhiều đối tác nhất trong tuần qua:\n\n` +
+                            `${topText}\n` +
+                            `🔄 <i>Hệ thống sẽ tự động Reset bộ đếm số lượt mời của tuần này về 0. Hãy chuẩn bị sẵn sàng cho một cuộc đua mới công bằng cho tất cả mọi người vào Thứ Hai nhé!</i>\n\n` +
+                            `👉 <b>Chúc các Đại sứ một tuần mới bùng nổ doanh số! 🚀</b>`;
+                
+                bot.sendMessage(GROUP_USERNAME, msg, { parse_mode: 'HTML' }).catch(()=>{});
+            }
+            
+            // TỰ ĐỘNG RESET TOÀN BỘ TOP TUẦN VỀ 0
+            await User.updateMany({}, { $set: { weeklyReferralCount: 0 } });
+            console.log('✅ Đã reset xong Top Tuần!');
+            
+        } catch (error) { console.error("Lỗi chốt Top Tuần:", error); }
+        
+        await new Promise(resolve => setTimeout(resolve, 60000)); // Nghỉ 1 phút để không bị lặp lại
     }
 }, 30000);
 
@@ -449,15 +491,31 @@ async function checkMembership(userId) {
 // 👮 BỘ CÔNG CỤ CẢNH SÁT TRƯỞNG & QUẢN LÝ (Dành riêng cho Admin)
 // =========================================================
 
-// 1. Xem Top 10 + Lấy ID
+// 1. Xem Top 10 Tổng + Lấy ID
 bot.onText(/\/checktop/, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10);
-    let response = "🕵️‍♂️ <b>DANH SÁCH TOP 10 (KÈM ID ĐỂ XỬ LÝ):</b>\n\n";
+    let response = "🕵️‍♂️ <b>DANH SÁCH TOP 10 TỔNG CỘNG ĐỒNG (KÈM ID):</b>\n\n";
     users.forEach((u, index) => {
         response += `${index + 1}. ${u.firstName} ${u.lastName}\n`;
         response += `🆔 ID: <code>${u.userId}</code>\n`;
         response += `👥 Mời: ${u.referralCount} | 💰 Dư: ${u.balance}\n`;
+        response += `--------------------------\n`;
+    });
+    bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+});
+
+// TÍNH NĂNG MỚI: Xem Top Tuần hiện tại
+bot.onText(/\/toptuan/, async (msg) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    const users = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(10);
+    
+    if (users.length === 0) return bot.sendMessage(ADMIN_ID, "⚠️ Tuần này chưa có ai mời được khách nào.");
+    
+    let response = "🏆 <b>BẢNG XẾP HẠNG ĐẠI SỨ TUẦN NÀY:</b>\n\n";
+    users.forEach((u, index) => {
+        response += `${index + 1}. ${u.firstName} ${u.lastName} - <b>${u.weeklyReferralCount}</b> khách\n`;
+        response += `🆔 ID: <code>${u.userId}</code>\n`;
         response += `--------------------------\n`;
     });
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
@@ -678,7 +736,7 @@ bot.onText(/\/phat (\d+)/, async (msg, match) => {
     await user.save();
 
     // Báo cáo cho Admin
-    bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref: ${oldRef} ➡️ <b>${doneCount}</b> (Đã xóa ${notDoneCount} nick ảo)\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance}</b> (Đã thu hồi ${penalty} SWGT)\n\n<i>Đã gửi tin nhắn cảnh cáo dằn mặt!</i>`, { parse_mode: 'HTML' });
+    bot.sendMessage(ADMIN_ID, `✅ <b>ĐĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref: ${oldRef} ➡️ <b>${doneCount}</b> (Đã xóa ${notDoneCount} nick ảo)\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance}</b> (Đã thu hồi ${penalty} SWGT)\n\n<i>Đã gửi tin nhắn cảnh cáo dằn mặt!</i>`, { parse_mode: 'HTML' });
     
     // Gửi tin nhắn dằn mặt đối tượng
     let userMsg = `⚠️ <b>CẢNH BÁO VI PHẠM TỪ HỆ THỐNG!</b> ⚠️\n\n`;
@@ -730,27 +788,27 @@ bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, `✅ Đã xóa mã ${match[1]}`);
 });
 
-// Đẩy thông báo đua top thủ công
+// Đẩy thông báo đua top thủ công (Cập nhật thành Top Tuần)
 bot.onText(/\/duatop/, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
-    bot.sendMessage(ADMIN_ID, "⏳ Đang lấy dữ liệu và đẩy Bảng Xếp Hạng lên Group...");
+    bot.sendMessage(ADMIN_ID, "⏳ Đang lấy dữ liệu Top Tuần và đẩy Bảng Xếp Hạng lên Group...");
     try {
-        const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(3);
+        const topUsers = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(3);
         if (topUsers.length > 0) {
             let topText = "";
             const medals = ['🥇', '🥈', '🥉'];
-            topUsers.forEach((u, index) => { topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.referralCount} cơ hội\n`; });
+            topUsers.forEach((u, index) => { topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.weeklyReferralCount} cơ hội\n`; });
 
-            const msgGroup = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
+            const msgGroup = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA TUẦN NÀY - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
                              `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị, giúp thêm hàng chục người anh em bước chân vào bệ phóng thịnh vượng này:\n\n` +
                              `${topText}\n` +
                              `💡 <i>"Thành công lớn nhất không phải là bạn có bao nhiêu tiền, mà là bạn giúp được bao nhiêu người trở nên giàu có."</i>\n\n` +
-                             `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay hôm nay nhé! Đua top tháng này để nhận phần thưởng xứng đáng! 🚀`;
+                             `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay hôm nay nhé! Đua top tuần này để nhận phần thưởng xứng đáng! 🚀`;
             
             bot.sendMessage(GROUP_USERNAME, msgGroup, { parse_mode: 'HTML' }).catch(()=>{});
-            bot.sendMessage(ADMIN_ID, "✅ Đã nổ Bảng Xếp Hạng lên Group thành công!");
+            bot.sendMessage(ADMIN_ID, "✅ Đã nổ Bảng Xếp Hạng Top Tuần lên Group thành công!");
         } else {
-            bot.sendMessage(ADMIN_ID, "⚠️ Chưa có thành viên nào có lượt trao cơ hội để xếp hạng!");
+            bot.sendMessage(ADMIN_ID, "⚠️ Tuần này chưa có thành viên nào mời được khách để xếp hạng!");
         }
     } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi: " + error.message); }
 });
@@ -910,7 +968,7 @@ bot.on('message', async (msg) => {
         return; 
     }
 
-    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start') || msg.text.startsWith('/duatop') || msg.text.startsWith('/checktop') || msg.text.startsWith('/phat') || msg.text.startsWith('/setref') || msg.text.startsWith('/checkref'))) return;
+    if (msg.text && (msg.text.startsWith('/sendall') || msg.text.startsWith('/createcode') || msg.text.startsWith('/deletecode') || msg.text.startsWith('/start') || msg.text.startsWith('/duatop') || msg.text.startsWith('/toptuan') || msg.text.startsWith('/checktop') || msg.text.startsWith('/phat') || msg.text.startsWith('/setref') || msg.text.startsWith('/checkref') || msg.text.startsWith('/resetref') || msg.text.startsWith('/locref'))) return;
 
     // C. XỬ LÝ CHAT 2 CHIỀU: KHÁCH HÀNG NHẮN CHO BOT ĐỂ BOT CHUYỂN TỚI ADMIN
     if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
@@ -991,6 +1049,10 @@ bot.on('callback_query', async (callbackQuery) => {
                             const refReward = referrer.isPremium ? 20 : 10;
                             referrer.balance = Math.round((referrer.balance + refReward) * 100) / 100;
                             referrer.referralCount += 1;
+                            
+                            // TÍNH NĂNG MỚI: Cộng thêm 1 vào biến đếm của Tuần
+                            referrer.weeklyReferralCount = (referrer.weeklyReferralCount || 0) + 1;
+                            
                             await referrer.save();
 
                             // Thông báo Thăng Hạng cho người giới thiệu
