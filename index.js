@@ -989,7 +989,7 @@ bot.on('message', async (msg) => {
         }
 
         // 2. GỬI TIN NHẮN AUTO-REPLY KÈM MENU FAQ CHO KHÁCH HÀNG
-        const autoReplyMsg = `👋 Chào <b>${name}</b>, hệ thống đã ghi nhận yêu cầu của bạn và chuyển đến Ban Tổ Chức.\n\nTrong lúc chờ Admin phản hồi, bạn có thể tham gia <b>Group Cộng Đồng Đầu Tư Chiến Lược</b> để bắt nhịp ngay với các anh em đang tạo ra dòng tiền mỗi ngày!\n\n👇 <b>HOẶC XEM NHANH CÁC BÍ MẬT TÀI CHÍNH DƯỚI ĐÂY:</b>`;
+        const autoReplyMsg = `👋 Chào <b>${name}</b>, hệ thống đã ghi nhận yêu cầu của bạn và chuyển đến Ban Tổ Chức.\n\nTrong lúc chờ Admin phản hồi, bạn có thể tham gia <b>Group Cộng Đồng Đầu Tư Chiến Lược Sky World Community</b> để bắt nhịp ngay với các anh em đang tạo ra dòng tiền mỗi ngày!\n\n👇 <b>HOẶC XEM NHANH CÁC BÍ MẬT TÀI CHÍNH DƯỚI ĐÂY:</b>`;
         
         const faqMenu = {
             parse_mode: 'HTML',
