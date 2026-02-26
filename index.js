@@ -867,8 +867,8 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     if (isNewUser && refId && refId !== userId) {
         welcomeText = `🎉 <i>Bạn được mời bởi ID: ${refId}</i>\n\n` + welcomeText;
     }
-
-    const opts = {
+    
+const opts = {
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: [
@@ -876,6 +876,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
                 [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
                 [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
                 [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
+                [{ text: "❓ Đặt Câu hỏi (FAQ)", callback_data: 'show_faq' }],
                 [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
             ]
         }
@@ -1377,8 +1378,27 @@ bot.on('callback_query', async (callbackQuery) => {
         const task4Text = `🏆 <b>KHO LƯU TRỮ ĐẶC QUYỀN VIP</b>\n\nSWGT là quyền lực của bạn! Dùng số dư quy đổi lấy "vũ khí" thực chiến:\n\n🔓 <b>1. Mở Khóa Group Private (500 SWGT)</b>\n☕️ <b>2. Cà Phê Chiến Lược 1:1 (300 SWGT)</b>\n🎟 <b>3. Voucher Ưu Đãi Đầu Tư (1000 SWGT)</b>\n\n👉 <i>Bấm mở App để quy đổi!</i>`;
         bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
     }
+else if (data === 'show_faq') {
+        const autoReplyMsg = `👋 Chào <b>${user.firstName}</b>! Bạn đang muốn tìm hiểu về điều gì?\n\n👇 Hãy xem nhanh các <b>BÍ MẬT TÀI CHÍNH</b> dưới đây hoặc tham gia Group để thảo luận trực tiếp cùng anh em nhà đầu tư nhé!`;
+        
+        const faqMenu = {
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "💬 VÀO GROUP CHAT CỘNG ĐỒNG NGAY", url: "https://t.me/swc_capital_chat" }],
+                    [{ text: "👮  Trợ lý này mang lại giá trị gì?", callback_data: 'faq_1' }],
+                    [{ text: "🚀 Bí quyết tạo Dòng Tiền với Vốn 0đ?", callback_data: 'faq_4' }],
+                    [{ text: "🎁 Cách cày SWGT tạo thu nhập thụ động?", callback_data: 'faq_2' }],
+                    [{ text: "💸 Hướng dẫn Chốt lời & Rút tiền", callback_data: 'faq_3' }],
+                    [{ text: "⏳ Thanh khoản & Thời gian rút tiền?", callback_data: 'faq_5' }],
+                    [{ text: "💎 Các Thương Vụ Đầu Tư Chiến Lược là gì?", callback_data: 'faq_6' }]
+                ]
+            }
+        };
 
-    const validCallbacks = ['check_join', 'claim_read', 'go_read', 'claim_share', 'go_share', 'go_youtube', 'claim_youtube', 'go_facebook', 'claim_facebook', 'task_1', 'task_2', 'task_3', 'task_4'];
+        bot.sendMessage(chatId, autoReplyMsg, faqMenu).catch(()=>{});
+    }
+const validCallbacks = ['check_join', 'claim_read', 'go_read', 'claim_share', 'go_share', 'go_youtube', 'claim_youtube', 'go_facebook', 'claim_facebook', 'task_1', 'task_2', 'task_3', 'task_4', 'show_faq'];
     if (!data.startsWith('admin_') && !validCallbacks.includes(data)) {
         bot.answerCallbackQuery(callbackQuery.id);
     }
