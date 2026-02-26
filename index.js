@@ -886,7 +886,9 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
 
 // --- 4. CAMERA CHẠY NGẦM & MESSAGE HANDLER ---
 bot.on('message', async (msg) => {
-    // A. XỬ LÝ ADMIN DUYỆT LỆNH BẰNG CHỮ "XONG"
+    // ==========================================
+    // A. XỬ LÝ ADMIN DUYỆT LỆNH BẰNG CHỮ "XONG" & TRẢ LỜI KHÁCH HÀNG
+    // ==========================================
     if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
         const replyText = msg.text ? msg.text.toLowerCase() : (msg.caption ? msg.caption.toLowerCase() : '');
         const originalText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
@@ -963,7 +965,37 @@ bot.on('message', async (msg) => {
         }
     }
 
+    // ==========================================
+    // B. XỬ LÝ KHÁCH HÀNG NHẮN TIN CHO BOT (CHUYỂN TIẾP VỀ ADMIN)
+    // ==========================================
+    if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
+        // Bỏ qua các lệnh có dấu / (như /start)
+        if (msg.text && msg.text.startsWith('/')) return;
+
+        const userId = msg.from.id.toString();
+        const name = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
+        const username = msg.from.username ? `@${msg.from.username}` : 'Không có';
+        const content = msg.text || msg.caption || '[Khách gửi Tệp/Ảnh/Video]';
+
+        const alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n\n💬 <b>Nội dung:</b>\n${content}\n\n👉 <i>Admin hãy Reply (Trả lời) tin nhắn này để chat lại với khách nhé! Hoặc bấm nút bên dưới để vào chat trực tiếp.</i>`;
+
+        const replyMarkup = {
+            inline_keyboard: [[{ text: "💬 Chat trực tiếp với khách", url: `tg://user?id=${userId}` }]]
+        };
+
+        if (msg.photo) {
+            const photoId = msg.photo[msg.photo.length - 1].file_id;
+            bot.sendPhoto(ADMIN_ID, photoId, { caption: alertMsg, parse_mode: 'HTML', reply_markup: replyMarkup }).catch(()=>{});
+        } else {
+            bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkup }).catch(()=>{});
+        }
+        
+        return; // Dừng luồng ở đây để không bị chạy xuống phần tính tiền Group
+    }
+
+    // ==========================================
     // D. XỬ LÝ CỘNG TIỀN KHI CHAT TƯƠNG TÁC TẠI GROUP CHÍNH
+    // ==========================================
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
 
@@ -983,8 +1015,8 @@ bot.on('message', async (msg) => {
     } else { user.isPremium = isPremium; }
 
     user.groupMessageCount += 1; 
-    // Cộng 0.3 SWGT mỗi tin nhắn dài hơn 10 ký tự
-    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.3) * 100) / 100; }
+    // Cộng 0.1 SWGT mỗi tin nhắn dài hơn 10 ký tự
+    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.1) * 100) / 100; }
     await user.save();
 });
 
