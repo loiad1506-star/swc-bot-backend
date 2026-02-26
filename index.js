@@ -463,12 +463,12 @@ bot.onText(/\/checktop/, async (msg) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-// 2. Soi danh sách Ref của 1 người cụ thể (MỚI THÊM)
+// 2. Soi danh sách Ref của 1 người cụ thể (BẢN NÂNG CẤP CÓ THỐNG KÊ)
 bot.onText(/\/checkref (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     
     const targetId = match[1];
-    bot.sendMessage(ADMIN_ID, "⏳ Đang trích xuất dữ liệu...");
+    bot.sendMessage(ADMIN_ID, "⏳ Đang trích xuất và thống kê dữ liệu...");
 
     const refs = await User.find({ referredBy: targetId }).sort({ joinDate: -1 });
     
@@ -476,13 +476,29 @@ bot.onText(/\/checkref (\d+)/, async (msg, match) => {
         return bot.sendMessage(ADMIN_ID, "❌ Tài khoản này chưa mời được ai bấm vào link.");
     }
 
-    let response = `🕵️‍♂️ <b>DANH SÁCH KHÁCH CỦA ID: <code>${targetId}</code></b>\nTổng số đã bấm link: ${refs.length} người\n\n`;
+    // -- PHẦN MỚI: ĐẾM SỐ LƯỢNG --
+    let doneCount = 0;
+    let notDoneCount = 0;
+    refs.forEach(r => {
+        if (r.task1Done) {
+            doneCount++;
+        } else {
+            notDoneCount++;
+        }
+    });
+
+    // -- TẠO BẢN BÁO CÁO --
+    let response = `🕵️‍♂️ <b>BÁO CÁO CHI TIẾT ID: <code>${targetId}</code></b>\n`;
+    response += `📊 <b>Tổng số đã bấm link:</b> ${refs.length} người\n`;
+    response += `✅ <b>Đã hoàn thành NV:</b> ${doneCount} người\n`;
+    response += `❌ <b>Chưa làm NV (Nick rác):</b> ${notDoneCount} người\n`;
+    response += `--------------------------\n`;
+    response += `📝 <b>Danh sách chi tiết (50 người mới nhất):</b>\n\n`;
     
     const displayRefs = refs.slice(0, 50); 
     
     displayRefs.forEach((r, index) => {
-        // Kiểm tra xem người này đã làm xong Nhiệm vụ 1 (vào Group chat) chưa
-        const status = r.task1Done ? "✅ Đã Join & Chat" : "❌ Chưa xong NV";
+        const status = r.task1Done ? "✅ Đã Join" : "❌ Chưa xong NV";
         response += `${index + 1}. <b>${r.firstName} ${r.lastName}</b>\n`;
         response += `   Trạng thái: ${status} | ID: <code>${r.userId}</code>\n`;
     });
