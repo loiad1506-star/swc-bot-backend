@@ -632,27 +632,63 @@ bot.onText(/\/locref (\d+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-// 3. Phạt gian lận
+// 3. Phạt gian lận (Đã sửa: Chỉ trừ nick ảo và tiền ảo)
 bot.onText(/\/phat (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
+    bot.sendMessage(ADMIN_ID, "⏳ Đang quét dữ liệu gian lận để xử phạt...");
+
     const user = await User.findOne({ userId: targetId });
     if (!user) return bot.sendMessage(ADMIN_ID, "❌ Không tìm thấy User ID này!");
 
+    const refs = await User.find({ referredBy: targetId });
+    
+    let doneCount = 0;
+    let notDoneCount = 0;
+
+    refs.forEach(r => {
+        if (r.task1Done) doneCount++;
+        else notDoneCount++;
+    });
+
+    if (notDoneCount === 0) {
+        return bot.sendMessage(ADMIN_ID, "⚠️ Tài khoản này không có nick ảo nào để phạt!");
+    }
+
     const oldRef = user.referralCount;
     const oldBal = user.balance;
+
+    // Trừ chính xác 10 SWGT cho mỗi nick ảo
+    const penalty = notDoneCount * 10; 
+
+    user.referralCount = doneCount; 
+    user.balance = Math.max(0, user.balance - penalty); 
     
-    user.referralCount = 0; 
-    user.balance = Math.floor(user.balance * 0.2); 
-    
-    user.milestone3 = false; user.milestone10 = false; user.milestone20 = false;
-    user.milestone50 = false; user.milestone80 = false; user.milestone120 = false;
-    user.milestone200 = false; user.milestone350 = false; user.milestone500 = false;
+    // Thu hồi quân hàm nếu tụt hạng do bị trừ nick ảo
+    if (doneCount < 500) user.milestone500 = false;
+    if (doneCount < 350) user.milestone350 = false;
+    if (doneCount < 200) user.milestone200 = false;
+    if (doneCount < 120) user.milestone120 = false;
+    if (doneCount < 80) user.milestone80 = false;
+    if (doneCount < 50) user.milestone50 = false;
+    if (doneCount < 20) user.milestone20 = false;
+    if (doneCount < 10) user.milestone10 = false;
+    if (doneCount < 3) user.milestone3 = false;
 
     await user.save();
 
-    bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref cũ: ${oldRef} -> <b>Mới: 0</b>\n💸 Số dư cũ: ${oldBal} -> <b>Mới: ${user.balance}</b>\n\nĐã xóa sạch thành tích gian lận!`, { parse_mode: 'HTML' });
-    bot.sendMessage(targetId, `⚠️ <b>CẢNH BÁO VI PHẠM!</b>\n\nHệ thống phát hiện tài khoản của bạn có dấu hiệu gian lận lượt mời (Ref ảo/Cheating).\n\n👮‍♂️ <b>Quyết định của Admin:</b>\n- Reset toàn bộ số lượt mời về 0.\n- Thu hồi phần thưởng gian lận.\n\nHãy tham gia trung thực để xây dựng cộng đồng vững mạnh!`, { parse_mode: 'HTML' });
+    // Báo cáo cho Admin
+    bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref: ${oldRef} ➡️ <b>${doneCount}</b> (Đã xóa ${notDoneCount} nick ảo)\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance}</b> (Đã thu hồi ${penalty} SWGT)\n\n<i>Đã gửi tin nhắn cảnh cáo dằn mặt!</i>`, { parse_mode: 'HTML' });
+    
+    // Gửi tin nhắn dằn mặt đối tượng
+    let userMsg = `⚠️ <b>CẢNH BÁO VI PHẠM TỪ HỆ THỐNG!</b> ⚠️\n\n`;
+    userMsg += `Hệ thống phát hiện tài khoản của bạn có hành vi sử dụng Tool/Clone để tạo lượt mời ảo nhằm trục lợi.\n\n`;
+    userMsg += `👮‍♂️ <b>Quyết định xử phạt:</b>\n`;
+    userMsg += `- Xóa bỏ <b>${notDoneCount}</b> lượt mời không hợp lệ (Chưa xác minh).\n`;
+    userMsg += `- Thu hồi <b>${penalty} SWGT</b> gian lận từ các nick ảo.\n\n`;
+    userMsg += `Lượt mời của bạn đã được đưa về đúng số người thật (<b>${doneCount} người</b>). Nếu bạn tiếp tục có hành vi gian lận, tài khoản sẽ bị khóa vĩnh viễn!`;
+    
+    bot.sendMessage(targetId, userMsg, { parse_mode: 'HTML' }).catch(()=>{});
 });
 
 // 4. Set số liệu thủ công
