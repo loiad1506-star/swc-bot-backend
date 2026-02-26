@@ -994,56 +994,36 @@ bot.on('callback_query', async (callbackQuery) => {
     const userId = callbackQuery.from.id.toString(); 
     const data = callbackQuery.data;
 
-    // ==========================================
-    // A. KHỐI XỬ LÝ DÀNH RIÊNG CHO MENU ADMIN
-    // ==========================================
-    if (data.startsWith('admin_')) {
-        if (userId !== ADMIN_ID) {
-            return bot.answerCallbackQuery(callbackQuery.id, { text: "⛔ Bạn không có quyền truy cập chức năng này!", show_alert: true });
-        }
-        
-        bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
-
-        try {
-            if (data === 'admin_checktop') {
-                const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10);
-                let response = "🕵️‍♂️ <b>DANH SÁCH TOP 10 TỔNG CỘNG ĐỒNG:</b>\n\n";
-                users.forEach((u, index) => { response += `${index + 1}. ${u.firstName} ${u.lastName}\n🆔 ID: <code>${u.userId}</code>\n👥 Mời: ${u.referralCount} | 💰 Dư: ${u.balance}\n--------------------------\n`; });
-                bot.sendMessage(ADMIN_ID, response || "Chưa có dữ liệu.", { parse_mode: 'HTML' });
-            }
-            else if (data === 'admin_toptuan') {
-                const users = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(10);
-                if (users.length === 0) return bot.sendMessage(ADMIN_ID, "⚠️ Tuần này chưa có ai mời được khách nào.");
-                let response = "🏆 <b>BẢNG XẾP HẠNG ĐẠI SỨ TUẦN NÀY:</b>\n\n";
-                users.forEach((u, index) => { response += `${index + 1}. ${u.firstName} ${u.lastName} - <b>${u.weeklyReferralCount}</b> khách\n🆔 ID: <code>${u.userId}</code>\n--------------------------\n`; });
-                bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
-            }
-            else if (data === 'admin_duatop') {
-                bot.sendMessage(ADMIN_ID, "✅ Bảng xếp hạng đang được hệ thống đẩy lên Group chính. Vui lòng đợi trong giây lát...");
-                // Gọi lệnh tương đương đua top
-                const topUsers = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(3);
-                if (topUsers.length > 0) {
-                    let topText = ""; const medals = ['🥇', '🥈', '🥉'];
-                    topUsers.forEach((u, index) => { topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.weeklyReferralCount} cơ hội\n`; });
-                    const msgGroup = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA TUẦN NÀY - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\nHành trình kiến tạo tự do tài chính cùng SWC đang lan tỏa mạnh mẽ! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị:\n\n${topText}\n💡 <i>"Thành công lớn nhất không phải là bạn có bao nhiêu tiền, mà là bạn giúp được bao nhiêu người trở nên giàu có."</i>\n\n👉 Đua top tuần này để nhận phần thưởng xứng đáng! 🚀`;
-                    bot.sendMessage(GROUP_USERNAME, msgGroup, { parse_mode: 'HTML' }).catch(()=>{});
-                }
-            }
-            else if (data === 'admin_help_cheat') {
-                const text = `👮 <b>CÔNG CỤ XỬ LÝ GIAN LẬN (ANTI-CHEAT)</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền ID vào cuối:</i>\n\n1. Soi danh sách khách của 1 người:\n<code>/checkref </code>\n\n2. Lọc & xóa vĩnh viễn nick ảo:\n<code>/locref </code>\n\n3. Phạt nặng (Trừ tiền & Ref ảo):\n<code>/phat </code>\n\n4. Đối soát & giải thích (Nhẹ nhàng):\n<code>/resetref </code>\n\n5. Chỉnh thông số thủ công:\n<code>/setref [ID] [Lượt_mời] [Tiền]</code>`;
-                bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
-            }
-            else if (data === 'admin_help_mkt') {
-                const text = `🎁 <b>CÔNG CỤ MARKETING & THÔNG BÁO</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền thông tin:</i>\n\n1. Tạo mã Giftcode:\n<code>/createcode [MÃ_CODE] [Số_SWGT] [Số_Lượt]</code>\n<i>VD:</i> <code>/createcode VIP500 500 10</code>\n\n2. Xóa mã Giftcode:\n<code>/deletecode [MÃ_CODE]</code>\n\n3. Gửi tin nhắn Broadcast toàn hệ thống:\n<code>/sendall [Nội_dung_tin_nhắn]</code>`;
-                bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
-            }
-        } catch (error) {
-            bot.sendMessage(ADMIN_ID, "❌ Lỗi Menu Admin: " + error.message);
-        }
-        
-        return; // <--- QUAN TRỌNG: Lệnh này chặn không cho code chạy tiếp xuống phần của User
+// ==========================================
+// MENU ĐIỀU KHIỂN DÀNH CHO ADMIN (/admin)
+// ==========================================
+bot.onText(/\/admin/, (msg) => {
+    console.log(`\n👉 NHẬN LỆNH /admin TỪ ID: ${msg.from.id}`);
+    
+    // Kiểm tra xem ID người gõ có khớp với ADMIN_ID trên cùng không
+    if (msg.from.id.toString() !== ADMIN_ID) {
+        console.log(`❌ TỪ CHỐI: ID ${msg.from.id} không phải là Admin (Yêu cầu ID: ${ADMIN_ID})`);
+        return; 
     }
 
+    const adminText = `👨‍💻 <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ (ADMIN PANEL)</b>\n\nXin chào Boss! Hãy chọn chức năng bạn muốn sử dụng bên dưới. Đối với các lệnh cần nhập ID, bot sẽ gửi cú pháp để bạn ấn copy nhanh.`;
+    
+    const adminMenu = {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "📊 Xem Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Xem Top Tuần", callback_data: 'admin_toptuan' }],
+                [{ text: "🚀 Nổ Bảng Xếp Hạng Lên Group", callback_data: 'admin_duatop' }],
+                [{ text: "👮 Xử Lý Gian Lận (Anti-Cheat)", callback_data: 'admin_help_cheat' }],
+                [{ text: "🎁 Tạo Code & Broadcast", callback_data: 'admin_help_mkt' }]
+            ]
+        }
+    };
+    
+    bot.sendMessage(msg.chat.id, adminText, adminMenu)
+       .then(() => console.log("✅ Đã gửi Menu Admin thành công!"))
+       .catch(err => console.log("❌ Lỗi không gửi được Menu:", err.message));
+});
     
     // ==========================================
     // B. KHỐI XỬ LÝ NHIỆM VỤ CHO USER BÌNH THƯỜNG
