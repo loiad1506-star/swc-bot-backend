@@ -995,37 +995,30 @@ bot.on('callback_query', async (callbackQuery) => {
     const data = callbackQuery.data;
 
 // ==========================================
-// MENU ĐIỀU KHIỂN DÀNH CHO ADMIN (/admin)
+// MENU ĐIỀU KHIỂN DÀNH CHO ADMIN
 // ==========================================
-bot.onText(/\/admin/i, async (msg) => {
-    try {
-        // Chỉ cho phép gõ trong Inbox riêng và đúng ID Admin
-        if (msg.chat.type !== 'private') return;
-        if (msg.from.id.toString() !== ADMIN_ID) return;
+bot.onText(/^\/(admin|menu)/i, async (msg) => {
+    // Chỉ cần đúng ID là Admin, bỏ qua các điều kiện rườm rà khác!
+    if (msg.from.id.toString() !== ADMIN_ID) return;
 
-        const adminText = `👨‍💻 <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ (ADMIN PANEL)</b>\n\nXin chào Boss! Hãy chọn chức năng bạn muốn sử dụng bên dưới. Đối với các lệnh cần nhập ID, bot sẽ gửi cú pháp để bạn ấn copy nhanh.`;
-        
-        const adminMenu = {
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "📊 Xem Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Xem Top Tuần", callback_data: 'admin_toptuan' }],
-                    [{ text: "🚀 Nổ Bảng Xếp Hạng Lên Group", callback_data: 'admin_duatop' }],
-                    [{ text: "👮 Xử Lý Gian Lận (Anti-Cheat)", callback_data: 'admin_help_cheat' }],
-                    [{ text: "🎁 Tạo Code & Broadcast", callback_data: 'admin_help_mkt' }]
-                ]
-            }
-        };
-        
-        // Gửi Menu Admin
-        await bot.sendMessage(ADMIN_ID, adminText, adminMenu);
-        console.log("✅ Lệnh /admin đã được kích hoạt thành công!");
+    const adminText = `👨‍💻 <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ (ADMIN PANEL)</b>\n\nXin chào Boss! Hãy chọn chức năng bạn muốn sử dụng bên dưới. Đối với các lệnh cần nhập ID, bot sẽ gửi cú pháp để bạn ấn copy nhanh.`;
+    
+    const adminMenu = {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "📊 Xem Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Xem Top Tuần", callback_data: 'admin_toptuan' }],
+                [{ text: "🚀 Nổ Bảng Xếp Hạng Lên Group", callback_data: 'admin_duatop' }],
+                [{ text: "👮 Xử Lý Gian Lận (Anti-Cheat)", callback_data: 'admin_help_cheat' }],
+                [{ text: "🎁 Tạo Code & Broadcast", callback_data: 'admin_help_mkt' }]
+            ]
+        }
+    };
+    
+    bot.sendMessage(msg.chat.id, adminText, adminMenu).catch(err => console.log("Lỗi gửi menu:", err));
+});
 
-    } catch (error) {
-        console.error("❌ Lỗi khi mở Menu Admin:", error);
-        bot.sendMessage(ADMIN_ID, "❌ Lỗi code hiển thị Menu: " + error.message);
-    }
-});    
+    
     // ==========================================
     // B. KHỐI XỬ LÝ NHIỆM VỤ CHO USER BÌNH THƯỜNG
     // ==========================================
