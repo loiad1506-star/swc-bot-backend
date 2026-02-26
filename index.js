@@ -508,6 +508,79 @@ bot.onText(/\/checkref (\d+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
+// TỰ ĐỘNG RESET REF, TRỪ TIỀN VÀ GỬI THÔNG BÁO THUYẾT PHỤC
+bot.onText(/\/resetref (\d+)/, async (msg, match) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    
+    const targetId = match[1];
+    bot.sendMessage(ADMIN_ID, "⏳ Đang tự động quét, trừ tiền và gửi thông báo...");
+
+    const refs = await User.find({ referredBy: targetId });
+    let referrer = await User.findOne({ userId: targetId });
+
+    if (!referrer) {
+        return bot.sendMessage(ADMIN_ID, "❌ Không tìm thấy thông tin người này trong hệ thống.");
+    }
+
+    // 1. Phân loại Thật - Ảo
+    let doneCount = 0;
+    let notDoneCount = 0;
+
+    refs.forEach(r => {
+        if (r.task1Done) doneCount++;
+        else notDoneCount++;
+    });
+
+    if (notDoneCount === 0) {
+        return bot.sendMessage(ADMIN_ID, "✅ Tài khoản này rất sạch, 100% khách đã làm nhiệm vụ, không có gì để trừ.");
+    }
+
+    // 2. Tính toán khấu trừ (Mặc định trừ 10 SWGT cho 1 nick ảo)
+    const penalty = notDoneCount * 10; 
+    const oldBal = referrer.balance;
+    const oldRef = referrer.referralCount;
+
+    // 3. Cập nhật lại Database
+    referrer.referralCount = doneCount;
+    referrer.balance = Math.max(0, referrer.balance - penalty); // Không cho âm tiền
+
+    // Thu hồi các mốc Quân hàm nếu số Ref thật bị rớt xuống dưới mốc
+    if (doneCount < 500) referrer.milestone500 = false;
+    if (doneCount < 350) referrer.milestone350 = false;
+    if (doneCount < 200) referrer.milestone200 = false;
+    if (doneCount < 120) referrer.milestone120 = false;
+    if (doneCount < 80) referrer.milestone80 = false;
+    if (doneCount < 50) referrer.milestone50 = false;
+    if (doneCount < 20) referrer.milestone20 = false;
+    if (doneCount < 10) referrer.milestone10 = false;
+    if (doneCount < 3) referrer.milestone3 = false;
+
+    await referrer.save();
+
+    // 4. Báo cáo lại cho Admin
+    let adminMsg = `✅ <b>ĐÃ XỬ LÝ XONG ID: <code>${targetId}</code></b>\n\n`;
+    adminMsg += `📉 <b>Lượt mời:</b> ${oldRef} ➡️ <b>${doneCount}</b>\n`;
+    adminMsg += `💸 <b>Số dư SWGT:</b> ${oldBal} ➡️ <b>${referrer.balance}</b> (Đã trừ ${penalty} SWGT)\n\n`;
+    adminMsg += `<i>Bot đã tự động gửi tin nhắn giải thích cho họ!</i>`;
+    bot.sendMessage(ADMIN_ID, adminMsg, { parse_mode: 'HTML' });
+
+    // 5. Gửi thông báo cực kỳ thuyết phục cho Người vi phạm
+    let userMsg = `⚠️ <b>THÔNG BÁO TỪ HỆ THỐNG KIỂM DUYỆT SWC</b> ⚠️\n\n`;
+    userMsg += `Chào <b>${referrer.firstName}</b>, hệ thống Anti-Cheat của chúng tôi vừa tiến hành quét và đối soát dữ liệu lượt giới thiệu của bạn.\n\n`;
+    userMsg += `📊 <b>Kết quả đối soát:</b>\n`;
+    userMsg += `- Tổng người đã bấm link: <b>${refs.length}</b> người\n`;
+    userMsg += `- Số người dùng thật (Đã Join Group): <b>${doneCount}</b> người\n`;
+    userMsg += `- Số tài khoản ảo/chưa làm NV: <b>${notDoneCount}</b> người\n\n`;
+    userMsg += `⚖️ <b>Quyết định xử lý:</b>\n`;
+    userMsg += `Để đảm bảo công bằng cho toàn bộ cộng đồng, hệ thống <b>chỉ trả thưởng cho các tài khoản hợp lệ (đã vào Group và Chat xác minh)</b>.\n\n`;
+    userMsg += `🔄 Lượt mời của bạn đã được hệ thống cập nhật về đúng thực tế là: <b>${doneCount} người</b>.\n`;
+    userMsg += `💸 Số dư SWGT cũng đã được tự động khấu trừ phần thưởng từ ${notDoneCount} tài khoản chưa hợp lệ.\n\n`;
+    userMsg += `💡 <i><b>Lưu ý:</b> Những người bạn mời vẫn có thể tiếp tục làm nhiệm vụ. Bất cứ khi nào họ vào Group xác minh thành công, bạn sẽ tự động được cộng lại phần thưởng. Hãy hướng dẫn họ hoàn tất nhé!</i>\n\n`;
+    userMsg += `Trân trọng!`;
+
+    bot.sendMessage(targetId, userMsg, { parse_mode: 'HTML' }).catch(()=>{});
+});
+
 // Lọc nick ảo và tính lại Ref chuẩn
 bot.onText(/\/locref (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
