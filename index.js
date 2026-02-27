@@ -47,7 +47,6 @@ const userSchema = new mongoose.Schema({
     referredBy: { type: String, default: null }, 
     referralCount: { type: Number, default: 0 }, 
     weeklyReferralCount: { type: Number, default: 0 }, // TÍNH NĂNG MỚI: Đếm lượt mời theo tuần
-    hasBeenReminded: { type: Boolean, default: false }, // <--- ANH CHÈN VÀO DÒNG 50 NÀY NHÉ
     
     checkInStreak: { type: Number, default: 0 },
     lastCheckInDate: { type: Date, default: null },
@@ -153,53 +152,6 @@ setInterval(async () => {
         await new Promise(resolve => setTimeout(resolve, 60000));
     }
 }, 30000);
-
-// ==========================================
-// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ TÂN BINH SAU 24H CHƯA XÁC MINH
-// ==========================================
-setInterval(async () => {
-    try {
-        const now = new Date();
-        // Tìm những người tham gia trước thời điểm hiện tại 24 giờ
-        const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-
-        // Lọc: Những người CHƯA xong task 1, VÀ tham gia > 24h trước, VÀ chưa bị nhắc lần nào
-        const lazyUsers = await User.find({
-            task1Done: false,
-            joinDate: { $lt: twentyFourHoursAgo },
-            hasBeenReminded: false
-        });
-
-        for (let lazyUser of lazyUsers) {
-            // 1. Nhắn tin nhắc nhở trực tiếp người chưa làm (Người B)
-            const remindBMsg = `⚠️ <b>TÀI KHOẢN CHƯA ĐƯỢC XÁC MINH!</b>\n\nChào ${lazyUser.firstName}, bạn đã kích hoạt Bot được 24 giờ nhưng chưa hoàn thành <b>Bước 1: Lấy vốn khởi nghiệp</b>.\n\n🎁 Phần thưởng <b>SWGT</b> của bạn đang bị treo. Hệ thống sẽ hủy tư cách Tân Binh nếu bạn không xác minh.\n\n👉 <i>Hãy bấm nút bên dưới để hoàn tất ngay!</i>`;
-            
-            try {
-                await bot.sendMessage(lazyUser.userId, remindBMsg, {
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: [[{ text: "⚡️ XÁC MINH TÀI KHOẢN NGAY", callback_data: 'task_1' }]]
-                    }
-                });
-            } catch (e) {}
-
-            // 2. Nhắn tin báo cho Người Mời (Người A) biết để họ ra tay hối thúc
-            if (lazyUser.referredBy) {
-                const referrerMsg = `🚨 <b>ĐỐI TÁC CỦA BẠN ĐANG NGỦ QUÊN!</b>\n\nThành viên <b>${lazyUser.firstName} ${lazyUser.lastName}</b> (do bạn mời) đã tham gia hơn 24h nhưng chưa chịu làm Nhiệm vụ 1.\n\n⚠️ <i>Nhắc họ làm ngay đi, nếu không bạn sẽ KHÔNG được cộng tiền thưởng giới thiệu đâu nhé!</i>`;
-                bot.sendMessage(lazyUser.referredBy, referrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
-            }
-
-            // Đánh dấu là đã nhắc rồi, để ngày mai không nhắc lại gây phiền phức
-            lazyUser.hasBeenReminded = true;
-            await lazyUser.save();
-
-            // Chờ 50ms để không bị Telegram block vì gửi quá nhanh
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-    } catch (error) {
-        console.error("Lỗi khi chạy Auto-Remind:", error);
-    }
-}, 60 * 60 * 1000); // Chạy quét 1 tiếng 1 lần (60 phút * 60 giây * 1000ms)
 
 // ==========================================
 // TÍNH NĂNG MỚI: TỰ ĐỘNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
@@ -870,105 +822,6 @@ bot.onText(/\/duatop/, async (msg) => {
     } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi: " + error.message); }
 });
 
-// ==========================================
-// VŨ KHÍ ADMIN: THỐNG KÊ TỔNG NỢ CHÍNH XÁC (ĐÃ LỌC THỜI GIAN KHÓA)
-// Cú pháp: /thongke
-// ==========================================
-bot.onText(/\/thongke/, async (msg) => {
-    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
-    
-    bot.sendMessage(ADMIN_ID, "⏳ Đang quét két sắt và kiểm tra thời hạn mở khóa của từng người...");
-    
-    try {
-        // 1. Lọc sơ bộ những người có từ 500 SWGT trở lên
-        const potentialUsers = await User.find({ balance: { $gte: 500 } });
-        
-        let totalEligibleDebt = 0;
-        let eligibleUsersCount = 0;
-        const nowMs = new Date().getTime();
-
-        // 2. Kiểm tra chi tiết từng người xem đã đủ ngày rút chưa
-        for (let u of potentialUsers) {
-            // Trường hợp A: Cày cuốc siêu khủng (>= 1500) -> Được quyền rút ngay lập tức
-            if (u.balance >= 1500) {
-                totalEligibleDebt += u.balance;
-                eligibleUsersCount++;
-                continue;
-            }
-            
-            // Trường hợp B: Dưới 1500 nhưng >= 500 -> Phải kiểm tra ngày tham gia
-            const lockDays = u.isPremium ? 7 : 15; // Phân loại VIP và Thường
-            
-            // Lấy ngày join, nếu mem cũ không có ngày join thì lấy mốc mặc định
-            const joinMs = u.joinDate ? new Date(u.joinDate).getTime() : new Date("2026-02-22T00:00:00Z").getTime();
-            const unlockDateMs = joinMs + (lockDays * 24 * 60 * 60 * 1000);
-
-            // Chỉ cộng vào tổng nợ nếu hôm nay ĐÃ VƯỢT QUÁ ngày mở khóa
-            if (nowMs >= unlockDateMs) {
-                totalEligibleDebt += u.balance;
-                eligibleUsersCount++;
-            }
-        }
-
-        // 3. Tính tổng toàn bộ người và token trên hệ thống (Chỉ để xem cho vui)
-        const totalStats = await User.aggregate([
-            { $group: { _id: null, totalSWGT: { $sum: "$balance" } } }
-        ]);
-        let totalAll = totalStats.length > 0 ? totalStats[0].totalSWGT : 0;
-        const totalUsers = await User.countDocuments();
-
-        // Làm tròn số thập phân cho đẹp
-        totalAll = Math.round(totalAll * 100) / 100;
-        totalEligibleDebt = Math.round(totalEligibleDebt * 100) / 100;
-
-        const reportMsg = `📊 <b>BÁO CÁO KÉT SẮT TÀI CHÍNH CHI TIẾT</b> 📊\n\n` +
-                          `👥 Tổng thành viên hệ thống: <b>${totalUsers} người</b>\n` +
-                          `💰 Tổng số SWGT đã phát ra: <b>${totalAll} SWGT</b>\n\n` +
-                          `🚨 <b>THỐNG KÊ NỢ PHẢI TRẢ NGAY (THỰC TẾ):</b>\n` +
-                          `✅ Số người <b>ĐÃ ĐỦ ĐIỀU KIỆN RÚT</b> (>= 500 SWGT và đã qua thời gian khóa 7-15 ngày): <b>${eligibleUsersCount} người</b>\n` +
-                          `💸 Tổng lượng SWGT phải trả nếu họ rút sạch hôm nay: <b>${totalEligibleDebt} SWGT</b>`;
-
-        bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' });
-    } catch (error) {
-        bot.sendMessage(ADMIN_ID, `❌ Lỗi khi thống kê: ${error.message}`);
-    }
-});
-
-// ==========================================
-// VŨ KHÍ ADMIN: NHẮC NHỞ TOÀN BỘ NGƯỜI CHƯA LÀM NHIỆM VỤ THỦ CÔNG
-// Cú pháp: /nhactanbinh [Nội dung tin nhắn]
-// ==========================================
-bot.onText(/\/nhactanbinh ([\s\S]+)/, async (msg, match) => {
-    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
-    
-    const broadcastMsg = match[1]; 
-    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu quét và gửi tin nhắn nhắc nhở cho những người CHƯA XÁC MINH (Chưa làm Bước 1)...`);
-    
-    const opts = { 
-        parse_mode: 'HTML', 
-        reply_markup: { 
-            inline_keyboard: [ [{ text: "⚡️ LÀM NHIỆM VỤ NGAY", callback_data: 'task_1' }] ] 
-        } 
-    };
-
-    try {
-        // Chỉ tìm những người task1Done là false
-        const unverifiedUsers = await User.find({ task1Done: false });
-        let successCount = 0;
-
-        for (let i = 0; i < unverifiedUsers.length; i++) {
-            try { 
-                await bot.sendMessage(unverifiedUsers[i].userId, broadcastMsg, opts); 
-                successCount++;
-            } catch (err) {}
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-        bot.sendMessage(ADMIN_ID, `✅ Hoàn tất! Đã gửi lời "cảnh cáo" thành công tới <b>${successCount}</b> tài khoản lười biếng.`, {parse_mode: 'HTML'});
-    } catch (error) {
-        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${error.message}`);
-    }
-});
-
 // --- 3. XỬ LÝ LỆNH /start (BẢO VỆ CHỐNG CHEAT & KHÔNG TRẢ THƯỞNG NGAY) ---
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -1631,3 +1484,5 @@ bot.on('chat_member', async (update) => {
         }
     }
 });
+
+
