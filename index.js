@@ -1634,4 +1634,44 @@ bot.on('chat_member', async (update) => {
     }
 });
 
+// ==========================================
+// 🕵️‍♂️ LỆNH ADMIN: SOI VÍ TIỀN & HOẠT ĐỘNG GẦN NHẤT
+// ==========================================
+bot.onText(/\/soivietien/, async (msg) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    bot.sendMessage(ADMIN_ID, "⏳ Đang bật Radar quét các giao dịch sinh tiền gần nhất...");
 
+    try {
+        // Lọc ra 10 người có tương tác nhận tiền gần nhất
+        const recentUsers = await User.find({
+            $or: [
+                { lastCheckInDate: { $ne: null } },
+                { lastDailyTask: { $ne: null } },
+                { lastShareTask: { $ne: null } }
+            ]
+        }).sort({ lastCheckInDate: -1, lastDailyTask: -1, lastShareTask: -1 }).limit(10);
+
+        if (recentUsers.length === 0) {
+            return bot.sendMessage(ADMIN_ID, "⚠️ Hệ thống chưa ghi nhận hoạt động nào gần đây.");
+        }
+
+        let response = "🕵️‍♂️ <b>BÁO CÁO: 10 NGƯỜI VỪA CÀY SWGT GẦN NHẤT</b> 🕵️‍♂️\n\n";
+
+        recentUsers.forEach((u, i) => {
+            response += `${i + 1}. <b>${u.firstName} ${u.lastName}</b> (ID: <code>${u.userId}</code>)\n`;
+            response += `💰 Tổng tài sản: <b>${u.balance} SWGT</b>\n`;
+            response += `⏱ <b>Hoạt động hái ra tiền gần nhất:</b>\n`;
+            
+            // Cộng 7 tiếng để hiển thị chuẩn giờ Việt Nam
+            if (u.lastCheckInDate) response += ` 🔹 Điểm danh: ${new Date(new Date(u.lastCheckInDate).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+            if (u.lastDailyTask) response += ` 🔹 Đọc bài web: ${new Date(new Date(u.lastDailyTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+            if (u.lastShareTask) response += ` 🔹 Chia sẻ MXH: ${new Date(new Date(u.lastShareTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+            
+            response += `--------------------------\n`;
+        });
+
+        bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, "❌ Lỗi khi soi ví: " + error.message);
+    }
+});
