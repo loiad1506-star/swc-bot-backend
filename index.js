@@ -1236,28 +1236,63 @@ bot.on('callback_query', async (callbackQuery) => {
                 users.forEach((u, index) => { response += `${index + 1}. ${u.firstName} ${u.lastName} - <b>${u.weeklyReferralCount}</b> khách\n🆔 ID: <code>${u.userId}</code>\n--------------------------\n`; });
                 bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
             }
-            else if (data === 'admin_thongke') {
-                bot.sendMessage(ADMIN_ID, "⏳ Đang quét két sắt và kiểm tra thời hạn mở khóa của từng người...");
-                const potentialUsers = await User.find({ balance: { $gte: 500 } });
-                let totalEligibleDebt = 0; let eligibleUsersCount = 0; const nowMs = new Date().getTime();
+else if (data === 'admin_thongke') {
+            bot.sendMessage(ADMIN_ID, "⏳ Đang quét két sắt và kiểm tra thời hạn mở khóa của từng người...");
+            try {
+                const allUsers = await User.find();
+                const nowMs = new Date().getTime();
                 
-                for (let u of potentialUsers) {
-                    if (u.balance >= 1500) { totalEligibleDebt += u.balance; eligibleUsersCount++; continue; }
-                    const lockDays = u.isPremium ? 7 : 15; 
+                let totalAll = 0;
+                let eligibleUsersCount = 0; 
+                let totalEligibleDebt = 0; // Đủ 500 + Hết hạn khóa
+                
+                let pendingOver500Count = 0; 
+                let pendingOver500Amount = 0; // Đã có >500 nhưng chưa hết hạn khóa
+                
+                let potentialDebtCount = 0; 
+                let potentialDebtAmount = 0; // Nhóm từ 300 - 500 (Sắp đủ mốc rút)
+
+                allUsers.forEach(u => {
+                    totalAll += u.balance;
+                    
+                    const lockDays = u.isPremium ? 7 : 15;
                     const joinMs = u.joinDate ? new Date(u.joinDate).getTime() : new Date("2026-02-22T00:00:00Z").getTime();
                     const unlockDateMs = joinMs + (lockDays * 24 * 60 * 60 * 1000);
-                    if (nowMs >= unlockDateMs) { totalEligibleDebt += u.balance; eligibleUsersCount++; }
-                }
-                
-                const totalStats = await User.aggregate([{ $group: { _id: null, totalSWGT: { $sum: "$balance" } } }]);
-                let totalAll = totalStats.length > 0 ? totalStats[0].totalSWGT : 0;
-                const totalUsers = await User.countDocuments();
-                
-                totalAll = Math.round(totalAll * 100) / 100; totalEligibleDebt = Math.round(totalEligibleDebt * 100) / 100;
-                
-                const reportMsg = `📊 <b>BÁO CÁO KÉT SẮT TÀI CHÍNH CHI TIẾT</b> 📊\n\n👥 Tổng thành viên hệ thống: <b>${totalUsers} người</b>\n💰 Tổng số SWGT đã phát ra: <b>${totalAll} SWGT</b>\n\n🚨 <b>THỐNG KÊ NỢ PHẢI TRẢ NGAY (THỰC TẾ):</b>\n✅ Số người <b>ĐÃ ĐỦ ĐIỀU KIỆN RÚT</b> (>= 500 SWGT và đã qua thời gian khóa 7-15 ngày): <b>${eligibleUsersCount} người</b>\n💸 Tổng lượng SWGT phải trả nếu họ rút sạch hôm nay: <b>${totalEligibleDebt} SWGT</b>`;
+
+                    if (u.balance >= 500) {
+                        if (nowMs >= unlockDateMs || u.balance >= 1500) {
+                            eligibleUsersCount++;
+                            totalEligibleDebt += u.balance;
+                        } else {
+                            pendingOver500Count++;
+                            pendingOver500Amount += u.balance;
+                        }
+                    } else if (u.balance >= 300) { 
+                        potentialDebtCount++;
+                        potentialDebtAmount += u.balance;
+                    }
+                });
+
+                const reportMsg = `📊 <b>BÁO CÁO KẾT SẮT CHI TIẾT & DỰ BÁO</b> 📊\n\n` +
+                    `👥 <b>Tổng thành viên:</b> ${allUsers.length} người\n` +
+                    `💰 <b>Tổng SWGT đã phát:</b> ${totalAll.toFixed(1)} SWGT\n\n` +
+                    `🔴 <b>1. NỢ THỰC TẾ (Đủ 500 + Hết hạn khóa):</b>\n` +
+                    `- Số người: <b>${eligibleUsersCount}</b>\n` +
+                    `- Số tiền: <b>${totalEligibleDebt.toFixed(1)} SWGT</b>\n\n` +
+                    `🟠 <b>2. NỢ CHỜ GIẢI PHÓNG (>500 nhưng còn khóa):</b>\n` +
+                    `- Số người: <b>${pendingOver500Count}</b>\n` +
+                    `- Số tiền: <b>${pendingOver500Amount.toFixed(1)} SWGT</b>\n\n` +
+                    `🟡 <b>3. NỢ TIỀM NĂNG (Đã có >300, sắp đạt mốc 500):</b>\n` +
+                    `- Số người: <b>${potentialDebtCount}</b>\n` +
+                    `- Số tiền: <b>${potentialDebtAmount.toFixed(1)} SWGT</b>\n\n` +
+                    `💎 <b>TỔNG QUY TRÌNH THANH KHOẢN:</b>\n` +
+                    `Dự kiến cần chuẩn bị khoảng <b>${(totalEligibleDebt + pendingOver500Amount).toFixed(1)} SWGT</b> để chi trả cho các thành viên nòng cốt trong ngắn hạn.`;
+
                 bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' });
+            } catch (error) {
+                bot.sendMessage(ADMIN_ID, `❌ Lỗi khi thống kê: ${error.message}`);
             }
+        }
             else if (data === 'admin_duatop') {
                 bot.sendMessage(ADMIN_ID, "✅ Bảng xếp hạng đang được hệ thống đẩy lên Group chính. Vui lòng đợi trong giây lát...");
                 const topUsers = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(3);
