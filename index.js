@@ -199,6 +199,7 @@ setInterval(async () => {
     } catch (error) { console.error("Lỗi Halving:", error); }
 }, 15 * 60 * 1000); // 15 phút quét 1 lần
 
+
 // ==========================================
 // TÍNH NĂNG MỚI: TỰ ĐỘNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
 // ==========================================
@@ -240,10 +241,6 @@ setInterval(async () => {
     }
 }, 30000);
 
-// ... (phía trên là code của Cỗ máy Halving hoặc Cỗ máy báo cáo top) ...
-    } catch (error) { console.error("Lỗi:", error); }
-}, 15 * 60 * 1000); // (Đây là dấu kết thúc của cỗ máy phía trên)
-
 
 // ==========================================
 // TÍNH NĂNG TỰ ĐỘNG RÃ ĐÔNG REF (SAU 60 NGÀY + LỌC HOẠT ĐỘNG)
@@ -252,30 +249,24 @@ setInterval(async () => {
 setInterval(async () => {
     try {
         const now = new Date();
-        // Tìm những người đang có Ref bị đóng băng trong tủ lạnh
         const usersWithPending = await User.find({ "pendingRefs.0": { $exists: true } });
 
         for (let user of usersWithPending) {
             let newlyUnlockedCount = 0;
             let newlyUnlockedReward = 0;
-            let stillPending = []; // Danh sách những người chưa tới hạn
-            let rejectedCount = 0; // Đếm số nick clone bị tiêu diệt
+            let stillPending = []; 
+            let rejectedCount = 0; 
 
             for (let ref of user.pendingRefs) {
                 if (ref.unlockDate <= now) {
-                    // ĐÃ TỚI HẠN 60 NGÀY -> GỌI HỒ SƠ NICK B RA KIỂM TRA CHÉO
                     const referee = await User.findOne({ userId: ref.refereeId });
-
-                    // ĐIỀU KIỆN SỐNG: Nick B vẫn tồn tại VÀ (Đã chat trong group ít nhất 3 câu HOẶC có làm nhiệm vụ kiếm >40 SWGT)
                     if (referee && (referee.groupMessageCount >= 3 || referee.balance > 40)) {
                         newlyUnlockedCount++;
                         newlyUnlockedReward += ref.reward;
                     } else {
-                        // NICK CLONE CHẾT LÂM SÀNG -> Tịch thu tiền
                         rejectedCount++;
                     }
                 } else {
-                    // Chưa tới hạn 60 ngày -> Bỏ lại vào danh sách đóng băng
                     stillPending.push(ref);
                 }
             }
@@ -304,7 +295,6 @@ setInterval(async () => {
         }
     } catch (error) { console.error("Lỗi khi rã đông Ref:", error); }
 }, 6 * 60 * 60 * 1000); // 6 tiếng chạy quét 1 lần
-
 
 // --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
