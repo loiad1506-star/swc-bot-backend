@@ -1675,3 +1675,61 @@ bot.onText(/\/soivietien/, async (msg) => {
         bot.sendMessage(ADMIN_ID, "❌ Lỗi khi soi ví: " + error.message);
     }
 });
+
+// ==========================================
+// 🎰 API: VÒNG QUAY NHÂN PHẨM (LUCKY WHEEL)
+// ==========================================
+app.post('/api/spin-wheel', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+
+        // 1. KIỂM TRA TÀI CHÍNH (Thu phí 20 SWGT / Lượt)
+        const SPIN_COST = 20;
+        // (Sếp có thể code thêm logic 1 lượt Free mỗi ngày ở đây, hiện tại fix cứng thu phí 20)
+        if (user.balance < SPIN_COST) {
+            return res.status(400).json({ success: false, message: `Bạn cần tối thiểu ${SPIN_COST} SWGT để quay!` });
+        }
+
+        // 2. TRỪ TIỀN VÉ QUAY NGAY LẬP TỨC
+        user.balance -= SPIN_COST;
+
+        // 3. BẢNG TỶ LỆ TRẢ THƯỞNG (NHÀ CÁI KIỂM SOÁT 100%)
+        const prizes = [
+            { value: 0, chance: 30 },   // 30% trượt
+            { value: 5, chance: 25 },   // 25% lỗ nặng
+            { value: 10, chance: 20 },  // 20% lỗ vừa
+            { value: 20, chance: 15 },  // 15% hòa vốn
+            { value: 50, chance: 8 },   // 8% lãi nhỏ
+            { value: 100, chance: 1.9 },// 1.9% trúng lớn
+            { value: 500, chance: 0.1 } // 0.1% Jackpot
+        ];
+
+        // 4. THUẬT TOÁN RANDOM CÓ TRỌNG SỐ (WEIGHTED RANDOM)
+        let rand = Math.random() * 100;
+        let sum = 0;
+        let reward = 0;
+
+        for (let prize of prizes) {
+            sum += prize.chance;
+            if (rand <= sum) {
+                reward = prize.value;
+                break;
+            }
+        }
+
+        // 5. CỘNG TIỀN THƯỞNG VÀ LƯU DATABASE
+        user.balance += reward;
+        await user.save();
+
+        res.json({ 
+            success: true, 
+            reward: reward, 
+            newBalance: user.balance 
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Lỗi máy chủ!" });
+    }
+});
