@@ -299,11 +299,6 @@ setInterval(async () => {
 // --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-// ... (phía dưới là code API server) ...
-
-// --- 1. API SERVER CHO MINI APP ---
-const server = http.createServer(async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
