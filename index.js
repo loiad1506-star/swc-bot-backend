@@ -32,6 +32,8 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 // --- TẠO CẤU TRÚC LƯU TRỮ NGƯỜI DÙNG ---
 const userSchema = new mongoose.Schema({
+    hasReceivedHalvingMsg: { type: Boolean, default: false },
+    pendingRefs: [{ refereeId: String, unlockDate: Date, reward: Number }],
     userId: { type: String, unique: true },
     firstName: { type: String, default: '' }, 
     lastName: { type: String, default: '' },  
@@ -154,6 +156,50 @@ setInterval(async () => {
 }, 30000);
 
 // ==========================================
+// TÍNH NĂNG TỰ ĐỘNG THÔNG BÁO HALVING KHI ĐẠT 1000 THÀNH VIÊN
+// Chạy quét 15 phút 1 lần
+// ==========================================
+setInterval(async () => {
+    try {
+        const totalUsers = await User.countDocuments();
+        
+        // Nếu cộng đồng đã đạt mốc 1000 người
+        if (totalUsers >= 1000) {
+            // Lọc ra các sĩ quan (Mời >= 3 người) VÀ chưa được nhận thông báo Halving
+            const captains = await User.find({ referralCount: { $gte: 3 }, hasReceivedHalvingMsg: false });
+            
+            if (captains.length > 0) {
+                console.log(`Bắt đầu gửi thông báo Halving cho ${captains.length} sĩ quan...`);
+                
+                const halvingMsg = `🚨 <b>THÔNG BÁO CHIẾN LƯỢC: SỰ KIỆN HALVING ĐÃ KÍCH HOẠT!</b> 🚨\n\n` +
+                                   `Chào đồng chí, Cộng đồng SWC của chúng ta vừa chính thức cán mốc <b>1.000 nhà đầu tư</b>! 🎉\n\n` +
+                                   `Như lộ trình đã công bố, để bảo vệ giá trị của token SWGT và chống lạm phát, hệ thống đã tự động kích hoạt cơ chế <b>Halving (Giảm phần thưởng)</b> từ ngày hôm nay.\n\n` +
+                                   `📉 <b>Bảng phần thưởng Quân Hàm mới:</b>\n` +
+                                   `- Các mốc từ Thiếu Tá đến Đại Tướng sẽ được điều chỉnh giảm phần thưởng xuống.\n` +
+                                   `- Những ai đã kịp nhận thưởng trước đó sẽ được giữ nguyên tài sản.\n\n` +
+                                   `💎 <i>SWGT đang ngày càng trở nên khan hiếm. Chúc mừng bạn đã là những người tiên phong tích lũy được SWGT trong giai đoạn Vàng! Hãy tiếp tục lan tỏa để khẳng định vị thế của mình nhé!</i>`;
+                
+                // Gửi tin nhắn riêng cho từng Sĩ quan
+                for (let user of captains) {
+                    try {
+                        await bot.sendMessage(user.userId, halvingMsg, { parse_mode: 'HTML' });
+                        user.hasReceivedHalvingMsg = true; // Đánh dấu đã gửi để lần sau không spam nữa
+                        await user.save();
+                    } catch (e) {}
+                    await new Promise(resolve => setTimeout(resolve, 50)); // Nghỉ 50ms chống block
+                }
+                
+                // Nổ thông báo FOMO cực mạnh lên Group Chat
+                const groupFomo = `🚨 <b>SỰ KIỆN HALVING CHÍNH THỨC KÍCH HOẠT!</b> 🚨\n\n` +
+                                  `Cộng đồng SWC vừa cán mốc 1.000 thành viên. Hệ thống đã tự động GIẢM phần thưởng các mốc Quân hàm để tạo độ khan hiếm cho SWGT.\n\n` +
+                                  `👉 SWGT sẽ ngày càng khó kiếm! Chúc mừng các vị Đại sứ đã gom được lượng lớn Token trong giai đoạn Vàng vừa qua. Những ai chưa hành động, hãy nhanh tay trước khi phần thưởng tiếp tục bị cắt giảm ở mốc 5.000 thành viên!`;
+                bot.sendMessage(GROUP_USERNAME, groupFomo, { parse_mode: 'HTML' }).catch(()=>{});
+            }
+        }
+    } catch (error) { console.error("Lỗi Halving:", error); }
+}, 15 * 60 * 1000); // 15 phút quét 1 lần
+
+// ==========================================
 // TÍNH NĂNG MỚI: TỰ ĐỘNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
 // ==========================================
 setInterval(async () => {
@@ -193,6 +239,77 @@ setInterval(async () => {
         await new Promise(resolve => setTimeout(resolve, 60000)); // Nghỉ 1 phút để không bị lặp lại
     }
 }, 30000);
+
+// ... (phía trên là code của Cỗ máy Halving hoặc Cỗ máy báo cáo top) ...
+    } catch (error) { console.error("Lỗi:", error); }
+}, 15 * 60 * 1000); // (Đây là dấu kết thúc của cỗ máy phía trên)
+
+
+// ==========================================
+// TÍNH NĂNG TỰ ĐỘNG RÃ ĐÔNG REF (SAU 60 NGÀY + LỌC HOẠT ĐỘNG)
+// Lặp mỗi 6 tiếng 1 lần
+// ==========================================
+setInterval(async () => {
+    try {
+        const now = new Date();
+        // Tìm những người đang có Ref bị đóng băng trong tủ lạnh
+        const usersWithPending = await User.find({ "pendingRefs.0": { $exists: true } });
+
+        for (let user of usersWithPending) {
+            let newlyUnlockedCount = 0;
+            let newlyUnlockedReward = 0;
+            let stillPending = []; // Danh sách những người chưa tới hạn
+            let rejectedCount = 0; // Đếm số nick clone bị tiêu diệt
+
+            for (let ref of user.pendingRefs) {
+                if (ref.unlockDate <= now) {
+                    // ĐÃ TỚI HẠN 60 NGÀY -> GỌI HỒ SƠ NICK B RA KIỂM TRA CHÉO
+                    const referee = await User.findOne({ userId: ref.refereeId });
+
+                    // ĐIỀU KIỆN SỐNG: Nick B vẫn tồn tại VÀ (Đã chat trong group ít nhất 3 câu HOẶC có làm nhiệm vụ kiếm >40 SWGT)
+                    if (referee && (referee.groupMessageCount >= 3 || referee.balance > 40)) {
+                        newlyUnlockedCount++;
+                        newlyUnlockedReward += ref.reward;
+                    } else {
+                        // NICK CLONE CHẾT LÂM SÀNG -> Tịch thu tiền
+                        rejectedCount++;
+                    }
+                } else {
+                    // Chưa tới hạn 60 ngày -> Bỏ lại vào danh sách đóng băng
+                    stillPending.push(ref);
+                }
+            }
+
+            // Nếu có sự thay đổi (Có người được mở khóa HOẶC có nick clone bị tiêu diệt)
+            if (newlyUnlockedCount > 0 || rejectedCount > 0) {
+                user.pendingRefs = stillPending; // Cập nhật lại tủ lạnh
+                
+                if (newlyUnlockedCount > 0) {
+                    user.referralCount += newlyUnlockedCount;
+                    user.weeklyReferralCount += newlyUnlockedCount;
+                    user.balance = Math.round((user.balance + newlyUnlockedReward) * 100) / 100;
+                    
+                    // Hét thông báo chúc mừng
+                    let notifyMsg = `🔓 <b>BĂNG ĐÃ TAN! PHẦN THƯỞNG VỀ VÍ!</b>\n\nChúc mừng bạn! Có <b>${newlyUnlockedCount} đối tác</b> do bạn mời đã vượt qua thử thách 60 ngày hoạt động thực sự trong Group.\n\n💰 Hệ thống vừa giải phóng <b>+${newlyUnlockedReward} SWGT</b> vào tài khoản của bạn.`;
+                    bot.sendMessage(user.userId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                }
+                
+                if (rejectedCount > 0) {
+                    let rejectMsg = `⚠️ <b>TỊCH THU PHẦN THƯỞNG GIAN LẬN</b>\n\nHệ thống phát hiện có <b>${rejectedCount} đối tác</b> do bạn mời cách đây 60 ngày là tài khoản Ảo/Không hoạt động (Không tương tác, không chat group).\n\n📉 Phần thưởng chờ duyệt tương ứng đã bị hủy bỏ vĩnh viễn để bảo vệ tính công bằng cho Cộng đồng.`;
+                    bot.sendMessage(user.userId, rejectMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                }
+
+                await user.save();
+            }
+        }
+    } catch (error) { console.error("Lỗi khi rã đông Ref:", error); }
+}, 6 * 60 * 60 * 1000); // 6 tiếng chạy quét 1 lần
+
+
+// --- 1. API SERVER CHO MINI APP ---
+const server = http.createServer(async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+// ... (phía dưới là code API server) ...
 
 // --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
@@ -278,7 +395,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: TỰ BẤM NHẬN THƯỞNG MỐC + BÁO CÁO GROUP
+// API: TỰ BẤM NHẬN THƯỞNG MỐC (TỰ ĐỘNG ĐIỀU CHỈNH KHI ĐẠT 1000 THÀNH VIÊN)
     else if (parsedUrl.pathname === '/api/claim-milestone' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -288,34 +405,34 @@ const server = http.createServer(async (req, res) => {
                 let user = await User.findOne({ userId: data.userId });
                 if (!user) return res.writeHead(400), res.end();
 
-                let reward = 0;
-                let rankTitle = "";
+                // Kiểm tra dân số để quyết định có Halving hay không
+                const totalUsers = await User.countDocuments();
+                const isHalving = totalUsers >= 1000;
+
+                let reward = 0; let rankTitle = "";
                 
                 if (data.milestone === 3 && user.referralCount >= 3 && !user.milestone3) { reward = 10; user.milestone3 = true; rankTitle = "Đại Úy 🎖️"; }
-                else if (data.milestone === 10 && user.referralCount >= 10 && !user.milestone10) { reward = 25; user.milestone10 = true; rankTitle = "Thiếu Tá 🎖️"; }
+                else if (data.milestone === 10 && user.referralCount >= 10 && !user.milestone10) { reward = isHalving ? 20 : 25; user.milestone10 = true; rankTitle = "Thiếu Tá 🎖️"; }
                 else if (data.milestone === 20 && user.referralCount >= 20 && !user.milestone20) { reward = 40; user.milestone20 = true; rankTitle = "Trung Tá 🎖️"; }
-                else if (data.milestone === 50 && user.referralCount >= 50 && !user.milestone50) { reward = 100; user.milestone50 = true; rankTitle = "Thượng Tá 🎖️"; }
+                else if (data.milestone === 50 && user.referralCount >= 50 && !user.milestone50) { reward = isHalving ? 80 : 100; user.milestone50 = true; rankTitle = "Thượng Tá 🎖️"; }
                 else if (data.milestone === 80 && user.referralCount >= 80 && !user.milestone80) { reward = 150; user.milestone80 = true; rankTitle = "Đại Tá 🎖️"; }
-                else if (data.milestone === 120 && user.referralCount >= 120 && !user.milestone120) { reward = 250; user.milestone120 = true; rankTitle = "Thiếu Tướng 🌟"; }
-                else if (data.milestone === 200 && user.referralCount >= 200 && !user.milestone200) { reward = 425; user.milestone200 = true; rankTitle = "Trung Tướng 🌟🌟"; }
-                else if (data.milestone === 350 && user.referralCount >= 350 && !user.milestone350) { reward = 800; user.milestone350 = true; rankTitle = "Thượng Tướng 🌟🌟🌟"; }
-                else if (data.milestone === 500 && user.referralCount >= 500 && !user.milestone500) { reward = 1200; user.milestone500 = true; rankTitle = "Đại Tướng 🌟🌟🌟🌟"; }
+                else if (data.milestone === 120 && user.referralCount >= 120 && !user.milestone120) { reward = isHalving ? 200 : 250; user.milestone120 = true; rankTitle = "Thiếu Tướng 🌟"; }
+                else if (data.milestone === 200 && user.referralCount >= 200 && !user.milestone200) { reward = isHalving ? 300 : 425; user.milestone200 = true; rankTitle = "Trung Tướng 🌟🌟"; }
+                else if (data.milestone === 350 && user.referralCount >= 350 && !user.milestone350) { reward = isHalving ? 500 : 800; user.milestone350 = true; rankTitle = "Thượng Tướng 🌟🌟🌟"; }
+                else if (data.milestone === 500 && user.referralCount >= 500 && !user.milestone500) { reward = isHalving ? 700 : 1200; user.milestone500 = true; rankTitle = "Đại Tướng 🌟🌟🌟🌟"; }
 
                 if (reward > 0) {
                     user.balance = Math.round((user.balance + reward) * 100) / 100;
                     await user.save();
-
                     const promoteMsg = `🎖️ <b>THĂNG CẤP QUÂN HÀM!</b> 🎖️\n\nChúc mừng đồng chí <b>${user.firstName} ${user.lastName}</b> vừa xuất sắc cán mốc <b>${data.milestone} đồng đội</b>.\n\n⭐ Cấp bậc mới: <b>${rankTitle}</b>\n💰 Thưởng nóng: <b>+${reward} SWGT</b>\n\n👉 <i>Tiếp tục chiến đấu để lên hàm Tướng nào!</i>`;
                     bot.sendMessage(GROUP_USERNAME, promoteMsg, {parse_mode: 'HTML'}).catch(()=>{});
-
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, balance: user.balance, reward: reward }));
-                } else {
-                    res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Chưa đủ điều kiện hoặc đã nhận rồi!" }));
-                }
+                } else { res.writeHead(400); res.end(JSON.stringify({ success: false, message: "Chưa đủ điều kiện!" })); }
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
+        
     // API: ĐIỂM DANH
     else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
         let body = '';
@@ -362,7 +479,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: NHẬN THƯỞNG NHIỆM VỤ APP
+// API: NHẬN THƯỞNG NHIỆM VỤ APP (ĐÃ HỦY BUFF X1.2 / X1.5)
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -372,30 +489,20 @@ const server = http.createServer(async (req, res) => {
                 let user = await User.findOne({ userId: data.userId });
                 if (!user) return res.writeHead(400), res.end();
 
-                const now = new Date();
-                let baseReward = 0;
-
+                const now = new Date(); let finalReward = 0;
                 if (data.taskType === 'read') {
                     const lastDaily = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
-                    if (lastDaily.toDateString() !== now.toDateString()) { baseReward = 10; user.lastDailyTask = now; }
-                } else if (data.taskType === 'youtube' && !user.youtubeTaskDone) {
-                    baseReward = 5; user.youtubeTaskDone = true;
-                } else if (data.taskType === 'facebook' && !user.facebookTaskDone) {
-                    baseReward = 5; user.facebookTaskDone = true;
-                } else if (data.taskType === 'share') {
+                    if (lastDaily.toDateString() !== now.toDateString()) { finalReward = 10; user.lastDailyTask = now; }
+                } else if (data.taskType === 'youtube' && !user.youtubeTaskDone) { finalReward = 5; user.youtubeTaskDone = true; } 
+                else if (data.taskType === 'facebook' && !user.facebookTaskDone) { finalReward = 5; user.facebookTaskDone = true; } 
+                else if (data.taskType === 'share') {
                     const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
-                    if (lastShare.toDateString() !== now.toDateString()) { baseReward = 15; user.lastShareTask = now; }
+                    if (lastShare.toDateString() !== now.toDateString()) { finalReward = 15; user.lastShareTask = now; }
                 }
 
-                if (baseReward > 0) {
-                    let multiplier = 1;
-                    if (user.referralCount >= 100) multiplier = 1.5; 
-                    else if (user.referralCount >= 50) multiplier = 1.2; 
-                    
-                    let finalReward = Math.round(baseReward * multiplier);
-                    user.balance += finalReward;
+                if (finalReward > 0) {
+                    user.balance += finalReward; 
                     await user.save();
-                    
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, balance: user.balance, reward: finalReward }));
                 } else {
