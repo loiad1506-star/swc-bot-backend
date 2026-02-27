@@ -496,7 +496,7 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 const withdrawAmount = Number(data.amount); 
-                if (user.balance >= withdrawAmount && withdrawAmount >= 300) {
+                if (user.balance >= withdrawAmount && withdrawAmount >= 500) {
                     user.balance -= withdrawAmount; 
                     await user.save();
                     
