@@ -47,6 +47,7 @@ const userSchema = new mongoose.Schema({
     referredBy: { type: String, default: null }, 
     referralCount: { type: Number, default: 0 }, 
     weeklyReferralCount: { type: Number, default: 0 }, // TÍNH NĂNG MỚI: Đếm lượt mời theo tuần
+    hasBeenReminded: { type: Boolean, default: false }, // <--- ANH CHÈN VÀO DÒNG 50 NÀY NHÉ
     
     checkInStreak: { type: Number, default: 0 },
     lastCheckInDate: { type: Date, default: null },
@@ -152,6 +153,53 @@ setInterval(async () => {
         await new Promise(resolve => setTimeout(resolve, 60000));
     }
 }, 30000);
+
+// ==========================================
+// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ TÂN BINH SAU 24H CHƯA XÁC MINH
+// ==========================================
+setInterval(async () => {
+    try {
+        const now = new Date();
+        // Tìm những người tham gia trước thời điểm hiện tại 24 giờ
+        const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+        // Lọc: Những người CHƯA xong task 1, VÀ tham gia > 24h trước, VÀ chưa bị nhắc lần nào
+        const lazyUsers = await User.find({
+            task1Done: false,
+            joinDate: { $lt: twentyFourHoursAgo },
+            hasBeenReminded: false
+        });
+
+        for (let lazyUser of lazyUsers) {
+            // 1. Nhắn tin nhắc nhở trực tiếp người chưa làm (Người B)
+            const remindBMsg = `⚠️ <b>TÀI KHOẢN CHƯA ĐƯỢC XÁC MINH!</b>\n\nChào ${lazyUser.firstName}, bạn đã kích hoạt Bot được 24 giờ nhưng chưa hoàn thành <b>Bước 1: Lấy vốn khởi nghiệp</b>.\n\n🎁 Phần thưởng <b>SWGT</b> của bạn đang bị treo. Hệ thống sẽ hủy tư cách Tân Binh nếu bạn không xác minh.\n\n👉 <i>Hãy bấm nút bên dưới để hoàn tất ngay!</i>`;
+            
+            try {
+                await bot.sendMessage(lazyUser.userId, remindBMsg, {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [[{ text: "⚡️ XÁC MINH TÀI KHOẢN NGAY", callback_data: 'task_1' }]]
+                    }
+                });
+            } catch (e) {}
+
+            // 2. Nhắn tin báo cho Người Mời (Người A) biết để họ ra tay hối thúc
+            if (lazyUser.referredBy) {
+                const referrerMsg = `🚨 <b>ĐỐI TÁC CỦA BẠN ĐANG NGỦ QUÊN!</b>\n\nThành viên <b>${lazyUser.firstName} ${lazyUser.lastName}</b> (do bạn mời) đã tham gia hơn 24h nhưng chưa chịu làm Nhiệm vụ 1.\n\n⚠️ <i>Nhắc họ làm ngay đi, nếu không bạn sẽ KHÔNG được cộng tiền thưởng giới thiệu đâu nhé!</i>`;
+                bot.sendMessage(lazyUser.referredBy, referrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
+            }
+
+            // Đánh dấu là đã nhắc rồi, để ngày mai không nhắc lại gây phiền phức
+            lazyUser.hasBeenReminded = true;
+            await lazyUser.save();
+
+            // Chờ 50ms để không bị Telegram block vì gửi quá nhanh
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    } catch (error) {
+        console.error("Lỗi khi chạy Auto-Remind:", error);
+    }
+}, 60 * 60 * 1000); // Chạy quét 1 tiếng 1 lần (60 phút * 60 giây * 1000ms)
 
 // ==========================================
 // TÍNH NĂNG MỚI: TỰ ĐỘNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
@@ -820,6 +868,41 @@ bot.onText(/\/duatop/, async (msg) => {
             bot.sendMessage(ADMIN_ID, "⚠️ Tuần này chưa có thành viên nào mời được khách để xếp hạng!");
         }
     } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi: " + error.message); }
+});
+
+// ==========================================
+// VŨ KHÍ ADMIN: NHẮC NHỞ TOÀN BỘ NGƯỜI CHƯA LÀM NHIỆM VỤ THỦ CÔNG
+// Cú pháp: /nhactanbinh [Nội dung tin nhắn]
+// ==========================================
+bot.onText(/\/nhactanbinh ([\s\S]+)/, async (msg, match) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    
+    const broadcastMsg = match[1]; 
+    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu quét và gửi tin nhắn nhắc nhở cho những người CHƯA XÁC MINH (Chưa làm Bước 1)...`);
+    
+    const opts = { 
+        parse_mode: 'HTML', 
+        reply_markup: { 
+            inline_keyboard: [ [{ text: "⚡️ LÀM NHIỆM VỤ NGAY", callback_data: 'task_1' }] ] 
+        } 
+    };
+
+    try {
+        // Chỉ tìm những người task1Done là false
+        const unverifiedUsers = await User.find({ task1Done: false });
+        let successCount = 0;
+
+        for (let i = 0; i < unverifiedUsers.length; i++) {
+            try { 
+                await bot.sendMessage(unverifiedUsers[i].userId, broadcastMsg, opts); 
+                successCount++;
+            } catch (err) {}
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        bot.sendMessage(ADMIN_ID, `✅ Hoàn tất! Đã gửi lời "cảnh cáo" thành công tới <b>${successCount}</b> tài khoản lười biếng.`, {parse_mode: 'HTML'});
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${error.message}`);
+    }
 });
 
 // --- 3. XỬ LÝ LỆNH /start (BẢO VỆ CHỐNG CHEAT & KHÔNG TRẢ THƯỞNG NGAY) ---
