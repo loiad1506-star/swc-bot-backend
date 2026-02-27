@@ -871,6 +871,70 @@ bot.onText(/\/duatop/, async (msg) => {
 });
 
 // ==========================================
+// VŨ KHÍ ADMIN: THỐNG KÊ TỔNG NỢ CHÍNH XÁC (ĐÃ LỌC THỜI GIAN KHÓA)
+// Cú pháp: /thongke
+// ==========================================
+bot.onText(/\/thongke/, async (msg) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    
+    bot.sendMessage(ADMIN_ID, "⏳ Đang quét két sắt và kiểm tra thời hạn mở khóa của từng người...");
+    
+    try {
+        // 1. Lọc sơ bộ những người có từ 500 SWGT trở lên
+        const potentialUsers = await User.find({ balance: { $gte: 500 } });
+        
+        let totalEligibleDebt = 0;
+        let eligibleUsersCount = 0;
+        const nowMs = new Date().getTime();
+
+        // 2. Kiểm tra chi tiết từng người xem đã đủ ngày rút chưa
+        for (let u of potentialUsers) {
+            // Trường hợp A: Cày cuốc siêu khủng (>= 1500) -> Được quyền rút ngay lập tức
+            if (u.balance >= 1500) {
+                totalEligibleDebt += u.balance;
+                eligibleUsersCount++;
+                continue;
+            }
+            
+            // Trường hợp B: Dưới 1500 nhưng >= 500 -> Phải kiểm tra ngày tham gia
+            const lockDays = u.isPremium ? 7 : 15; // Phân loại VIP và Thường
+            
+            // Lấy ngày join, nếu mem cũ không có ngày join thì lấy mốc mặc định
+            const joinMs = u.joinDate ? new Date(u.joinDate).getTime() : new Date("2026-02-22T00:00:00Z").getTime();
+            const unlockDateMs = joinMs + (lockDays * 24 * 60 * 60 * 1000);
+
+            // Chỉ cộng vào tổng nợ nếu hôm nay ĐÃ VƯỢT QUÁ ngày mở khóa
+            if (nowMs >= unlockDateMs) {
+                totalEligibleDebt += u.balance;
+                eligibleUsersCount++;
+            }
+        }
+
+        // 3. Tính tổng toàn bộ người và token trên hệ thống (Chỉ để xem cho vui)
+        const totalStats = await User.aggregate([
+            { $group: { _id: null, totalSWGT: { $sum: "$balance" } } }
+        ]);
+        let totalAll = totalStats.length > 0 ? totalStats[0].totalSWGT : 0;
+        const totalUsers = await User.countDocuments();
+
+        // Làm tròn số thập phân cho đẹp
+        totalAll = Math.round(totalAll * 100) / 100;
+        totalEligibleDebt = Math.round(totalEligibleDebt * 100) / 100;
+
+        const reportMsg = `📊 <b>BÁO CÁO KÉT SẮT TÀI CHÍNH CHI TIẾT</b> 📊\n\n` +
+                          `👥 Tổng thành viên hệ thống: <b>${totalUsers} người</b>\n` +
+                          `💰 Tổng số SWGT đã phát ra: <b>${totalAll} SWGT</b>\n\n` +
+                          `🚨 <b>THỐNG KÊ NỢ PHẢI TRẢ NGAY (THỰC TẾ):</b>\n` +
+                          `✅ Số người <b>ĐÃ ĐỦ ĐIỀU KIỆN RÚT</b> (>= 500 SWGT và đã qua thời gian khóa 7-15 ngày): <b>${eligibleUsersCount} người</b>\n` +
+                          `💸 Tổng lượng SWGT phải trả nếu họ rút sạch hôm nay: <b>${totalEligibleDebt} SWGT</b>`;
+
+        bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi khi thống kê: ${error.message}`);
+    }
+});
+
+// ==========================================
 // VŨ KHÍ ADMIN: NHẮC NHỞ TOÀN BỘ NGƯỜI CHƯA LÀM NHIỆM VỤ THỦ CÔNG
 // Cú pháp: /nhactanbinh [Nội dung tin nhắn]
 // ==========================================
