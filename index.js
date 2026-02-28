@@ -566,8 +566,8 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // ==========================================
-    // 😈 API: CỬA HÀNG VÀ ĐỔI QUÀ (REDEEM)
+// ==========================================
+    // 😈 API: CỬA HÀNG VÀ ĐỔI QUÀ (REDEEM) - ĐÃ FIX LƯU KHUNG VIỀN
     // ==========================================
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
@@ -576,39 +576,56 @@ const server = http.createServer(async (req, res) => {
             try {
                 const data = JSON.parse(body);
                 let user = await User.findOne({ userId: data.userId });
-                if (!user) return res.writeHead(400), res.end();
-                
-                if (user.balance >= data.cost) {
-                    // NẾU LÀ MUA KHUNG VIỀN AVATAR
-                    const frameIds = ['bronze', 'silver', 'gold', 'dragon']; 
-                    if (frameIds.includes(data.itemName)) {
-                        user.balance = Math.round((user.balance - data.cost) * 100) / 100;
-                        user.activeFrame = data.itemName;
-                        if (!user.ownedFrames.includes(data.itemName)) {
-                            user.ownedFrames.push(data.itemName);
-                        }
-                        await user.save();
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ success: true, balance: user.balance }));
-                    }
-
-                    // NẾU LÀ ĐỔI QUÀ VIP (Cà phê, Group kín, Voucher)
-                    user.balance -= data.cost;
-                    await user.save();
-
-                    const userNotify = `⏳ Yêu cầu đổi: <b>${data.itemName}</b> đang được xử lý!`;
-                    bot.sendMessage(data.userId, userNotify, {parse_mode: 'HTML'}).catch(()=>{});
-                    
-                    const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\nKhách: ${user.firstName} (ID: <code>${user.userId}</code>)\nQuà: ${data.itemName}\nVí: ${user.wallet || 'Chưa cập nhật'}\n💰 Đã trừ: ${data.cost} SWGT\n\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VỚI KHÁCH</a>`;
-                    bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' }).catch(()=>{});
-                    
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, balance: user.balance }));
-                } else { 
-                    res.writeHead(400); 
-                    res.end(JSON.stringify({ success: false, message: `Bạn cần tích lũy đủ ${data.cost} SWGT để đổi quyền lợi này!` }));
+                if (!user) {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: "Không tìm thấy người dùng" }));
                 }
-            } catch (e) { res.writeHead(400); res.end(); }
+                
+                // Logic 1: NẾU KHÁCH MUA KHUNG VIỀN AVATAR
+                const frameIds = ['bronze', 'silver', 'gold', 'dragon', 'light']; 
+                if (frameIds.includes(data.itemName)) {
+                    // Nếu cost > 0 nghĩa là khách mua mới -> Trừ tiền
+                    if (data.cost > 0) {
+                        if (user.balance < data.cost) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            return res.end(JSON.stringify({ success: false, message: "Không đủ số dư!" }));
+                        }
+                        user.balance = Math.round((user.balance - data.cost) * 100) / 100;
+                    }
+                    
+                    // Lưu trạng thái trang bị khung viền vào Database vĩnh viễn
+                    user.activeFrame = data.itemName;
+                    if (!user.ownedFrames) user.ownedFrames = ['none'];
+                    if (!user.ownedFrames.includes(data.itemName)) {
+                        user.ownedFrames.push(data.itemName);
+                    }
+                    
+                    await user.save();
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: true, balance: user.balance }));
+                }
+
+                // Logic 2: NẾU KHÁCH ĐỔI QUÀ VIP KHÁC (Cà phê, Group kín, Voucher)
+                if (user.balance < data.cost) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: `Bạn cần tích lũy đủ ${data.cost} SWGT để đổi quyền lợi này!` }));
+                }
+                
+                user.balance = Math.round((user.balance - data.cost) * 100) / 100;
+                await user.save();
+
+                const userNotify = `⏳ Yêu cầu đổi: <b>${data.itemName}</b> đang được xử lý!`;
+                bot.sendMessage(data.userId, userNotify, {parse_mode: 'HTML'}).catch(()=>{});
+                
+                const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\nKhách: ${user.firstName} (ID: <code>${user.userId}</code>)\nQuà: ${data.itemName}\nVí: ${user.wallet || 'Chưa cập nhật'}\n💰 Đã trừ: ${data.cost} SWGT\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VỚI KHÁCH</a>`;
+                bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' }).catch(()=>{});
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, balance: user.balance }));
+            } catch (e) { 
+                res.writeHead(400, { 'Content-Type': 'application/json' }); 
+                res.end(JSON.stringify({ success: false, message: 'Lỗi server' })); 
+            }
         });
     }
 
