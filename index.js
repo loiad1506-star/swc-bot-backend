@@ -566,8 +566,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-
-        // API: BẢNG XẾP HẠNG
+    // API: BẢNG XẾP HẠNG
     else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
         try {
             const topUsers = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10).select('firstName lastName referralCount');
@@ -575,72 +574,6 @@ const server = http.createServer(async (req, res) => {
             res.end(JSON.stringify(topUsers));
         } catch (e) { res.writeHead(400); res.end(); }
     }
-    // API: VÒNG QUAY NHÂN PHẨM (LUCKY WHEEL) - ĐÃ ĐƯỢC CHUYỂN VÀO ĐÚNG VỊ TRÍ
-    else if (parsedUrl.pathname === '/api/spin-wheel' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-            try {
-                const data = JSON.parse(body);
-                let user = await User.findOne({ userId: data.userId });
-                
-                if (!user) {
-                    res.writeHead(404, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, message: "Không tìm thấy người dùng!" }));
-                }
-
-                // 1. KIỂM TRA TÀI CHÍNH (Thu phí 20 SWGT / Lượt)
-                const SPIN_COST = 20;
-                if (user.balance < SPIN_COST) {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, message: `Bạn cần tối thiểu ${SPIN_COST} SWGT để quay!` }));
-                }
-
-                // 2. TRỪ TIỀN VÉ QUAY NGAY LẬP TỨC
-                user.balance -= SPIN_COST;
-
-                // 3. BẢNG TỶ LỆ TRẢ THƯỞNG (NHÀ CÁI KIỂM SOÁT 100%)
-                const prizes = [
-                    { value: 0, chance: 30 },   // 30% trượt
-                    { value: 5, chance: 25 },   // 25% lỗ nặng
-                    { value: 10, chance: 20 },  // 20% lỗ vừa
-                    { value: 20, chance: 15 },  // 15% hòa vốn
-                    { value: 50, chance: 8 },   // 8% lãi nhỏ
-                    { value: 100, chance: 1.9 },// 1.9% trúng lớn
-                    { value: 500, chance: 0.1 } // 0.1% Jackpot
-                ];
-
-                // 4. THUẬT TOÁN RANDOM CÓ TRỌNG SỐ
-                let rand = Math.random() * 100;
-                let sum = 0;
-                let reward = 0;
-
-                for (let prize of prizes) {
-                    sum += prize.chance;
-                    if (rand <= sum) {
-                        reward = prize.value;
-                        break;
-                    }
-                }
-
-                // 5. CỘNG TIỀN THƯỞNG VÀ LƯU DATABASE
-                user.balance = Math.round((user.balance + reward) * 100) / 100;
-                await user.save();
-
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ 
-                    success: true, 
-                    reward: reward, 
-                    newBalance: user.balance 
-                }));
-
-            } catch (error) {
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: false, message: "Lỗi máy chủ!" }));
-            }
-        });
-    }
-    // DÒNG NÀY PHẢI NẰM CUỐI CÙNG TRONG KHỐI HTTP SERVER
     else { res.writeHead(200); res.end('API Online'); }
 });
 server.listen(process.env.PORT || 3000);
@@ -948,37 +881,6 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
         await new Promise(resolve => setTimeout(resolve, 50));
     }
     bot.sendMessage(ADMIN_ID, `✅ Đã gửi tin nhắn hàng loạt.`);
-});
-
-// Tính năng Marketing: Nhắc nhở người chưa làm nhiệm vụ Task 1
-bot.onText(/\/nhactanbinh ([\s\S]+)/, async (msg, match) => {
-    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
-    const reminderMsg = match[1];
-    
-    bot.sendMessage(ADMIN_ID, "⏳ Đang quét danh sách và gửi tin nhắn nhắc nhở cho các Tân binh...");
-    
-    try {
-        // Lọc những người dùng chưa hoàn thành nhiệm vụ (task1Done: false)
-        const lazyUsers = await User.find({ task1Done: false });
-        let successCount = 0;
-
-        for (let i = 0; i < lazyUsers.length; i++) {
-            try {
-                await bot.sendMessage(lazyUsers[i].userId, `🔔 <b>THÔNG BÁO TỪ BAN TỔ CHỨC</b> 🔔\n\nChào ${lazyUsers[i].firstName},\n\n${reminderMsg}`, { 
-                    parse_mode: 'HTML', 
-                    reply_markup: { inline_keyboard: [[{ text: "🚀 VÀO HOÀN THÀNH NHIỆM VỤ NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } 
-                });
-                successCount++;
-            } catch (e) {
-                // Bỏ qua nếu user block bot
-            }
-            await new Promise(resolve => setTimeout(resolve, 50)); // Chống spam block
-        }
-        
-        bot.sendMessage(ADMIN_ID, `✅ Đã gửi nhắc nhở thành công tới ${successCount} Tân binh!`);
-    } catch (error) {
-        bot.sendMessage(ADMIN_ID, "❌ Lỗi: " + error.message);
-    }
 });
 
 bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
@@ -1773,3 +1675,62 @@ bot.onText(/\/soivietien/, async (msg) => {
         bot.sendMessage(ADMIN_ID, "❌ Lỗi khi soi ví: " + error.message);
     }
 });
+
+// ==========================================
+// 🎰 API: VÒNG QUAY NHÂN PHẨM (LUCKY WHEEL)
+// ==========================================
+app.post('/api/spin-wheel', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+
+        // 1. KIỂM TRA TÀI CHÍNH (Thu phí 20 SWGT / Lượt)
+        const SPIN_COST = 20;
+        // (Sếp có thể code thêm logic 1 lượt Free mỗi ngày ở đây, hiện tại fix cứng thu phí 20)
+        if (user.balance < SPIN_COST) {
+            return res.status(400).json({ success: false, message: `Bạn cần tối thiểu ${SPIN_COST} SWGT để quay!` });
+        }
+
+        // 2. TRỪ TIỀN VÉ QUAY NGAY LẬP TỨC
+        user.balance -= SPIN_COST;
+
+        // 3. BẢNG TỶ LỆ TRẢ THƯỞNG (NHÀ CÁI KIỂM SOÁT 100%)
+        const prizes = [
+            { value: 0, chance: 30 },   // 30% trượt
+            { value: 5, chance: 25 },   // 25% lỗ nặng
+            { value: 10, chance: 20 },  // 20% lỗ vừa
+            { value: 20, chance: 15 },  // 15% hòa vốn
+            { value: 50, chance: 8 },   // 8% lãi nhỏ
+            { value: 100, chance: 1.9 },// 1.9% trúng lớn
+            { value: 500, chance: 0.1 } // 0.1% Jackpot
+        ];
+
+        // 4. THUẬT TOÁN RANDOM CÓ TRỌNG SỐ (WEIGHTED RANDOM)
+        let rand = Math.random() * 100;
+        let sum = 0;
+        let reward = 0;
+
+        for (let prize of prizes) {
+            sum += prize.chance;
+            if (rand <= sum) {
+                reward = prize.value;
+                break;
+            }
+        }
+
+        // 5. CỘNG TIỀN THƯỞNG VÀ LƯU DATABASE
+        user.balance += reward;
+        await user.save();
+
+        res.json({ 
+            success: true, 
+            reward: reward, 
+            newBalance: user.balance 
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Lỗi máy chủ!" });
+    }
+});
+
