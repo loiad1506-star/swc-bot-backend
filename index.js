@@ -1850,6 +1850,44 @@ bot.on('chat_member', async (update) => {
 });
 
 // ==========================================
+// 🛠 LỆNH TEST KỊCH BẢN GIẢ LẬP 9H VÀ 10H SÁNG (DÀNH CHO ADMIN)
+// ==========================================
+bot.onText(/\/testkichban/, async (msg) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+
+    const idA = '7515902413'; // Người mời (Đóng vai Leader)
+    const idB = '8364834164'; // Người mới (Đóng vai Tân binh chưa làm nhiệm vụ)
+
+    bot.sendMessage(ADMIN_ID, `⏳ Đang giả lập thời gian... Bắt đầu bắn tin nhắn test cho A (${idA}) và B (${idB})...`);
+
+    // 1. Bắn tin nhắn 9H SÁNG cho B (Giục làm nhiệm vụ)
+    let remindMsgB = `⏰ <b>ĐÃ 9H SÁNG RỒI, DẬY LÀM NHIỆM VỤ THÔI!</b>\n\nBạn ơi, vốn khởi nghiệp SWGT của bạn vẫn đang bị treo chờ bạn nhận kìa! Chỉ mất đúng 1 phút để tham gia Group và chat 1 câu chào để xác minh thôi.\n\n👉 Nhấn nút bên dưới mở App, chọn <b>1️⃣ Nhiệm vụ Tân binh</b> để lụm tiền ngay nhé!`;
+    bot.sendMessage(idB, remindMsgB, { 
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP VÀ NHẬN VỐN", web_app: { url: webAppUrl } }]] }
+    }).catch(e => console.log("Lỗi gửi B:", e));
+
+    // 2. Bắn tin nhắn 9H SÁNG cho A ("Chửi yêu" người mời)
+    let scoldMsgA = `🤬 <b>TRỜI ƠI CÁI NHÀ ĐẦU TƯ NÀY! MANG CƠ HỘI ĐẾN MÀ BỎ BÊ ĐỒNG ĐỘI HẢ?</b>\n\nĐùa chút thôi! 😂 \nHiện tại hệ thống báo động bạn đang có <b>1 đối tác</b> đã bấm link nhưng "lười biếng" chưa chịu hoàn thành nhiệm vụ Tân Binh (Join Group).\n\n💡 <i>Bạn hãy xách mông đi nhắn tin giục họ hoàn thành đi! Họ làm xong là phần thưởng sẽ "ting ting" vào ví của bạn ngay lập tức!</i>\n\n🌈 Dù sao cũng ghi nhận sự nỗ lực lan tỏa của bạn. Hãy tiếp tục chia sẻ cơ hội sở hữu SWGT này cho nhiều anh bè bạn em hơn nữa để sớm thăng hàm Tướng nhé! 🚀💎`;
+    bot.sendMessage(idA, scoldMsgA, { parse_mode: 'HTML' }).catch(e => console.log("Lỗi gửi A:", e));
+
+    // 3. Bắn tin nhắn 10H SÁNG cho B (Nhắc làm bài tập ngày)
+    let readMsgB = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN!</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mở App để bấm Nhận Thưởng nhé!</i>`;
+    let keyboard = [
+        [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }],
+        [{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }],
+        [{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }],
+        [{ text: "🎁 MỞ APP NHẬN THƯỞNG", web_app: { url: webAppUrl } }]
+    ];
+    bot.sendMessage(idB, readMsgB, {
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: keyboard }
+    }).catch(e => console.log("Lỗi gửi B lần 2:", e));
+
+    bot.sendMessage(ADMIN_ID, `✅ Đã bắn kịch bản thành công!\nAnh hãy nhờ người A và người B mở Telegram lên kiểm tra xem tin nhắn hiển thị có đẹp không nhé.`);
+});
+
+// ==========================================
 // 🕵️‍♂️ LỆNH ADMIN: SOI VÍ TIỀN & HOẠT ĐỘNG GẦN NHẤT
 // ==========================================
 bot.onText(/\/soivietien/, async (msg) => {
