@@ -1280,10 +1280,10 @@ bot.onText(/^\/(admin|menu)/i, async (msg) => {
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: [
-                [{ text: "📊 Xem Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Xem Top Tuần", callback_data: 'admin_toptuan' }],
-                [{ text: "💰 Thống Kê Két Sắt (Tổng Nợ/Dư)", callback_data: 'admin_thongke' }],
+                [{ text: "📊 Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Top Tuần", callback_data: 'admin_toptuan' }],
+                [{ text: "💰 Thống Kê Két Sắt", callback_data: 'admin_thongke' }, { text: "👀 Soi Dòng Tiền", callback_data: 'admin_soivietien' }],
                 [{ text: "🚀 Nổ Bảng Xếp Hạng Lên Group", callback_data: 'admin_duatop' }],
-                [{ text: "👮 Xử Lý Gian Lận (Anti-Cheat)", callback_data: 'admin_help_cheat' }],
+                [{ text: "🔍 Tra Cứu 1 Người", callback_data: 'admin_help_tracuu' }, { text: "👮 Xử Lý Gian Lận", callback_data: 'admin_help_cheat' }],
                 [{ text: "🎁 Tạo Code & Truyền Thông", callback_data: 'admin_help_mkt' }]
             ]
         }
@@ -1356,41 +1356,25 @@ bot.on('callback_query', async (callbackQuery) => {
                 users.forEach((u, index) => { response += `${index + 1}. ${u.firstName} ${u.lastName} - <b>${u.weeklyReferralCount}</b> khách\n🆔 ID: <code>${u.userId}</code>\n--------------------------\n`; });
                 bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
             }
-else if (data === 'admin_thongke') {
-            bot.sendMessage(ADMIN_ID, "⏳ Đang quét két sắt và kiểm tra thời hạn mở khóa của từng người...");
-            try {
+            else if (data === 'admin_thongke') {
+                bot.sendMessage(ADMIN_ID, "⏳ Đang quét két sắt và kiểm tra thời hạn mở khóa của từng người...");
                 const allUsers = await User.find();
                 const nowMs = new Date().getTime();
                 
-                let totalAll = 0;
-                let eligibleUsersCount = 0; 
-                let totalEligibleDebt = 0; 
-                
-                let pendingOver500Count = 0; 
-                let pendingOver500Amount = 0; 
-                
-                let potentialDebtCount = 0; 
-                let potentialDebtAmount = 0; 
+                let totalAll = 0; let eligibleUsersCount = 0; let totalEligibleDebt = 0; 
+                let pendingOver500Count = 0; let pendingOver500Amount = 0; 
+                let potentialDebtCount = 0; let potentialDebtAmount = 0; 
 
                 allUsers.forEach(u => {
                     totalAll += u.balance;
-                    
                     const lockDays = u.isPremium ? 7 : 15;
                     const joinMs = u.joinDate ? new Date(u.joinDate).getTime() : new Date("2026-02-22T00:00:00Z").getTime();
                     const unlockDateMs = joinMs + (lockDays * 24 * 60 * 60 * 1000);
 
                     if (u.balance >= 500) {
-                        if (nowMs >= unlockDateMs || u.balance >= 1500) {
-                            eligibleUsersCount++;
-                            totalEligibleDebt += u.balance;
-                        } else {
-                            pendingOver500Count++;
-                            pendingOver500Amount += u.balance;
-                        }
-                    } else if (u.balance >= 300) { 
-                        potentialDebtCount++;
-                        potentialDebtAmount += u.balance;
-                    }
+                        if (nowMs >= unlockDateMs || u.balance >= 1500) { eligibleUsersCount++; totalEligibleDebt += u.balance; } 
+                        else { pendingOver500Count++; pendingOver500Amount += u.balance; }
+                    } else if (u.balance >= 300) { potentialDebtCount++; potentialDebtAmount += u.balance; }
                 });
 
                 const reportMsg = `📊 <b>BÁO CÁO KẾT SẮT CHI TIẾT & DỰ BÁO</b> 📊\n\n` +
@@ -1406,13 +1390,32 @@ else if (data === 'admin_thongke') {
                     `- Số người: <b>${potentialDebtCount}</b>\n` +
                     `- Số tiền: <b>${potentialDebtAmount.toFixed(1)} SWGT</b>\n\n` +
                     `💎 <b>TỔNG QUY TRÌNH THANH KHOẢN:</b>\n` +
-                    `Dự kiến cần chuẩn bị khoảng <b>${(totalEligibleDebt + pendingOver500Amount).toFixed(1)} SWGT</b> để chi trả cho các thành viên nòng cốt trong ngắn hạn.`;
+                    `Dự kiến cần chuẩn bị khoảng <b>${(totalEligibleDebt + pendingOver500Amount).toFixed(1)} SWGT</b>.`;
 
                 bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' });
-            } catch (error) {
-                bot.sendMessage(ADMIN_ID, `❌ Lỗi khi thống kê: ${error.message}`);
             }
-        }
+            else if (data === 'admin_soivietien') {
+                bot.sendMessage(ADMIN_ID, "⏳ Đang bật Radar quét các giao dịch sinh tiền gần nhất...");
+                const recentUsers = await User.find({
+                    $or: [ { lastCheckInDate: { $ne: null } }, { lastDailyTask: { $ne: null } }, { lastShareTask: { $ne: null } } ]
+                }).sort({ lastCheckInDate: -1, lastDailyTask: -1, lastShareTask: -1 }).limit(10);
+
+                if (recentUsers.length === 0) {
+                    bot.sendMessage(ADMIN_ID, "⚠️ Hệ thống chưa ghi nhận hoạt động nào gần đây.");
+                } else {
+                    let response = "🕵️‍♂️ <b>BÁO CÁO: 10 NGƯỜI VỪA CÀY SWGT GẦN NHẤT</b> 🕵️‍♂️\n\n";
+                    recentUsers.forEach((u, i) => {
+                        response += `${i + 1}. <b>${u.firstName} ${u.lastName}</b> (ID: <code>${u.userId}</code>)\n`;
+                        response += `💰 Tổng tài sản: <b>${u.balance} SWGT</b>\n`;
+                        response += `⏱ <b>Hoạt động gần nhất:</b>\n`;
+                        if (u.lastCheckInDate) response += ` 🔹 Điểm danh: ${new Date(new Date(u.lastCheckInDate).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+                        if (u.lastDailyTask) response += ` 🔹 Đọc bài web: ${new Date(new Date(u.lastDailyTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+                        if (u.lastShareTask) response += ` 🔹 Chia sẻ MXH: ${new Date(new Date(u.lastShareTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+                        response += `--------------------------\n`;
+                    });
+                    bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+                }
+            }
             else if (data === 'admin_duatop') {
                 bot.sendMessage(ADMIN_ID, "✅ Bảng xếp hạng đang được hệ thống đẩy lên Group chính. Vui lòng đợi trong giây lát...");
                 const topUsers = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(3);
@@ -1423,12 +1426,16 @@ else if (data === 'admin_thongke') {
                     bot.sendMessage(GROUP_USERNAME, msgGroup, { parse_mode: 'HTML' }).catch(()=>{});
                 }
             }
+            else if (data === 'admin_help_tracuu') {
+                const text = `🔍 <b>TRA CỨU THÔNG TIN 1 NGƯỜI DÙNG</b>\n\n<i>👉 Chạm vào lệnh dưới đây để copy, dán ra khung chat và điền ID của người đó vào cuối (nhớ có dấu cách):</i>\n\n<code>/tracuu </code>`;
+                bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
+            }
             else if (data === 'admin_help_cheat') {
-                const text = `👮 <b>CÔNG CỤ XỬ LÝ GIAN LẬN (ANTI-CHEAT)</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền ID vào cuối:</i>\n\n1. Tra cứu nhanh thông tin 1 người:\n<code>/tracuu </code>\n\n2. Soi danh sách khách của 1 người:\n<code>/checkref </code>\n\n3. Lọc & xóa vĩnh viễn nick ảo:\n<code>/locref </code>\n\n4. Phạt nặng (Trừ tiền & Ref ảo):\n<code>/phat </code>\n\n5. Đối soát & giải thích (Nhẹ nhàng):\n<code>/resetref </code>\n\n6. Chỉnh thông số thủ công:\n<code>/setref [ID] [Lượt_mời] [Tiền]</code>`;
+                const text = `👮 <b>CÔNG CỤ XỬ LÝ GIAN LẬN (ANTI-CHEAT)</b>\n\n<i>👉 Chạm vào lệnh dưới đây để copy, dán ra khung chat và điền ID vào cuối:</i>\n\n1. Soi danh sách khách của 1 người:\n<code>/checkref </code>\n\n2. Lọc & xóa vĩnh viễn nick ảo:\n<code>/locref </code>\n\n3. Phạt nặng (Trừ tiền & Ref ảo):\n<code>/phat </code>\n\n4. Đối soát & giải thích (Nhẹ nhàng):\n<code>/resetref </code>\n\n5. Chỉnh thông số thủ công:\n<code>/setref [ID] [Lượt_mời] [Tiền]</code>`;
                 bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
             }
             else if (data === 'admin_help_mkt') {
-                const text = `🎁 <b>CÔNG CỤ MARKETING & THÔNG BÁO</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền thông tin:</i>\n\n` +
+                const text = `🎁 <b>CÔNG CỤ MARKETING & THÔNG BÁO</b>\n\n<i>👉 Chạm vào lệnh dưới đây để copy, dán ra khung chat và điền thông tin:</i>\n\n` +
                              `1. Gửi Broadcast (Tất cả thành viên):\n<code>/sendall [Nội_dung_tin_nhắn]</code>\n\n` +
                              `2. Nhắc nhở người chưa làm Nhiệm vụ:\n<code>/nhactanbinh [Nội_dung_tin_nhắn]</code>\n\n` +
                              `3. Tạo mã Giftcode:\n<code>/createcode [MÃ_CODE] [Số_SWGT] [Số_Lượt]</code>\n<i>VD:</i> <code>/createcode VIP500 500 10</code>\n\n` +
@@ -1439,7 +1446,7 @@ else if (data === 'admin_thongke') {
         
         return; 
     }
-
+    
     // ==========================================
     // B. KHỐI XỬ LÝ NHIỆM VỤ CHO USER BÌNH THƯỜNG
     // ==========================================
