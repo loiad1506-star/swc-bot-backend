@@ -701,6 +701,56 @@ async function checkMembership(userId) {
 // 👮 BỘ CÔNG CỤ CẢNH SÁT TRƯỞNG & QUẢN LÝ (Dành riêng cho Admin)
 // =========================================================
 
+// ==========================================
+// 🔍 LỆNH ADMIN: TRA CỨU NHANH THÔNG TIN 1 NGƯỜI DÙNG BẤT KỲ
+// ==========================================
+bot.onText(/\/tracuu (\d+)/, async (msg, match) => {
+    // Chỉ Admin mới được phép dùng lệnh này
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    
+    const targetId = match[1];
+    bot.sendMessage(ADMIN_ID, `⏳ Đang truy xuất thông tin của ID: <code>${targetId}</code>...`, { parse_mode: 'HTML' });
+
+    try {
+        const user = await User.findOne({ userId: targetId });
+        
+        if (!user) {
+            return bot.sendMessage(ADMIN_ID, `❌ <b>KHÔNG TÌM THẤY!</b>\nNgười dùng có ID <code>${targetId}</code> chưa từng kết nối với hệ thống SWC Bot.`, { parse_mode: 'HTML' });
+        }
+
+        // Tạo chuỗi hiển thị thông tin chi tiết
+        let report = `🔎 <b>HỒ SƠ NGƯỜI DÙNG (ID: ${targetId})</b>\n\n`;
+        report += `👤 <b>Họ và Tên:</b> ${user.firstName} ${user.lastName}\n`;
+        report += `🔗 <b>Username:</b> ${user.username || 'Không có'}\n`;
+        report += `⭐️ <b>Hạng Tài Khoản:</b> ${user.isPremium ? 'Premium' : 'Thường'}\n`;
+        report += `📅 <b>Ngày Tham Gia:</b> ${new Date(user.joinDate).toLocaleString('vi-VN')}\n\n`;
+        
+        report += `💰 <b>SỐ DƯ TÀI SẢN:</b> <b>${user.balance} SWGT</b>\n`;
+        report += `👥 <b>Tổng Lượt Mời:</b> ${user.referralCount} người\n`;
+        report += `🏆 <b>Mời Tuần Này:</b> ${user.weeklyReferralCount} người\n\n`;
+        
+        report += `⚙️ <b>TRẠNG THÁI NHIỆM VỤ:</b>\n`;
+        report += `- Xác minh Tân Binh (Join Group): ${user.task1Done ? '✅ Hoàn thành' : '❌ Chưa làm'}\n`;
+        report += `- Chuỗi Điểm Danh: ${user.checkInStreak} ngày liên tiếp\n`;
+        report += `- Xem YouTube: ${user.youtubeTaskDone ? '✅' : '❌'}\n`;
+        report += `- Theo dõi Fanpage: ${user.facebookTaskDone ? '✅' : '❌'}\n\n`;
+        
+        report += `💳 <b>THÔNG TIN RÚT TIỀN:</b>\n`;
+        report += `- Ví ERC20: <code>${user.wallet || 'Chưa cập nhật'}</code>\n`;
+        report += `- Gatecode/UID: <code>${user.gatecode || 'Chưa cập nhật'}</code>\n`;
+        report += `- Số điện thoại: ${user.phone || 'Chưa cập nhật'}\n`;
+        report += `- Email: ${user.email || 'Chưa cập nhật'}\n\n`;
+        
+        report += `👉 <a href="tg://user?id=${targetId}">Nhấn vào đây để nhắn tin trực tiếp với họ</a>`;
+
+        bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
+
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi khi tra cứu: ${error.message}`);
+    }
+});
+
+
 // 1. Xem Top 10 Tổng + Lấy ID
 bot.onText(/\/checktop/, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
@@ -1368,7 +1418,7 @@ else if (data === 'admin_thongke') {
                 }
             }
             else if (data === 'admin_help_cheat') {
-                const text = `👮 <b>CÔNG CỤ XỬ LÝ GIAN LẬN (ANTI-CHEAT)</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền ID vào cuối:</i>\n\n1. Soi danh sách khách của 1 người:\n<code>/checkref [ID]</code>\n\n2. Lọc & xóa vĩnh viễn nick ảo:\n<code>/locref [ID]</code>\n\n3. Phạt nặng (Trừ tiền & Ref ảo):\n<code>/phat [ID]</code>\n\n4. Đối soát & giải thích (Nhẹ nhàng):\n<code>/resetref [ID]</code>\n\n5. Chỉnh thông số thủ công:\n<code>/setref [ID] [Lượt_mời] [Tiền]</code>`;
+                const text = `👮 <b>CÔNG CỤ XỬ LÝ GIAN LẬN (ANTI-CHEAT)</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền ID vào cuối:</i>\n\n1. Tra cứu nhanh thông tin 1 người:\n<code>/tracuu [ID]</code>\n\n2. Soi danh sách khách của 1 người:\n<code>/checkref [ID]</code>\n\n3. Lọc & xóa vĩnh viễn nick ảo:\n<code>/locref [ID]</code>\n\n4. Phạt nặng (Trừ tiền & Ref ảo):\n<code>/phat [ID]</code>\n\n5. Đối soát & giải thích (Nhẹ nhàng):\n<code>/resetref [ID]</code>\n\n6. Chỉnh thông số thủ công:\n<code>/setref [ID] [Lượt_mời] [Tiền]</code>`;
                 bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
             }
             else if (data === 'admin_help_mkt') {
@@ -1735,4 +1785,3 @@ bot.onText(/\/soivietien/, async (msg) => {
         bot.sendMessage(ADMIN_ID, "❌ Lỗi khi soi ví: " + error.message);
     }
 });
-
