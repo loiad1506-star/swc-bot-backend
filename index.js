@@ -404,7 +404,6 @@ const server = http.createServer(async (req, res) => {
 
                 let reward = 0; let rankTitle = "";
                 
-                // ĐÃ CẬP NHẬT THÔNG SỐ HALVING
                 if (data.milestone === 3 && user.referralCount >= 3 && !user.milestone3) { reward = 10; user.milestone3 = true; rankTitle = "Đại Úy 🎖️"; }
                 else if (data.milestone === 10 && user.referralCount >= 10 && !user.milestone10) { reward = isHalving ? 20 : 25; user.milestone10 = true; rankTitle = "Thiếu Tá 🎖️"; }
                 else if (data.milestone === 20 && user.referralCount >= 20 && !user.milestone20) { reward = 40; user.milestone20 = true; rankTitle = "Trung Tá 🎖️"; }
@@ -473,7 +472,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: NHẬN THƯỞNG NHIỆM VỤ APP (Đã gỡ bỏ multipliers)
+    // API: NHẬN THƯỞNG NHIỆM VỤ APP
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -1282,7 +1281,7 @@ bot.onText(/^\/(admin|menu)/i, async (msg) => {
             inline_keyboard: [
                 [{ text: "📊 Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Top Tuần", callback_data: 'admin_toptuan' }],
                 [{ text: "💰 Thống Kê Két Sắt", callback_data: 'admin_thongke' }, { text: "👀 Soi Dòng Tiền", callback_data: 'admin_soivietien' }],
-                [{ text: "🚀 Nổ Bảng Xếp Hạng Lên Group", callback_data: 'admin_duatop' }],
+                [{ text: "🚀 Nổ Bảng Xếp Hạng", callback_data: 'admin_duatop' }],
                 [{ text: "🔍 Tra Cứu 1 Người", callback_data: 'admin_help_tracuu' }, { text: "👮 Xử Lý Gian Lận", callback_data: 'admin_help_cheat' }],
                 [{ text: "🎁 Tạo Code & Truyền Thông", callback_data: 'admin_help_mkt' }]
             ]
@@ -1327,7 +1326,7 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, answerText, { 
             parse_mode: 'HTML',
             reply_markup: {
-                inline_keyboard: [[{ text: "🚀 MỞ APP & BẮT ĐẦU TẠO DÒNG TIỀN", web_app: { url: webAppUrl } }]]
+                inline_keyboard: [[{ text: "🚀 M mở APP & BẮT ĐẦU TẠO DÒNG TIỀN", web_app: { url: webAppUrl } }]]
             }
         });
         return;
@@ -1446,7 +1445,7 @@ bot.on('callback_query', async (callbackQuery) => {
         
         return; 
     }
-    
+
     // ==========================================
     // B. KHỐI XỬ LÝ NHIỆM VỤ CHO USER BÌNH THƯỜNG
     // ==========================================
