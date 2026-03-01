@@ -131,7 +131,7 @@ setInterval(async () => {
 }, 60000); 
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ LÚC 11H TRƯA & 13H CHIỀU
+// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ LÚC 9H SÁNG & 10H SÁNG (NHIỆM VỤ)
 // ==========================================
 setInterval(async () => {
     const now = new Date();
@@ -140,16 +140,16 @@ setInterval(async () => {
     const vnMinute = vnTime.getUTCMinutes();
 
     // ----------------------------------------------------
-    // 1️⃣ 11H SÁNG: NHẮC TÂN BINH & "CHỬI YÊU" NGƯỜI MỜI
+    // 1️⃣ 9H SÁNG: NHẮC TÂN BINH & "CHỬI YÊU" NGƯỜI MỜI
     // ----------------------------------------------------
-    if (vnHour === 11 && vnMinute === 0) {
-        console.log('Bắt đầu quét nhắc nhở 11h sáng...');
+    if (vnHour === 9 && vnMinute === 0) {
+        console.log('Bắt đầu quét nhắc nhở 9h sáng...');
         try {
             const inactiveUsers = await User.find({ task1Done: false });
             let referrersMap = {}; 
 
             for (let user of inactiveUsers) {
-                let remindMsg = `⏰ <b>ĐÃ 11 TRƯA RỒI, DẬY LÀM NHIỆM VỤ THÔI!</b>\n\nBạn ơi, vốn khởi nghiệp SWGT của bạn vẫn đang bị treo chờ bạn nhận kìa! Chỉ mất đúng 1 phút để tham gia Group và chat 1 câu chào để xác minh thôi.\n\n👉 Nhấn nút bên dưới mở App, chọn <b>1️⃣ Nhiệm vụ Tân binh</b> để lụm tiền ngay nhé!`;
+                let remindMsg = `⏰ <b>ĐÃ 9H SÁNG RỒI, DẬY LÀM NHIỆM VỤ THÔI!</b>\n\nBạn ơi, vốn khởi nghiệp SWGT của bạn vẫn đang bị treo chờ bạn nhận kìa! Chỉ mất đúng 1 phút để tham gia Group và chat 1 câu chào để xác minh thôi.\n\n👉 Nhấn nút bên dưới mở App, chọn <b>1️⃣ Nhiệm vụ Tân binh</b> để lụm tiền ngay nhé!`;
                 bot.sendMessage(user.userId, remindMsg, { 
                     parse_mode: 'HTML',
                     reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP VÀ NHẬN VỐN", web_app: { url: webAppUrl } }]] }
@@ -172,14 +172,14 @@ setInterval(async () => {
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
             }
-        } catch (error) { console.error("Lỗi thông báo 11h:", error); }
+        } catch (error) { console.error("Lỗi thông báo 9h:", error); }
     }
 
     // ----------------------------------------------------
-    // 2️⃣ 13H CHIỀU: NHẮC ĐỌC BÀI PHÂN TÍCH NHẬN SWGT
+    // 2️⃣ 10H SÁNG: GỬI NHIỆM VỤ ĐỌC BÀI, XEM YOUTUBE, FANPAGE
     // ----------------------------------------------------
-    if (vnHour === 13 && vnMinute === 0) {
-        console.log('Bắt đầu gửi thông báo 13h chiều...');
+    if (vnHour === 10 && vnMinute === 0) {
+        console.log('Bắt đầu gửi bài tập 10h sáng...');
         try {
             const todayStr = vnTime.toDateString(); 
             const allUsers = await User.find({});
@@ -191,19 +191,38 @@ setInterval(async () => {
                     lastReadStr = lastReadVN.toDateString();
                 }
 
-                if (lastReadStr !== todayStr) {
-                    let readMsg = `☀️ <b>GIỜ NGHỈ TRƯA ĐẾN RỒI! NẠP KIẾN THỨC, HÚP TIỀN THÔI!</b>\n\nBạn còn <b>10 SWGT</b> đang chờ chưa nhận kìa! Đừng quên dành 60 giây đọc bài phân tích thị trường mới nhất trên trang chủ để lụm lúa nhé!\n\n👉 Mở App -> Chọn <b>2️⃣ Nhiệm vụ Kiến thức & Lan tỏa</b> -> Chọn <b>ĐỌC BÀI VIẾT</b>.`;
+                // Nếu hôm nay chưa đọc bài hoặc chưa làm xong các nhiệm vụ khác
+                if (lastReadStr !== todayStr || !user.youtubeTaskDone || !user.facebookTaskDone) {
+                    let readMsg = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN!</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mở App để bấm Nhận Thưởng nhé!</i>`;
+                    
+                    // Tạo bàn phím linh hoạt dựa trên nhiệm vụ chưa làm
+                    let keyboard = [];
+                    
+                    if (lastReadStr !== todayStr) {
+                        keyboard.push([{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }]);
+                    }
+                    if (!user.youtubeTaskDone) {
+                        keyboard.push([{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }]);
+                    }
+                    if (!user.facebookTaskDone) {
+                        keyboard.push([{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }]);
+                    }
+
+                    // Thêm nút mở App để nhận thưởng ở cuối cùng
+                    keyboard.push([{ text: "🎁 MỞ APP NHẬN THƯỞNG", web_app: { url: webAppUrl } }]);
+
                     bot.sendMessage(user.userId, readMsg, {
                         parse_mode: 'HTML',
-                        reply_markup: { inline_keyboard: [[{ text: "📖 MỞ APP ĐỌC BÀI NGAY", web_app: { url: webAppUrl } }]] }
+                        reply_markup: { inline_keyboard: keyboard }
                     }).catch(()=>{});
+                    
                     await new Promise(resolve => setTimeout(resolve, 50)); 
                 }
             }
-        } catch (error) { console.error("Lỗi thông báo 13h:", error); }
+        } catch (error) { console.error("Lỗi thông báo 10h:", error); }
     }
 
-}, 60000); 
+}, 60000);
 
 // ==========================================
 // TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI (GIỜ VN)
