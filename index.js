@@ -145,27 +145,23 @@ setInterval(async () => {
     if (vnHour === 11 && vnMinute === 0) {
         console.log('Bắt đầu quét nhắc nhở 11h sáng...');
         try {
-            // Tìm những tài khoản chưa làm nhiệm vụ Tân binh
             const inactiveUsers = await User.find({ task1Done: false });
-            let referrersMap = {}; // Cái giỏ để gom nhóm gửi tin cho người mời
+            let referrersMap = {}; 
 
             for (let user of inactiveUsers) {
-                // Nhắn tin trực tiếp giục Tân binh
                 let remindMsg = `⏰ <b>ĐÃ 11 TRƯA RỒI, DẬY LÀM NHIỆM VỤ THÔI!</b>\n\nBạn ơi, vốn khởi nghiệp SWGT của bạn vẫn đang bị treo chờ bạn nhận kìa! Chỉ mất đúng 1 phút để tham gia Group và chat 1 câu chào để xác minh thôi.\n\n👉 Nhấn nút bên dưới mở App, chọn <b>1️⃣ Nhiệm vụ Tân binh</b> để lụm tiền ngay nhé!`;
                 bot.sendMessage(user.userId, remindMsg, { 
                     parse_mode: 'HTML',
                     reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP VÀ NHẬN VỐN", web_app: { url: webAppUrl } }]] }
                 }).catch(()=>{});
 
-                // Gom thông tin lại để báo cho người mời
                 if (user.referredBy) {
                     if (!referrersMap[user.referredBy]) { referrersMap[user.referredBy] = 0; }
                     referrersMap[user.referredBy] += 1;
                 }
-                await new Promise(resolve => setTimeout(resolve, 50)); // Nghỉ 50ms chống block
+                await new Promise(resolve => setTimeout(resolve, 50)); 
             }
 
-            // Tiến hành "Chửi yêu" người mời
             for (let refId in referrersMap) {
                 let referrer = await User.findOne({ userId: refId });
                 if (referrer) {
@@ -189,30 +185,28 @@ setInterval(async () => {
             const allUsers = await User.find({});
 
             for (let user of allUsers) {
-                // Lấy ra ngày gần nhất người này đọc bài (theo giờ VN)
                 let lastReadStr = '';
                 if (user.lastDailyTask) {
                     const lastReadVN = new Date(new Date(user.lastDailyTask).getTime() + (7 * 60 * 60 * 1000));
                     lastReadStr = lastReadVN.toDateString();
                 }
 
-                // Nếu hôm nay chưa đọc bài -> Gửi nhắc nhở
                 if (lastReadStr !== todayStr) {
                     let readMsg = `☀️ <b>GIỜ NGHỈ TRƯA ĐẾN RỒI! NẠP KIẾN THỨC, HÚP TIỀN THÔI!</b>\n\nBạn còn <b>10 SWGT</b> đang chờ chưa nhận kìa! Đừng quên dành 60 giây đọc bài phân tích thị trường mới nhất trên trang chủ để lụm lúa nhé!\n\n👉 Mở App -> Chọn <b>2️⃣ Nhiệm vụ Kiến thức & Lan tỏa</b> -> Chọn <b>ĐỌC BÀI VIẾT</b>.`;
                     bot.sendMessage(user.userId, readMsg, {
                         parse_mode: 'HTML',
                         reply_markup: { inline_keyboard: [[{ text: "📖 MỞ APP ĐỌC BÀI NGAY", web_app: { url: webAppUrl } }]] }
                     }).catch(()=>{});
-                    await new Promise(resolve => setTimeout(resolve, 50)); // Nghỉ 50ms
+                    await new Promise(resolve => setTimeout(resolve, 50)); 
                 }
             }
         } catch (error) { console.error("Lỗi thông báo 13h:", error); }
     }
 
-}, 60000); // Quét liên tục mỗi phút 1 lần
+}, 60000); 
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI (GIỜ VN) - ĐÃ CẬP NHẬT THEO TUẦN
+// TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI (GIỜ VN)
 // ==========================================
 setInterval(async () => {
     const now = new Date();
@@ -247,20 +241,15 @@ setInterval(async () => {
 
 // ==========================================
 // TÍNH NĂNG TỰ ĐỘNG THÔNG BÁO HALVING KHI ĐẠT 1000 THÀNH VIÊN
-// Chạy quét 15 phút 1 lần
 // ==========================================
 setInterval(async () => {
     try {
         const totalUsers = await User.countDocuments();
         
-        // Nếu cộng đồng đã đạt mốc 1000 người
         if (totalUsers >= 1000) {
-            // Lọc ra các sĩ quan (Mời >= 3 người) VÀ chưa được nhận thông báo Halving
             const captains = await User.find({ referralCount: { $gte: 3 }, hasReceivedHalvingMsg: false });
             
             if (captains.length > 0) {
-                console.log(`Bắt đầu gửi thông báo Halving cho ${captains.length} sĩ quan...`);
-                
                 const halvingMsg = `🚨 <b>THÔNG BÁO CHIẾN LƯỢC: SỰ KIỆN HALVING ĐÃ KÍCH HOẠT!</b> 🚨\n\n` +
                                    `Chào đồng chí, Cộng đồng SWC của chúng ta vừa chính thức cán mốc <b>1.000 nhà đầu tư</b>! 🎉\n\n` +
                                    `Như lộ trình đã công bố, để bảo vệ giá trị của token SWGT và chống lạm phát, hệ thống đã tự động kích hoạt cơ chế <b>Halving (Giảm phần thưởng)</b> từ ngày hôm nay.\n\n` +
@@ -269,17 +258,15 @@ setInterval(async () => {
                                    `- Những ai đã kịp nhận thưởng trước đó sẽ được giữ nguyên tài sản.\n\n` +
                                    `💎 <i>SWGT đang ngày càng trở nên khan hiếm. Chúc mừng bạn đã là những người tiên phong tích lũy được SWGT trong giai đoạn Vàng! Hãy tiếp tục lan tỏa để khẳng định vị thế của mình nhé!</i>`;
                 
-                // Gửi tin nhắn riêng cho từng Sĩ quan
                 for (let user of captains) {
                     try {
                         await bot.sendMessage(user.userId, halvingMsg, { parse_mode: 'HTML' });
-                        user.hasReceivedHalvingMsg = true; // Đánh dấu đã gửi để lần sau không spam nữa
+                        user.hasReceivedHalvingMsg = true;
                         await user.save();
                     } catch (e) {}
-                    await new Promise(resolve => setTimeout(resolve, 50)); // Nghỉ 50ms chống block
+                    await new Promise(resolve => setTimeout(resolve, 50)); 
                 }
                 
-                // Nổ thông báo FOMO cực mạnh lên Group Chat
                 const groupFomo = `🚨 <b>SỰ KIỆN HALVING CHÍNH THỨC KÍCH HOẠT!</b> 🚨\n\n` +
                                   `Cộng đồng SWC vừa cán mốc 1.000 thành viên. Hệ thống đã tự động GIẢM phần thưởng các mốc Quân hàm để tạo độ khan hiếm cho SWGT.\n\n` +
                                   `👉 SWGT sẽ ngày càng khó kiếm! Chúc mừng các vị Đại sứ đã gom được lượng lớn Token trong giai đoạn Vàng vừa qua. Những ai chưa hành động, hãy nhanh tay trước khi phần thưởng tiếp tục bị cắt giảm ở mốc 5.000 thành viên!`;
@@ -287,8 +274,7 @@ setInterval(async () => {
             }
         }
     } catch (error) { console.error("Lỗi Halving:", error); }
-}, 15 * 60 * 1000); // 15 phút quét 1 lần
-
+}, 15 * 60 * 1000); 
 
 // ==========================================
 // TÍNH NĂNG MỚI: TỰ ĐỘNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
@@ -296,13 +282,11 @@ setInterval(async () => {
 setInterval(async () => {
     const now = new Date();
     const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    const vnDay = vnTime.getUTCDay(); // 0 là Chủ Nhật
+    const vnDay = vnTime.getUTCDay(); 
     const vnHour = vnTime.getUTCHours();
     const vnMinute = vnTime.getUTCMinutes();
 
-    // Chạy đúng vào 23h59 phút tối Chủ Nhật
     if (vnDay === 0 && vnHour === 23 && vnMinute === 59) {
-        console.log('Bắt đầu chốt Top Tuần...');
         try {
             const topUsers = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(3);
             if (topUsers.length > 0) {
@@ -321,20 +305,15 @@ setInterval(async () => {
                 bot.sendMessage(GROUP_USERNAME, msg, { parse_mode: 'HTML' }).catch(()=>{});
             }
             
-            // TỰ ĐỘNG RESET TOÀN BỘ TOP TUẦN VỀ 0
             await User.updateMany({}, { $set: { weeklyReferralCount: 0 } });
-            console.log('✅ Đã reset xong Top Tuần!');
-            
         } catch (error) { console.error("Lỗi chốt Top Tuần:", error); }
         
-        await new Promise(resolve => setTimeout(resolve, 60000)); // Nghỉ 1 phút để không bị lặp lại
+        await new Promise(resolve => setTimeout(resolve, 60000)); 
     }
 }, 30000);
 
-
 // ==========================================
 // TÍNH NĂNG TỰ ĐỘNG RÃ ĐÔNG REF (SAU 60 NGÀY + LỌC HOẠT ĐỘNG)
-// Lặp mỗi 6 tiếng 1 lần
 // ==========================================
 setInterval(async () => {
     try {
@@ -361,22 +340,20 @@ setInterval(async () => {
                 }
             }
 
-            // Nếu có sự thay đổi (Có người được mở khóa HOẶC có nick clone bị tiêu diệt)
             if (newlyUnlockedCount > 0 || rejectedCount > 0) {
-                user.pendingRefs = stillPending; // Cập nhật lại tủ lạnh
+                user.pendingRefs = stillPending; 
                 
                 if (newlyUnlockedCount > 0) {
                     user.referralCount += newlyUnlockedCount;
                     user.weeklyReferralCount += newlyUnlockedCount;
                     user.balance = Math.round((user.balance + newlyUnlockedReward) * 100) / 100;
                     
-                    // Hét thông báo chúc mừng
                     let notifyMsg = `🔓 <b>BĂNG ĐÃ TAN! PHẦN THƯỞNG VỀ VÍ!</b>\n\nChúc mừng bạn! Có <b>${newlyUnlockedCount} đối tác</b> do bạn mời đã vượt qua thử thách 60 ngày hoạt động thực sự trong Group.\n\n💰 Hệ thống vừa giải phóng <b>+${newlyUnlockedReward} SWGT</b> vào tài khoản của bạn.`;
                     bot.sendMessage(user.userId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
                 }
                 
                 if (rejectedCount > 0) {
-                    let rejectMsg = `⚠️ <b>TỊCH THU PHẦN THƯỞNG GIAN LẬN</b>\n\nHệ thống phát hiện có <b>${rejectedCount} đối tác</b> do bạn mời cách đây 60 ngày là tài khoản Ảo/Không hoạt động (Không tương tác, không chat group).\n\n📉 Phần thưởng chờ duyệt tương ứng đã bị hủy bỏ vĩnh viễn để bảo vệ tính công bằng cho Cộng đồng.`;
+                    let rejectMsg = `⚠️ <b>TỊCH THU PHẦN THƯỞNG GIAN LẬN</b>\n\nHệ thống phát hiện có <b>${rejectedCount} đối tác</b> do bạn mời cách đây 60 ngày là tài khoản Ảo/Không hoạt động.\n\n📉 Phần thưởng chờ duyệt tương ứng đã bị hủy bỏ vĩnh viễn.`;
                     bot.sendMessage(user.userId, rejectMsg, {parse_mode: 'HTML'}).catch(()=>{});
                 }
 
@@ -384,7 +361,7 @@ setInterval(async () => {
             }
         }
     } catch (error) { console.error("Lỗi khi rã đông Ref:", error); }
-}, 6 * 60 * 60 * 1000); // 6 tiếng chạy quét 1 lần
+}, 6 * 60 * 60 * 1000); 
 
 // --- 1. API SERVER CHO MINI APP ---
 const server = http.createServer(async (req, res) => {
@@ -1362,7 +1339,7 @@ bot.onText(/^\/(admin|menu)/i, async (msg) => {
             inline_keyboard: [
                 [{ text: "📊 Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Top Tuần", callback_data: 'admin_toptuan' }],
                 [{ text: "💰 Thống Kê Két Sắt", callback_data: 'admin_thongke' }, { text: "👀 Soi Dòng Tiền", callback_data: 'admin_soivietien' }],
-                [{ text: "🚀 Nổ Bảng Xếp Hạng", callback_data: 'admin_duatop' }],
+                [{ text: "🚀 Nổ Bảng Xếp Hạng Lên Group", callback_data: 'admin_duatop' }],
                 [{ text: "🔍 Tra Cứu 1 Người", callback_data: 'admin_help_tracuu' }, { text: "👮 Xử Lý Gian Lận", callback_data: 'admin_help_cheat' }],
                 [{ text: "🎁 Tạo Code & Truyền Thông", callback_data: 'admin_help_mkt' }]
             ]
@@ -1407,7 +1384,7 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, answerText, { 
             parse_mode: 'HTML',
             reply_markup: {
-                inline_keyboard: [[{ text: "🚀 M mở APP & BẮT ĐẦU TẠO DÒNG TIỀN", web_app: { url: webAppUrl } }]]
+                inline_keyboard: [[{ text: "🚀 MỞ APP & BẮT ĐẦU TẠO DÒNG TIỀN", web_app: { url: webAppUrl } }]]
             }
         });
         return;
