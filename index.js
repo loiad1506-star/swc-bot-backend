@@ -131,6 +131,87 @@ setInterval(async () => {
 }, 60000); 
 
 // ==========================================
+// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ LÚC 11H TRƯA & 13H CHIỀU
+// ==========================================
+setInterval(async () => {
+    const now = new Date();
+    const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const vnHour = vnTime.getUTCHours();
+    const vnMinute = vnTime.getUTCMinutes();
+
+    // ----------------------------------------------------
+    // 1️⃣ 11H SÁNG: NHẮC TÂN BINH & "CHỬI YÊU" NGƯỜI MỜI
+    // ----------------------------------------------------
+    if (vnHour === 11 && vnMinute === 0) {
+        console.log('Bắt đầu quét nhắc nhở 11h sáng...');
+        try {
+            // Tìm những tài khoản chưa làm nhiệm vụ Tân binh
+            const inactiveUsers = await User.find({ task1Done: false });
+            let referrersMap = {}; // Cái giỏ để gom nhóm gửi tin cho người mời
+
+            for (let user of inactiveUsers) {
+                // Nhắn tin trực tiếp giục Tân binh
+                let remindMsg = `⏰ <b>ĐÃ 11 TRƯA RỒI, DẬY LÀM NHIỆM VỤ THÔI!</b>\n\nBạn ơi, vốn khởi nghiệp SWGT của bạn vẫn đang bị treo chờ bạn nhận kìa! Chỉ mất đúng 1 phút để tham gia Group và chat 1 câu chào để xác minh thôi.\n\n👉 Nhấn nút bên dưới mở App, chọn <b>1️⃣ Nhiệm vụ Tân binh</b> để lụm tiền ngay nhé!`;
+                bot.sendMessage(user.userId, remindMsg, { 
+                    parse_mode: 'HTML',
+                    reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP VÀ NHẬN VỐN", web_app: { url: webAppUrl } }]] }
+                }).catch(()=>{});
+
+                // Gom thông tin lại để báo cho người mời
+                if (user.referredBy) {
+                    if (!referrersMap[user.referredBy]) { referrersMap[user.referredBy] = 0; }
+                    referrersMap[user.referredBy] += 1;
+                }
+                await new Promise(resolve => setTimeout(resolve, 50)); // Nghỉ 50ms chống block
+            }
+
+            // Tiến hành "Chửi yêu" người mời
+            for (let refId in referrersMap) {
+                let referrer = await User.findOne({ userId: refId });
+                if (referrer) {
+                    let count = referrersMap[refId];
+                    let scoldMsg = `🤬 <b>TRỜI ƠI CÁI NHÀ ĐẦU TƯ NÀY! MANG CƠ HỘI ĐẾN MÀ BỎ BÊ ĐỒNG ĐỘI HẢ?</b>\n\nĐùa chút thôi! 😂 \nHiện tại hệ thống báo động bạn đang có <b>${count} đối tác</b> đã bấm link nhưng "lười biếng" chưa chịu hoàn thành nhiệm vụ Tân Binh (Join Group).\n\n💡 <i>Bạn hãy xách mông đi nhắn tin giục họ hoàn thành đi! Họ làm xong là phần thưởng sẽ "ting ting" vào ví của bạn ngay lập tức!</i>\n\n🌈 Dù sao cũng ghi nhận sự nỗ lực lan tỏa của bạn. Hãy tiếp tục chia sẻ cơ hội sở hữu SWGT này cho nhiều anh bè bạn em hơn nữa để sớm thăng hàm Tướng nhé! 🚀💎`;
+                    
+                    bot.sendMessage(refId, scoldMsg, { parse_mode: 'HTML' }).catch(()=>{});
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            }
+        } catch (error) { console.error("Lỗi thông báo 11h:", error); }
+    }
+
+    // ----------------------------------------------------
+    // 2️⃣ 13H CHIỀU: NHẮC ĐỌC BÀI PHÂN TÍCH NHẬN SWGT
+    // ----------------------------------------------------
+    if (vnHour === 13 && vnMinute === 0) {
+        console.log('Bắt đầu gửi thông báo 13h chiều...');
+        try {
+            const todayStr = vnTime.toDateString(); 
+            const allUsers = await User.find({});
+
+            for (let user of allUsers) {
+                // Lấy ra ngày gần nhất người này đọc bài (theo giờ VN)
+                let lastReadStr = '';
+                if (user.lastDailyTask) {
+                    const lastReadVN = new Date(new Date(user.lastDailyTask).getTime() + (7 * 60 * 60 * 1000));
+                    lastReadStr = lastReadVN.toDateString();
+                }
+
+                // Nếu hôm nay chưa đọc bài -> Gửi nhắc nhở
+                if (lastReadStr !== todayStr) {
+                    let readMsg = `☀️ <b>GIỜ NGHỈ TRƯA ĐẾN RỒI! NẠP KIẾN THỨC, HÚP TIỀN THÔI!</b>\n\nBạn còn <b>10 SWGT</b> đang chờ chưa nhận kìa! Đừng quên dành 60 giây đọc bài phân tích thị trường mới nhất trên trang chủ để lụm lúa nhé!\n\n👉 Mở App -> Chọn <b>2️⃣ Nhiệm vụ Kiến thức & Lan tỏa</b> -> Chọn <b>ĐỌC BÀI VIẾT</b>.`;
+                    bot.sendMessage(user.userId, readMsg, {
+                        parse_mode: 'HTML',
+                        reply_markup: { inline_keyboard: [[{ text: "📖 MỞ APP ĐỌC BÀI NGAY", web_app: { url: webAppUrl } }]] }
+                    }).catch(()=>{});
+                    await new Promise(resolve => setTimeout(resolve, 50)); // Nghỉ 50ms
+                }
+            }
+        } catch (error) { console.error("Lỗi thông báo 13h:", error); }
+    }
+
+}, 60000); // Quét liên tục mỗi phút 1 lần
+
+// ==========================================
 // TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI (GIỜ VN) - ĐÃ CẬP NHẬT THEO TUẦN
 // ==========================================
 setInterval(async () => {
