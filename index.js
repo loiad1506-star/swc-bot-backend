@@ -69,15 +69,21 @@ const userSchema = new mongoose.Schema({
 
     task1Done: { type: Boolean, default: false }, 
     walletRewardDone: { type: Boolean, default: false }, 
+    
+    // Lưu vết thời gian làm nhiệm vụ để kiểm tra bên Mini App
     lastDailyTask: { type: Date, default: null }, 
     readTaskStartTime: { type: Date, default: null }, 
-    lastShareTask: { type: Date, default: null },
-    groupMessageCount: { type: Number, default: 0 },
+    
     youtubeTaskDone: { type: Boolean, default: false }, 
     youtubeClickTime: { type: Date, default: null },
+    
     facebookTaskDone: { type: Boolean, default: false },
     facebookClickTime: { type: Date, default: null },
+    
+    lastShareTask: { type: Date, default: null },
     shareClickTime: { type: Date, default: null },
+
+    groupMessageCount: { type: Number, default: 0 },
 
     activeFrame: { type: String, default: 'none' },
     ownedFrames: { type: [String], default: ['none'] },
@@ -285,7 +291,7 @@ setInterval(async () => {
                 const medals = ['🥇', '🥈', '🥉'];
                 topUsers.forEach((u, index) => { topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Mời ${u.weeklyReferralCount} khách\n`; });
 
-                const msg = `🏆 <b>TỔNG KẾT ĐẠI SỨ LAN TỎA TUẦN NÀY</b> 🏆\n\nKhép lại một tuần hoạt động bùng nổ, xin vinh danh những chiến binh xuất sắc nhất:\n\n${topText}\n🔄 <i>Hệ thống sẽ tự động Reset bộ đếm số lượt mời của tuần này về 0. Hãy chuẩn bị sẵn sàng cho một cuộc đua mới vào Thứ Hai nhé!</i>\n\n👉 <b>Chúc các Đại sứ một tuần mới bùng nổ doanh số! 🚀</b>`;
+                const msg = `🏆 <b>TỔNG KẾT ĐẠI SỨ LAN TỎA TUẦN NÀY</b> 🏆\n\nKhép lại một tuần hoạt động bùng nổ, xin vinh danh những chiến binh xuất sắc nhất đã mang cơ hội SWC đến với nhiều đối tác nhất trong tuần qua:\n\n${topText}\n🔄 <i>Hệ thống sẽ tự động Reset bộ đếm số lượt mời của tuần này về 0. Hãy chuẩn bị sẵn sàng cho một cuộc đua mới công bằng cho tất cả mọi người vào Thứ Hai nhé!</i>\n\n👉 <b>Chúc các Đại sứ một tuần mới bùng nổ doanh số! 🚀</b>`;
                 bot.sendMessage(GROUP_USERNAME, msg, { parse_mode: 'HTML' }).catch(()=>{});
             }
             await User.updateMany({}, { $set: { weeklyReferralCount: 0 } });
@@ -347,8 +353,11 @@ const server = http.createServer(async (req, res) => {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
         if (!userData) userData = { balance: 0, wallet: '', gatecode: '', fullName: '', email: '', phone: '', referralCount: 0, isPremium: false, joinDate: Date.now(), activeFrame: 'none', ownedFrames: ['none'], spinCount: 0 };
+        
+        // Trả thêm timeNow (Giờ VN hiện tại) để MiniApp đồng bộ hiển thị
+        const vnNowStr = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ...userData._doc }));
+        res.end(JSON.stringify({ ...userData._doc, serverDateVN: vnNowStr }));
     } 
     // API: LƯU VÍ
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
@@ -501,7 +510,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // 🚀 API MỚI: KIỂM TRA & NHẬN THƯỞNG NHIỆM VỤ TỪ APP (CÓ KIỂM TRA THỜI GIAN TRÊN BOT)
+    // 🚀 API MỚI: KIỂM TRA & NHẬN THƯỞNG NHIỆM VỤ TỪ APP (CHUẨN GIỜ VIỆT NAM)
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -512,15 +521,16 @@ const server = http.createServer(async (req, res) => {
                 if (!user) return res.writeHead(400), res.end();
 
                 const now = new Date(); 
+                const vnNowStr = now.toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
                 let finalReward = 0;
                 let errorMsg = "";
 
                 if (data.taskType === 'read') {
-                    const lastDaily = user.lastDailyTask ? new Date(user.lastDailyTask) : new Date(0);
-                    if (lastDaily.toDateString() === now.toDateString()) {
+                    const lastDailyStr = user.lastDailyTask ? new Date(user.lastDailyTask).toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }) : '';
+                    if (lastDailyStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng đọc bài rồi!";
                     } else if (!user.readTaskStartTime) {
-                        errorMsg = "Bạn chưa bấm nút làm nhiệm vụ trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút mở link làm nhiệm vụ trên Bot Telegram!";
                     } else {
                         const timeSpent = (now - new Date(user.readTaskStartTime)) / 1000;
                         if (timeSpent < 60) {
@@ -528,7 +538,7 @@ const server = http.createServer(async (req, res) => {
                         } else {
                             finalReward = 10;
                             user.lastDailyTask = now;
-                            user.readTaskStartTime = null; // Reset bộ đếm
+                            user.readTaskStartTime = null; 
                         }
                     }
                 } 
@@ -563,11 +573,11 @@ const server = http.createServer(async (req, res) => {
                     }
                 } 
                 else if (data.taskType === 'share') {
-                    const lastShare = user.lastShareTask ? new Date(user.lastShareTask) : new Date(0);
-                    if (lastShare.toDateString() === now.toDateString()) {
+                    const lastShareStr = user.lastShareTask ? new Date(user.lastShareTask).toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }) : '';
+                    if (lastShareStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng chia sẻ rồi!";
                     } else if (!user.shareClickTime) {
-                        errorMsg = "Bạn chưa bấm nút Chia Sẻ trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút Mở Chia Sẻ trên Bot Telegram!";
                     } else {
                         const timeSpent = (now - new Date(user.shareClickTime)) / 1000;
                         if (timeSpent < 5) {
@@ -575,7 +585,7 @@ const server = http.createServer(async (req, res) => {
                         } else {
                             finalReward = 15;
                             user.lastShareTask = now;
-                            user.shareClickTime = null; // Reset bộ đếm
+                            user.shareClickTime = null; 
                         }
                     }
                 }
