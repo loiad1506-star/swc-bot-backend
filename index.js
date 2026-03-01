@@ -109,15 +109,13 @@ setInterval(async () => {
     const vnMinute = vnTime.getUTCMinutes();
 
     if (vnHour === 8 && vnMinute === 0) {
-        console.log('Bắt đầu gửi thông báo nhắc điểm danh sáng...');
-        const todayStr = vnTime.toDateString(); 
+        const todayStr = vnTime.toISOString().split('T')[0];
         const users = await User.find({});
         
         for (let user of users) {
             let lastCheckinStr = '';
             if (user.lastCheckInDate) {
-                const lastCheckinVN = new Date(new Date(user.lastCheckInDate).getTime() + (7 * 60 * 60 * 1000));
-                lastCheckinStr = lastCheckinVN.toDateString();
+                lastCheckinStr = new Date(new Date(user.lastCheckInDate).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
             }
 
             if (lastCheckinStr !== todayStr) {
@@ -143,9 +141,7 @@ setInterval(async () => {
     const vnHour = vnTime.getUTCHours();
     const vnMinute = vnTime.getUTCMinutes();
 
-    // ----------------------------------------------------
     // 1️⃣ 9H SÁNG: NHẮC TÂN BINH & "CHỬI YÊU" NGƯỜI MỜI
-    // ----------------------------------------------------
     if (vnHour === 9 && vnMinute === 0) {
         try {
             const inactiveUsers = await User.find({ task1Done: false });
@@ -178,19 +174,16 @@ setInterval(async () => {
         } catch (error) { console.error("Lỗi thông báo 9h:", error); }
     }
 
-    // ----------------------------------------------------
     // 2️⃣ 10H SÁNG: GỬI NHIỆM VỤ ĐỌC BÀI, XEM YOUTUBE, FANPAGE
-    // ----------------------------------------------------
     if (vnHour === 10 && vnMinute === 0) {
         try {
-            const todayStr = vnTime.toDateString(); 
+            const todayStr = vnTime.toISOString().split('T')[0]; 
             const allUsers = await User.find({});
 
             for (let user of allUsers) {
                 let lastReadStr = '';
                 if (user.lastDailyTask) {
-                    const lastReadVN = new Date(new Date(user.lastDailyTask).getTime() + (7 * 60 * 60 * 1000));
-                    lastReadStr = lastReadVN.toDateString();
+                    lastReadStr = new Date(new Date(user.lastDailyTask).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
                 }
 
                 if (lastReadStr !== todayStr || !user.youtubeTaskDone || !user.facebookTaskDone) {
@@ -201,7 +194,6 @@ setInterval(async () => {
                     if (!user.youtubeTaskDone) keyboard.push([{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }]);
                     if (!user.facebookTaskDone) keyboard.push([{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }]);
                     
-                    // Nút báo hoàn thành
                     keyboard.push([{ text: "🎁 ĐÃ XONG! MỞ APP NHẬN THƯỞNG", web_app: { url: webAppUrl } }]);
 
                     bot.sendMessage(user.userId, readMsg, {
@@ -348,14 +340,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
-    // API: LẤY THÔNG TIN USER
+    // API: LẤY THÔNG TIN USER (ÉP CỨNG GIỜ VN)
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
         if (!userData) userData = { balance: 0, wallet: '', gatecode: '', fullName: '', email: '', phone: '', referralCount: 0, isPremium: false, joinDate: Date.now(), activeFrame: 'none', ownedFrames: ['none'], spinCount: 0 };
         
-        // Trả thêm timeNow (Giờ VN hiện tại) để MiniApp đồng bộ hiển thị
-        const vnNowStr = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const vnNowStr = new Date(new Date().getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ...userData._doc, serverDateVN: vnNowStr }));
     } 
@@ -510,7 +501,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // 🚀 API MỚI: KIỂM TRA & NHẬN THƯỞNG NHIỆM VỤ TỪ APP (CHUẨN GIỜ VIỆT NAM)
+    // 🚀 API MỚI: KIỂM TRA & NHẬN THƯỞNG NHIỆM VỤ TỪ APP (CHUẨN GIỜ VN)
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -521,12 +512,12 @@ const server = http.createServer(async (req, res) => {
                 if (!user) return res.writeHead(400), res.end();
 
                 const now = new Date(); 
-                const vnNowStr = now.toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
+                const vnNowStr = new Date(now.getTime() + 7 * 3600000).toISOString().split('T')[0];
                 let finalReward = 0;
                 let errorMsg = "";
 
                 if (data.taskType === 'read') {
-                    const lastDailyStr = user.lastDailyTask ? new Date(user.lastDailyTask).toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }) : '';
+                    const lastDailyStr = user.lastDailyTask ? new Date(new Date(user.lastDailyTask).getTime() + 7 * 3600000).toISOString().split('T')[0] : '';
                     if (lastDailyStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng đọc bài rồi!";
                     } else if (!user.readTaskStartTime) {
@@ -538,7 +529,7 @@ const server = http.createServer(async (req, res) => {
                         } else {
                             finalReward = 10;
                             user.lastDailyTask = now;
-                            user.readTaskStartTime = null; 
+                            user.readTaskStartTime = null; // Reset
                         }
                     }
                 } 
@@ -573,7 +564,7 @@ const server = http.createServer(async (req, res) => {
                     }
                 } 
                 else if (data.taskType === 'share') {
-                    const lastShareStr = user.lastShareTask ? new Date(user.lastShareTask).toLocaleDateString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }) : '';
+                    const lastShareStr = user.lastShareTask ? new Date(new Date(user.lastShareTask).getTime() + 7 * 3600000).toISOString().split('T')[0] : '';
                     if (lastShareStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng chia sẻ rồi!";
                     } else if (!user.shareClickTime) {
@@ -585,7 +576,7 @@ const server = http.createServer(async (req, res) => {
                         } else {
                             finalReward = 15;
                             user.lastShareTask = now;
-                            user.shareClickTime = null; 
+                            user.shareClickTime = null; // Reset
                         }
                     }
                 }
@@ -1757,7 +1748,6 @@ bot.on('chat_member', async (update) => {
     const targetChannel = CHANNEL_USERNAME.replace('@', '').toLowerCase();
     const targetGroup = GROUP_USERNAME.replace('@', '').toLowerCase();
 
-    // Chặn đứng mọi sự kiện từ các group/channel không khớp chính xác username
     if (chatUsername !== targetChannel && chatUsername !== targetGroup) {
         return; 
     }
@@ -1768,25 +1758,20 @@ bot.on('chat_member', async (update) => {
     const oldStatus = update.old_chat_member.status;
     const leftUserId = update.new_chat_member.user.id.toString();
 
-    // Phát hiện hành vi Rời đi (left) hoặc Bị kick (kicked)
     if ((oldStatus === 'member' || oldStatus === 'restricted' || oldStatus === 'administrator') && 
         (newStatus === 'left' || newStatus === 'kicked')) {
         
         let leftUser = await User.findOne({ userId: leftUserId });
         
         if (leftUser && leftUser.task1Done) {
-            // TÍNH TOÁN THỜI GIAN ĐÃ THAM GIA
             const joinDate = new Date(leftUser.joinDate || Date.now());
             const daysSinceJoin = (Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24);
 
-            // CHỈ PHẠT NẾU RỜI NHÓM TRƯỚC 21 NGÀY
             if (daysSinceJoin <= 21) {
-                // ---> PHẠT NGƯỜI RỜI NHÓM
                 const penalty = leftUser.isPremium ? 40 : 20;
                 leftUser.balance = Math.max(0, leftUser.balance - penalty); 
-                leftUser.task1Done = false; // Reset trạng thái
+                leftUser.task1Done = false; 
 
-                // ---> THU HỒI PHẦN THƯỞNG CỦA NGƯỜI MỜI
                 if (leftUser.referredBy) {
                     let referrer = await User.findOne({ userId: leftUser.referredBy });
                     if (referrer) {
@@ -1796,7 +1781,6 @@ bot.on('chat_member', async (update) => {
                         referrer.referralCount = Math.max(0, referrer.referralCount - 1);
                         referrer.weeklyReferralCount = Math.max(0, (referrer.weeklyReferralCount || 0) - 1);
                         
-                        // Thu hồi quân hàm nếu rớt hạng
                         const dCount = referrer.referralCount;
                         if (dCount < 500) referrer.milestone500 = false;
                         if (dCount < 350) referrer.milestone350 = false;
@@ -1810,7 +1794,6 @@ bot.on('chat_member', async (update) => {
 
                         await referrer.save();
 
-                        // Báo tin buồn cho người mời
                         let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI!</b> ⚠️\n\nThành viên <b>${leftUser.firstName} ${leftUser.lastName}</b> do bạn mời vừa <b>RỜI KHỎI</b> mạng lưới Cộng đồng SWC khi chưa gắn bó đủ 21 ngày.\n\n📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>${refPenalty} SWGT</b> tiền thưởng tương ứng khỏi ví của bạn.`;
                         bot.sendMessage(referrer.userId, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
                     }
@@ -1818,7 +1801,6 @@ bot.on('chat_member', async (update) => {
 
                 await leftUser.save();
                 
-                // Bắn tin nhắn phạt kẻ bỏ trốn
                 bot.sendMessage(leftUserId, `⚠️ <b>CẢNH BÁO TỪ HỆ THỐNG!</b>\nRadar phát hiện bạn đã rời khỏi Cộng Đồng SWC khi chưa đủ 21 ngày gắn bó. Bạn đã bị trừ <b>${penalty} SWGT</b>. Hãy tham gia lại và làm lại nhiệm vụ để khôi phục!`, {parse_mode: 'HTML'}).catch(()=>{});
             } else {
                 console.log(`✅ Bỏ qua phạt do ${leftUser.userId} đã tham gia được ${Math.round(daysSinceJoin)} ngày (An toàn > 21 ngày).`);
@@ -1828,28 +1810,28 @@ bot.on('chat_member', async (update) => {
 });
 
 // ==========================================
-// 🛠 LỆNH TEST KỊCH BẢN GIẢ LẬP 9H VÀ 10H SÁNG (DÀNH CHO ADMIN)
+// 🛠 LỆNH TEST KỊCH BẢN GIẢ LẬP 9H VÀ 10H SÁNG
 // ==========================================
 bot.onText(/\/testkichban/, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
 
-    const idA = '7515902413'; // Người mời (Đóng vai Leader)
-    const idB = '8364834164'; // Người mới (Đóng vai Tân binh chưa làm nhiệm vụ)
+    const idA = '7515902413'; // Người mời 
+    const idB = '8364834164'; // Người mới 
 
     bot.sendMessage(ADMIN_ID, `⏳ Đang giả lập thời gian... Bắt đầu bắn tin nhắn test cho A (${idA}) và B (${idB})...`);
 
-    // 1. Bắn tin nhắn 9H SÁNG cho B (Giục làm nhiệm vụ)
+    // 1. 9H SÁNG (B)
     let remindMsgB = `⏰ <b>ĐÃ 9H SÁNG RỒI, DẬY LÀM NHIỆM VỤ THÔI!</b>\n\nBạn ơi, vốn khởi nghiệp SWGT của bạn vẫn đang bị treo chờ bạn nhận kìa! Chỉ mất đúng 1 phút để tham gia Group và chat 1 câu chào để xác minh thôi.\n\n👉 Nhấn nút bên dưới mở App, chọn <b>1️⃣ Nhiệm vụ Tân binh</b> để lụm tiền ngay nhé!`;
     bot.sendMessage(idB, remindMsgB, { 
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP VÀ NHẬN VỐN", web_app: { url: webAppUrl } }]] }
     }).catch(e => console.log("Lỗi gửi B:", e));
 
-    // 2. Bắn tin nhắn 9H SÁNG cho A ("Chửi yêu" người mời)
+    // 2. 9H SÁNG (A)
     let scoldMsgA = `🤬 <b>TRỜI ƠI CÁI NHÀ ĐẦU TƯ NÀY! MANG CƠ HỘI ĐẾN MÀ BỎ BÊ ĐỒNG ĐỘI HẢ?</b>\n\nĐùa chút thôi! 😂 \nHiện tại hệ thống báo động bạn đang có <b>1 đối tác</b> đã bấm link nhưng "lười biếng" chưa chịu hoàn thành nhiệm vụ Tân Binh (Join Group).\n\n💡 <i>Bạn hãy xách mông đi nhắn tin giục họ hoàn thành đi! Họ làm xong là phần thưởng sẽ "ting ting" vào ví của bạn ngay lập tức!</i>\n\n🌈 Dù sao cũng ghi nhận sự nỗ lực lan tỏa của bạn. Hãy tiếp tục chia sẻ cơ hội sở hữu SWGT này cho nhiều anh bè bạn em hơn nữa để sớm thăng hàm Tướng nhé! 🚀💎`;
     bot.sendMessage(idA, scoldMsgA, { parse_mode: 'HTML' }).catch(e => console.log("Lỗi gửi A:", e));
 
-    // 3. Bắn tin nhắn 10H SÁNG cho B (Nhắc làm bài tập ngày)
+    // 3. 10H SÁNG (B)
     let readMsgB = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN!</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mới mở App để bấm Nhận Thưởng nhé!</i>`;
     let keyboard = [
         [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }],
@@ -1862,12 +1844,9 @@ bot.onText(/\/testkichban/, async (msg) => {
         reply_markup: { inline_keyboard: keyboard }
     }).catch(e => console.log("Lỗi gửi B lần 2:", e));
 
-    bot.sendMessage(ADMIN_ID, `✅ Đã bắn kịch bản thành công!\nAnh hãy nhờ người A và người B mở Telegram lên kiểm tra xem tin nhắn hiển thị có đẹp không nhé.`);
+    bot.sendMessage(ADMIN_ID, `✅ Đã bắn kịch bản thành công!`);
 });
 
-// ==========================================
-// 🕵️‍♂️ LỆNH ADMIN: SOI VÍ TIỀN & HOẠT ĐỘNG GẦN NHẤT
-// ==========================================
 bot.onText(/\/soivietien/, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     bot.sendMessage(ADMIN_ID, "⏳ Đang bật Radar quét các giao dịch sinh tiền gần nhất...");
