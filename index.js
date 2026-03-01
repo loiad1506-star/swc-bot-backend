@@ -15,6 +15,11 @@ const bot = new TelegramBot(token, {
         }
     }
 });
+
+bot.on("polling_error", (msg) => console.log("⚠️ LỖI POLLING:", msg));
+bot.on("webhook_error", (msg) => console.log("⚠️ LỖI WEBHOOK:", msg));
+bot.on("error", (msg) => console.log("⚠️ LỖI CHUNG:", msg));
+
 const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
 
 const ADMIN_ID = '507318519'; 
@@ -399,6 +404,7 @@ const server = http.createServer(async (req, res) => {
 
                 let reward = 0; let rankTitle = "";
                 
+                // ĐÃ CẬP NHẬT THÔNG SỐ HALVING
                 if (data.milestone === 3 && user.referralCount >= 3 && !user.milestone3) { reward = 10; user.milestone3 = true; rankTitle = "Đại Úy 🎖️"; }
                 else if (data.milestone === 10 && user.referralCount >= 10 && !user.milestone10) { reward = isHalving ? 20 : 25; user.milestone10 = true; rankTitle = "Thiếu Tá 🎖️"; }
                 else if (data.milestone === 20 && user.referralCount >= 20 && !user.milestone20) { reward = 40; user.milestone20 = true; rankTitle = "Trung Tá 🎖️"; }
@@ -467,7 +473,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: NHẬN THƯỞNG NHIỆM VỤ APP
+    // API: NHẬN THƯỞNG NHIỆM VỤ APP (Đã gỡ bỏ multipliers)
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -1306,13 +1312,13 @@ bot.on('callback_query', async (callbackQuery) => {
             answerText = `🎁 <b>HỎI: Cách cày SWGT tạo thu nhập thụ động mỗi ngày?</b>\n\n<b>ĐÁP:</b> Rất đơn giản để xây dựng thói quen tạo dòng tiền! Mở Menu Bot và chọn "Nhiệm vụ Tân binh". Mỗi ngày bạn chỉ cần:\n\n1. Mở App điểm danh nhận lãi suất đều đặn.\n2. Thu nạp kiến thức đầu tư (Đọc bài 60s, Xem Youtube).\n3. Tương tác trên Group Chat (hệ thống tự động trả SWGT cho tin nhắn chất lượng).\n\n👉 Dòng tiền nhỏ giọt mỗi ngày sẽ tạo nên dòng sông tài sản!`;
         }
         else if (data === 'faq_3') {
-            answerText = `💸 <b>HỎI: Hướng dẫn Chốt lời & Rút tiền ra sao?</b>\n\n<b>ĐÁP:</b> Khi số dư tài sản đạt tối thiểu <b>300 SWGT</b>, bạn có thể chốt lời ngay! Mở Mini App, vào mục <b>"Rút tiền"</b>.\n\nHệ thống hỗ trợ chuyển lợi nhuận qua mã Gatecode (Sàn Gate.io) hoàn toàn miễn phí, hoặc ví ERC20 (có phí mạng). Mọi lệnh rút đều được Admin duyệt siêu tốc để tiền nhanh chóng "ting ting" về ví bạn!`;
+            answerText = `💸 <b>HỎI: Hướng dẫn Chốt lời & Rút tiền ra sao?</b>\n\n<b>ĐÁP:</b> Khi số dư tài sản đạt tối thiểu <b>500 SWGT</b>, bạn có thể chốt lời ngay! Mở Mini App, vào mục <b>"Rút tiền"</b>.\n\nHệ thống hỗ trợ chuyển lợi nhuận qua mã Gatecode (Sàn Gate.io) hoàn toàn miễn phí, hoặc ví ERC20 (có phí mạng). Mọi lệnh rút đều được Admin duyệt siêu tốc để tiền nhanh chóng "ting ting" về ví bạn!`;
         }
         else if (data === 'faq_4') {
-            answerText = `🚀 <b>HỎI: Bí quyết tạo Dòng Tiền lớn với Vốn 0 đồng?</b>\n\n<b>ĐÁP:</b> <i>"Đòn bẩy (Leverage) chính là chìa khóa của người giàu!"</i>\nBạn không cần vốn, hãy dùng đòn bẩy cộng đồng. Khi bạn lan tỏa cơ hội đầu tư này, bạn nhận ngay <b>20 - 40 SWGT</b> cho mỗi đối tác chất lượng bước vào cộng đồng.\n\nHệ thống còn thưởng nóng hàng trăm SWGT khi bạn đạt các mốc Quân hàm. Hãy lấy Link giới thiệu trong mục <b>"3️⃣ Tăng trưởng"</b> và xây dựng cỗ máy in tiền tự động cho riêng mình!`;
+            answerText = `🚀 <b>HỎI: Bí quyết tạo Dòng Tiền lớn với Vốn 0 đồng?</b>\n\n<b>ĐÁP:</b> <i>"Đòn bẩy (Leverage) chính là chìa khóa của người giàu!"</i>\nBạn không cần vốn, hãy dùng đòn bẩy cộng đồng. Khi bạn lan tỏa cơ hội đầu tư này, bạn nhận ngay <b>10 - 20 SWGT</b> cho mỗi đối tác chất lượng bước vào cộng đồng.\n\nHệ thống còn thưởng nóng hàng trăm SWGT khi bạn đạt các mốc Quân hàm. Hãy lấy Link giới thiệu trong mục <b>"3️⃣ Tăng trưởng"</b> và xây dựng cỗ máy in tiền tự động cho riêng mình!`;
         }
         else if (data === 'faq_5') {
-            answerText = `⏳ <b>HỎI: Thanh khoản và thời gian rút tiền?</b>\n\n<b>ĐÁP:</b> Lệnh rút tiền được kiểm duyệt chéo để bảo vệ dòng vốn của cộng đồng, thường tiền sẽ về ví trong <b>24h - 48h</b> làm việc.\n\n⚠️ <b>ĐẶC QUYỀN VIP:</b> Nhằm bảo vệ giá trị token, tài khoản thường có thời gian khóa 15 ngày, Premium là 7 ngày. Nhưng nếu bạn chứng minh được năng lực (cày đạt mốc <b>1500 SWGT</b>), hệ thống sẽ "Phá băng" toàn bộ. Bạn được quyền rút tiền bất cứ lúc nào, thanh khoản tức thì!`;
+            answerText = `⏳ <b>HỎI: Thanh khoản và thời gian rút tiền?</b>\n\n<b>ĐÁP:</b> Lệnh rút tiền được kiểm duyệt chéo để bảo vệ dòng vốn của cộng đồng, thường tiền sẽ về ví trong <b>24h - 48h</b> làm việc.\n\n⚠️ <b>ĐẶC QUYỀN VIP:</b> Nhằm bảo vệ giá trị token, tài khoản thường có thời gian khóa 15 ngày, Premium là 7 ngày. \n\n🛡 <b>CHỐNG GIAN LẬN:</b> Tài khoản ảo/mới tạo sẽ bị giam tiền 60 ngày để xác minh tương tác.`;
         }
         else if (data === 'faq_6') {
             answerText = `💎 <b>HỎI: Các Thương Vụ Đầu Tư Chiến Lược là gì?</b>\n\n<b>ĐÁP:</b> Tham gia cộng đồng, bạn sẽ được phím những "kèo" thay đổi vị thế: Từ cổ phần doanh nghiệp công nghệ tiềm năng trước thềm niêm yết (Pre-IPO), các dự án startup công nghệ cao, cho đến các ngách đầu tư Bất động sản tạo dòng tiền bền vững.\n\nĐây là những thương vụ "Private Sale" (bán kín) mà nhà đầu tư cá nhân bên ngoài hiếm khi chạm tới được. SWGT chính là chìa khóa để bạn bước vào sân chơi của các cá mập!`;
@@ -1418,7 +1424,7 @@ else if (data === 'admin_thongke') {
                 }
             }
             else if (data === 'admin_help_cheat') {
-                const text = `👮 <b>CÔNG CỤ XỬ LÝ GIAN LẬN (ANTI-CHEAT)</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền ID vào cuối:</i>\n\n1. Tra cứu nhanh thông tin 1 người:\n<code>/tracuu [ID]</code>\n\n2. Soi danh sách khách của 1 người:\n<code>/checkref [ID]</code>\n\n3. Lọc & xóa vĩnh viễn nick ảo:\n<code>/locref [ID]</code>\n\n4. Phạt nặng (Trừ tiền & Ref ảo):\n<code>/phat [ID]</code>\n\n5. Đối soát & giải thích (Nhẹ nhàng):\n<code>/resetref [ID]</code>\n\n6. Chỉnh thông số thủ công:\n<code>/setref [ID] [Lượt_mời] [Tiền]</code>`;
+                const text = `👮 <b>CÔNG CỤ XỬ LÝ GIAN LẬN (ANTI-CHEAT)</b>\n\n<i>👉 Chạm vào lệnh dưới đây để tự động Copy, sau đó dán ra khung chat và điền ID vào cuối:</i>\n\n1. Tra cứu nhanh thông tin 1 người:\n<code>/tracuu </code>\n\n2. Soi danh sách khách của 1 người:\n<code>/checkref </code>\n\n3. Lọc & xóa vĩnh viễn nick ảo:\n<code>/locref </code>\n\n4. Phạt nặng (Trừ tiền & Ref ảo):\n<code>/phat </code>\n\n5. Đối soát & giải thích (Nhẹ nhàng):\n<code>/resetref </code>\n\n6. Chỉnh thông số thủ công:\n<code>/setref [ID] [Lượt_mời] [Tiền]</code>`;
                 bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
             }
             else if (data === 'admin_help_mkt') {
@@ -1465,30 +1471,48 @@ else if (data === 'admin_thongke') {
                         let referrer = await User.findOne({ userId: user.referredBy });
                         if (referrer) {
                             const refReward = referrer.isPremium ? 20 : 10;
-                            referrer.balance = Math.round((referrer.balance + refReward) * 100) / 100;
-                            referrer.referralCount += 1;
-                            referrer.weeklyReferralCount = (referrer.weeklyReferralCount || 0) + 1;
                             
-                            await referrer.save();
+                            // KIỂM TRA ĐỘ TUỔI TÀI KHOẢN (ID < 6.5 Tỷ là nick cũ)
+                            const isNewAccount = parseInt(user.userId) >= 6500000000;
 
-                            let rankUpMsg = "";
-                            switch (referrer.referralCount) {
-                                case 3:   rankUpMsg = "🎖 <b>THĂNG CẤP: ĐẠI ÚY</b> (Đã mở khóa mốc 3)"; break;
-                                case 10:  rankUpMsg = "🎖 <b>THĂNG CẤP: THIẾU TÁ</b> (Đã mở khóa mốc 10)"; break;
-                                case 20:  rankUpMsg = "🎖 <b>THĂNG CẤP: TRUNG TÁ</b> (Đã mở khóa mốc 20)"; break;
-                                case 50:  rankUpMsg = "🎖 <b>THĂNG CẤP: THƯỢNG TÁ</b> (Đã mở khóa mốc 50)"; break;
-                                case 80:  rankUpMsg = "🎖 <b>THĂNG CẤP: ĐẠI TÁ</b> (Đã mở khóa mốc 80)"; break;
-                                case 120: rankUpMsg = "🌟 <b>THĂNG CẤP: THIẾU TƯỚNG</b> (Đã mở khóa mốc 120)"; break;
-                                case 200: rankUpMsg = "🌟🌟 <b>THĂNG CẤP: TRUNG TƯỚNG</b> (Đã mở khóa mốc 200)"; break;
-                                case 350: rankUpMsg = "🌟🌟🌟 <b>THĂNG CẤP: THƯỢNG TƯỚNG</b> (Đã mở khóa mốc 350)"; break;
-                                case 500: rankUpMsg = "🌟🌟🌟🌟 <b>THĂNG CẤP: ĐẠI TƯỚNG</b> (Đã mở khóa mốc 500)"; break;
-                            }
+                            if (!isNewAccount) {
+                                referrer.balance = Math.round((referrer.balance + refReward) * 100) / 100;
+                                referrer.referralCount += 1;
+                                referrer.weeklyReferralCount = (referrer.weeklyReferralCount || 0) + 1;
+                                
+                                await referrer.save();
 
-                            let notifyMsg = `🎉 <b>BẠN NHẬN ĐƯỢC +${refReward} SWGT!</b>\n\nĐối tác <b>${user.firstName}</b> do bạn mời đã hoàn thành nhiệm vụ Tân Binh.\nTổng mời hiện tại: ${referrer.referralCount} người.`;
-                            if (rankUpMsg) {
-                                notifyMsg += `\n\n${rankUpMsg}\n🛑 <b>CHÚC MỪNG! CÓ QUÀ THĂNG HẠNG!</b> Hãy mở App nhận ngay phần thưởng nóng!`;
+                                let rankUpMsg = "";
+                                switch (referrer.referralCount) {
+                                    case 3:   rankUpMsg = "🎖 <b>THĂNG CẤP: ĐẠI ÚY</b> (Đã mở khóa mốc 3)"; break;
+                                    case 10:  rankUpMsg = "🎖 <b>THĂNG CẤP: THIẾU TÁ</b> (Đã mở khóa mốc 10)"; break;
+                                    case 20:  rankUpMsg = "🎖 <b>THĂNG CẤP: TRUNG TÁ</b> (Đã mở khóa mốc 20)"; break;
+                                    case 50:  rankUpMsg = "🎖 <b>THĂNG CẤP: THƯỢNG TÁ</b> (Đã mở khóa mốc 50)"; break;
+                                    case 80:  rankUpMsg = "🎖 <b>THĂNG CẤP: ĐẠI TÁ</b> (Đã mở khóa mốc 80)"; break;
+                                    case 120: rankUpMsg = "🌟 <b>THĂNG CẤP: THIẾU TƯỚNG</b> (Đã mở khóa mốc 120)"; break;
+                                    case 200: rankUpMsg = "🌟🌟 <b>THĂNG CẤP: TRUNG TƯỚNG</b> (Đã mở khóa mốc 200)"; break;
+                                    case 350: rankUpMsg = "🌟🌟🌟 <b>THĂNG CẤP: THƯỢNG TƯỚNG</b> (Đã mở khóa mốc 350)"; break;
+                                    case 500: rankUpMsg = "🌟🌟🌟🌟 <b>THĂNG CẤP: ĐẠI TƯỚNG</b> (Đã mở khóa mốc 500)"; break;
+                                }
+
+                                let notifyMsg = `🎉 <b>BẠN NHẬN ĐƯỢC +${refReward} SWGT!</b>\n\nĐối tác <b>${user.firstName}</b> do bạn mời đã hoàn thành nhiệm vụ Tân Binh.\nTổng mời hiện tại: ${referrer.referralCount} người.`;
+                                if (rankUpMsg) {
+                                    notifyMsg += `\n\n${rankUpMsg}\n🛑 <b>CHÚC MỪNG! CÓ QUÀ THĂNG HẠNG!</b> Hãy mở App nhận ngay phần thưởng nóng!`;
+                                }
+                                bot.sendMessage(user.referredBy, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
+                            } else {
+                                // NICK MỚI MUA -> ĐÓNG BĂNG 60 NGÀY
+                                const unlockDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // +60 ngày
+                                referrer.pendingRefs.push({
+                                    refereeId: user.userId,
+                                    unlockDate: unlockDate,
+                                    reward: refReward
+                                });
+                                await referrer.save();
+                                
+                                let notifyPendingMsg = `⏳ <b>GHI NHẬN LƯỢT MỜI BỊ ĐÓNG BĂNG (60 NGÀY)</b>\n\nThành viên <b>${user.firstName}</b> do bạn mời đã hoàn thành nhiệm vụ.\n\n⚠️ <i>Hệ thống Anti-Cheat phát hiện đây là tài khoản Telegram mới khởi tạo. Để chống gian lận (Tool/Clone), phần thưởng <b>+${refReward} SWGT</b> và <b>1 Lượt mời</b> của bạn sẽ bị đóng băng. Nó sẽ tự động được cộng vào tài khoản của bạn sau 60 ngày nếu đối tác này vẫn hoạt động trong nhóm!</i>`;
+                                bot.sendMessage(user.referredBy, notifyPendingMsg, {parse_mode: 'HTML'}).catch(()=>{});
                             }
-                            bot.sendMessage(user.referredBy, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
                         }
                     }
 
@@ -1638,16 +1662,14 @@ else if (data === 'admin_thongke') {
     }
 
     else if (data === 'task_3') {
-        const inviteReward = user.isPremium ? 40 : 20;
+        const inviteReward = user.isPremium ? 15 : 10; // ĐÃ CẬP NHẬT HALVING
         const textTask3 = `💎 <b>CHẶNG 3: LAN TỎA GIÁ TRỊ - KIẾN TẠO DI SẢN</b>\n\n` +
                           `<i>"Của cho không bằng cách cho. Chúng ta không đi thuyết phục người tham gia, chúng ta đang trao cơ hội nắm giữ cổ phần công nghệ giao thông uST trước khi nó trở thành kỳ lân!"</i>\n\n` +
                           `🤝 Bạn đã trao cơ hội thành công cho: <b>${user.referralCount || 0} đối tác</b>.\n\n` +
                           `🔗 <b>Đường dẫn trao đặc quyền của bạn:</b>\nhttps://t.me/Dau_Tu_SWC_bot?start=${userId}\n\n` +
                           `🎁 <b>QUÀ TẶNG TRI ÂN TỪ HỆ THỐNG:</b>\n` +
                           `- Nhận tri ân <b>+${inviteReward} SWGT</b> cho mỗi đối tác bạn giúp đỡ kích hoạt thành công.\n` +
-                          `- Mở khóa Quỹ Thưởng Đặc Quyền khi đạt các mốc vinh danh:\n` +
-                          `  👑 Đạt 10 lượt trao cơ hội: Thưởng nóng <b>+25 SWGT</b>\n` +
-                          `  👑 Đạt 50 lượt trao cơ hội: Thưởng nóng <b>+100 SWGT</b>\n\n` +
+                          `- Mở khóa Quỹ Thưởng Đặc Quyền khi đạt các mốc vinh danh.\n\n` +
                           `👉 <b>MỞ APP VÀO MỤC PHẦN THƯỞNG ĐỂ NHẬN QUÂN HÀM VÀ QUÀ TẶNG CỦA BẠN!</b>`;
         bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
     } 
@@ -1707,7 +1729,7 @@ bot.on('chat_member', async (update) => {
                 if (leftUser.referredBy) {
                     let referrer = await User.findOne({ userId: leftUser.referredBy });
                     if (referrer) {
-                        const refPenalty = referrer.isPremium ? 20 : 10; 
+                        const refPenalty = referrer.isPremium ? 15 : 10; 
                         
                         referrer.balance = Math.max(0, referrer.balance - refPenalty);
                         referrer.referralCount = Math.max(0, referrer.referralCount - 1);
