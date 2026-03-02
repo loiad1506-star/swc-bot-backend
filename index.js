@@ -1261,7 +1261,7 @@ bot.on('callback_query', async (callbackQuery) => {
             bot.sendMessage(ADMIN_ID, "✅ Đã gửi nhắc Tân binh cho B và chửi yêu A (9H).");
         }
         else if (data === 'test_10h') {
-            let readMsgB = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN! (TEST)</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mới mở App để bấm Nhận Thưởng nhé!</i>`;
+            let readMsg = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN! (TEST)</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mới mở App để bấm Nhận Thưởng nhé!</i>`;
             let keyboard = [
                 [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }],
                 [{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }],
@@ -1269,8 +1269,15 @@ bot.on('callback_query', async (callbackQuery) => {
                 [{ text: "📢 CHIA SẺ DỰ ÁN (Đợi 5s)", callback_data: 'go_share' }],
                 [{ text: "🎁 ĐÃ XONG! MỞ APP NHẬN THƯỞNG", web_app: { url: webAppUrl } }]
             ];
-            bot.sendMessage(idB, readMsgB, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }).catch(()=>{});
-            bot.sendMessage(ADMIN_ID, "✅ Đã gửi nhắc làm nhiệm vụ ngày (10H) cho B.");
+            
+            // Gửi cho Người A
+            bot.sendMessage(idA, readMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }).catch(()=>{});
+            
+            // Gửi cho Người B
+            bot.sendMessage(idB, readMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }).catch(()=>{});
+            
+            // Báo cáo lại cho Admin
+            bot.sendMessage(ADMIN_ID, "✅ Đã gửi nhắc làm nhiệm vụ ngày (10H) cho cả A và B.");
         }
         else if (data === 'test_unlock') {
             let notifyMsg = `🔓 <b>BĂNG ĐÃ TAN! PHẦN THƯỞNG VỀ VÍ! (TEST)</b>\n\nChúc mừng bạn! Có <b>1 đối tác</b> do bạn mời đã vượt qua thử thách 30 ngày. Giải phóng <b>+10 SWGT</b> vào tài khoản.`;
