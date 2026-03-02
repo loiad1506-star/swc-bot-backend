@@ -70,12 +70,16 @@ const userSchema = new mongoose.Schema({
     task1Done: { type: Boolean, default: false }, 
     walletRewardDone: { type: Boolean, default: false }, 
     
+    // LƯU VẾT THỜI GIAN NHIỆM VỤ ĐỂ KIỂM TRA BÊN MINI APP
     lastDailyTask: { type: Date, default: null }, 
     readTaskStartTime: { type: Date, default: null }, 
+    
     youtubeTaskDone: { type: Boolean, default: false }, 
     youtubeClickTime: { type: Date, default: null },
+    
     facebookTaskDone: { type: Boolean, default: false },
     facebookClickTime: { type: Date, default: null },
+    
     lastShareTask: { type: Date, default: null },
     shareClickTime: { type: Date, default: null },
 
@@ -105,8 +109,7 @@ setInterval(async () => {
     const vnMinute = vnTime.getUTCMinutes();
 
     if (vnHour === 8 && vnMinute === 0) {
-        console.log('Bắt đầu gửi thông báo nhắc điểm danh sáng...');
-        const todayStr = vnTime.toISOString().split('T')[0];
+        const todayStr = vnTime.toISOString().split('T')[0]; 
         const users = await User.find({});
         
         for (let user of users) {
@@ -138,7 +141,9 @@ setInterval(async () => {
     const vnHour = vnTime.getUTCHours();
     const vnMinute = vnTime.getUTCMinutes();
 
+    // ----------------------------------------------------
     // 1️⃣ 9H SÁNG: NHẮC TÂN BINH & "CHỬI YÊU" NGƯỜI MỜI
+    // ----------------------------------------------------
     if (vnHour === 9 && vnMinute === 0) {
         try {
             const inactiveUsers = await User.find({ task1Done: false });
@@ -171,7 +176,9 @@ setInterval(async () => {
         } catch (error) { console.error("Lỗi thông báo 9h:", error); }
     }
 
+    // ----------------------------------------------------
     // 2️⃣ 10H SÁNG: GỬI NHIỆM VỤ ĐỌC BÀI, XEM YOUTUBE, FANPAGE
+    // ----------------------------------------------------
     if (vnHour === 10 && vnMinute === 0) {
         try {
             const todayStr = vnTime.toISOString().split('T')[0]; 
@@ -226,7 +233,7 @@ setInterval(async () => {
                 });
 
                 const msg = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA TUẦN NÀY - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
-                            `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị:\n\n` +
+                            `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị, giúp thêm hàng chục người anh em bước chân vào bệ phóng thịnh vượng này:\n\n` +
                             `${topText}\n` +
                             `💡 <i>"Thành công lớn nhất không phải là bạn có bao nhiêu tiền, mà là bạn giúp được bao nhiêu người trở nên giàu có."</i>\n\n` +
                             `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay tối nay nhé! Đua top tuần này để nhận phần thưởng xứng đáng! 🚀`;
@@ -338,22 +345,23 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
-    // API: LẤY THÔNG TIN USER (TÍNH TOÁN SỐ DƯ BỊ KHÓA)
+    // API: LẤY THÔNG TIN USER 
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
         if (!userData) userData = { balance: 0, wallet: '', gatecode: '', fullName: '', email: '', phone: '', referralCount: 0, isPremium: false, joinDate: Date.now(), activeFrame: 'none', ownedFrames: ['none'], spinCount: 0 };
         
-        // TÍNH TỔNG SỐ TIỀN ĐANG BỊ KHÓA
         let lockedBalance = 0;
+        let lockedRefsCount = 0;
         if (userData && userData.pendingRefs && userData.pendingRefs.length > 0) {
             lockedBalance = userData.pendingRefs.reduce((sum, ref) => sum + (ref.reward || 0), 0);
+            lockedRefsCount = userData.pendingRefs.length;
         }
         lockedBalance = Math.round(lockedBalance * 100) / 100;
 
         const vnNowStr = new Date(new Date().getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ...userData._doc, serverDateVN: vnNowStr, lockedBalance: lockedBalance }));
+        res.end(JSON.stringify({ ...userData._doc, serverDateVN: vnNowStr, lockedBalance: lockedBalance, lockedRefsCount: lockedRefsCount }));
     } 
     
     // API: LƯU VÍ
@@ -424,7 +432,6 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-
     // API: TỰ BẤM NHẬN THƯỞNG MỐC
     else if (parsedUrl.pathname === '/api/claim-milestone' && req.method === 'POST') {
         let body = '';
@@ -509,7 +516,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // 🚀 API: KIỂM TRA & NHẬN THƯỞNG NHIỆM VỤ TỪ APP
+    // 🚀 API MỚI: BẢO MẬT TUYỆT ĐỐI KIỂM TRA NHIỆM VỤ APP
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -525,19 +532,19 @@ const server = http.createServer(async (req, res) => {
                 let errorMsg = "";
 
                 if (data.taskType === 'read') {
-                    const lastDailyStr = user.lastDailyTask ? new Date(user.lastDailyTask.getTime() + 7 * 3600000).toISOString().split('T')[0] : '';
+                    const lastDailyStr = user.lastDailyTask ? new Date(new Date(user.lastDailyTask).getTime() + 7 * 3600000).toISOString().split('T')[0] : '';
                     if (lastDailyStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng đọc bài rồi!";
                     } else if (!user.readTaskStartTime) {
-                        errorMsg = "Bạn chưa bấm nút Mở Đọc Bài trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút ĐỌC BÀI VIẾT trên Bot Telegram để bắt đầu tính giờ!";
                     } else {
-                        const clickTimeVNStr = new Date(user.readTaskStartTime.getTime() + 7 * 3600000).toISOString().split('T')[0];
+                        const clickTimeVNStr = new Date(new Date(user.readTaskStartTime).getTime() + 7 * 3600000).toISOString().split('T')[0];
                         if (clickTimeVNStr !== vnNowStr) {
-                            errorMsg = "Hôm nay bạn chưa bấm nút Mở Đọc Bài trên Bot Telegram!";
+                            errorMsg = "Bạn chưa bấm nút ĐỌC BÀI VIẾT trên Bot Telegram trong ngày hôm nay!";
                         } else {
-                            const timeSpent = (now.getTime() - user.readTaskStartTime.getTime()) / 1000;
+                            const timeSpent = (now.getTime() - new Date(user.readTaskStartTime).getTime()) / 1000;
                             if (timeSpent < 60) {
-                                errorMsg = `Chưa đủ thời gian! Mới đọc được ${Math.round(timeSpent)}/60 giây.`;
+                                errorMsg = `Chưa đủ thời gian! Mới được ${Math.round(timeSpent)}/60 giây.`;
                             } else {
                                 finalReward = 10;
                                 user.lastDailyTask = now;
@@ -552,9 +559,9 @@ const server = http.createServer(async (req, res) => {
                     } else if (!user.youtubeClickTime) {
                         errorMsg = "Bạn chưa bấm nút mở link YouTube trên Bot Telegram!";
                     } else {
-                        const timeSpent = (now.getTime() - user.youtubeClickTime.getTime()) / 1000;
+                        const timeSpent = (now.getTime() - new Date(user.youtubeClickTime).getTime()) / 1000;
                         if (timeSpent < 6) {
-                            errorMsg = `Chưa đủ thời gian! Mới xem được ${Math.round(timeSpent)}/6 giây.`;
+                            errorMsg = `Chưa đủ thời gian! Mới được ${Math.round(timeSpent)}/6 giây.`;
                         } else {
                             finalReward = 5;
                             user.youtubeTaskDone = true;
@@ -567,9 +574,9 @@ const server = http.createServer(async (req, res) => {
                     } else if (!user.facebookClickTime) {
                         errorMsg = "Bạn chưa bấm nút theo dõi Fanpage trên Bot Telegram!";
                     } else {
-                        const timeSpent = (now.getTime() - user.facebookClickTime.getTime()) / 1000;
+                        const timeSpent = (now.getTime() - new Date(user.facebookClickTime).getTime()) / 1000;
                         if (timeSpent < 5) {
-                            errorMsg = `Chưa đủ thời gian! Mới thao tác được ${Math.round(timeSpent)}/5 giây.`;
+                            errorMsg = `Chưa đủ thời gian! Mới được ${Math.round(timeSpent)}/5 giây.`;
                         } else {
                             finalReward = 5;
                             user.facebookTaskDone = true;
@@ -577,19 +584,19 @@ const server = http.createServer(async (req, res) => {
                     }
                 } 
                 else if (data.taskType === 'share') {
-                    const lastShareStr = user.lastShareTask ? new Date(user.lastShareTask.getTime() + 7 * 3600000).toISOString().split('T')[0] : '';
+                    const lastShareStr = user.lastShareTask ? new Date(new Date(user.lastShareTask).getTime() + 7 * 3600000).toISOString().split('T')[0] : '';
                     if (lastShareStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng chia sẻ rồi!";
                     } else if (!user.shareClickTime) {
-                        errorMsg = "Bạn chưa bấm nút Mở Chia Sẻ trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút CHIA SẺ DỰ ÁN trên Bot Telegram!";
                     } else {
-                        const clickTimeVNStr = new Date(user.shareClickTime.getTime() + 7 * 3600000).toISOString().split('T')[0];
+                        const clickTimeVNStr = new Date(new Date(user.shareClickTime).getTime() + 7 * 3600000).toISOString().split('T')[0];
                         if (clickTimeVNStr !== vnNowStr) {
-                            errorMsg = "Hôm nay bạn chưa bấm nút Mở Chia Sẻ trên Bot Telegram!";
+                            errorMsg = "Bạn chưa bấm nút CHIA SẺ DỰ ÁN trên Bot Telegram trong ngày hôm nay!";
                         } else {
-                            const timeSpent = (now.getTime() - user.shareClickTime.getTime()) / 1000;
+                            const timeSpent = (now.getTime() - new Date(user.shareClickTime).getTime()) / 1000;
                             if (timeSpent < 5) {
-                                errorMsg = `Thao tác quá nhanh, hệ thống chưa kịp ghi nhận.`;
+                                errorMsg = `Bạn thao tác chia sẻ quá nhanh, hệ thống chưa kịp ghi nhận.`;
                             } else {
                                 finalReward = 15;
                                 user.lastShareTask = now;
@@ -617,7 +624,132 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // API RÚT TIỀN / CÁC API KHÁC...
+    // ==========================================
+    // 😈 API MỚI: RƯƠNG GACHA (TÂM LÝ NHÀ CÁI)
+    // ==========================================
+    else if (parsedUrl.pathname === '/api/spin-wheel' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) return res.writeHead(400), res.end();
+
+                if (user.balance < 20) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: "⚠️ Không đủ 20 SWGT để mua búa đập rương!" }));
+                }
+
+                // Trừ tiền mua búa
+                user.balance = Math.round((user.balance - 20) * 100) / 100;
+                
+                // Logic Pity (Bảo hiểm 30 lần)
+                user.spinCount = (user.spinCount || 0) + 1;
+                
+                let reward = 0;
+                if (user.spinCount >= 30) {
+                    reward = 500;
+                    user.spinCount = 0; // Reset pity
+                } else {
+                    // Tỷ lệ vòng thường (Được chỉnh sửa để hút máu êm ái)
+                    const weights = [
+                        { reward: 0, chance: 45 },      // Than đá
+                        { reward: 5, chance: 35 },      // Rương Gỗ
+                        { reward: 10, chance: 12 },     // Rương Bạc
+                        { reward: 20, chance: 5 },      // Hoà vốn
+                        { reward: 50, chance: 1.5 },    // Lãi vừa
+                        { reward: -2, chance: 1.5 }     // -2 là Mảnh Khung Ánh Sáng
+                    ];
+
+                    let rand = Math.random() * 100;
+                    let cumulative = 0;
+                    for (let w of weights) {
+                        cumulative += w.chance;
+                        if (rand <= cumulative) { reward = w.reward; break; }
+                    }
+                }
+
+                // Cộng thưởng 
+                if (reward === -2) { // Mảnh khung
+                    if (!user.ownedFrames.includes('light')) {
+                        user.ownedFrames.push('light');
+                    }
+                } else if (reward > 0) {
+                    user.balance = Math.round((user.balance + reward) * 100) / 100;
+                }
+
+                await user.save();
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, reward: reward, newBalance: user.balance }));
+
+            } catch (e) {
+                res.writeHead(400); res.end(JSON.stringify({ success: false }));
+            }
+        });
+    }
+
+// ==========================================
+    // CỬA HÀNG VÀ ĐỔI QUÀ (REDEEM) 
+    // ==========================================
+    else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: "Không tìm thấy người dùng" }));
+                }
+                
+                const frameIds = ['bronze', 'silver', 'gold', 'dragon', 'light']; 
+                if (frameIds.includes(data.itemName)) {
+                    if (data.cost > 0) {
+                        if (user.balance < data.cost) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            return res.end(JSON.stringify({ success: false, message: "Không đủ số dư!" }));
+                        }
+                        user.balance = Math.round((user.balance - data.cost) * 100) / 100;
+                    }
+                    
+                    user.activeFrame = data.itemName;
+                    if (!user.ownedFrames) user.ownedFrames = ['none'];
+                    if (!user.ownedFrames.includes(data.itemName)) {
+                        user.ownedFrames.push(data.itemName);
+                    }
+                    
+                    await user.save();
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: true, balance: user.balance }));
+                }
+
+                if (user.balance < data.cost) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: `Bạn cần tích lũy đủ ${data.cost} SWGT để đổi quyền lợi này!` }));
+                }
+                
+                user.balance = Math.round((user.balance - data.cost) * 100) / 100;
+                await user.save();
+
+                const userNotify = `⏳ Yêu cầu đổi: <b>${data.itemName}</b> đang được xử lý!`;
+                bot.sendMessage(data.userId, userNotify, {parse_mode: 'HTML'}).catch(()=>{});
+                
+                const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ</b>\nKhách: ${user.firstName} (ID: <code>${user.userId}</code>)\nQuà: ${data.itemName}\nVí: ${user.wallet || 'Chưa cập nhật'}\n💰 Đã trừ: ${data.cost} SWGT\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VỚI KHÁCH</a>`;
+                bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' }).catch(()=>{});
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, balance: user.balance }));
+            } catch (e) { 
+                res.writeHead(400, { 'Content-Type': 'application/json' }); 
+                res.end(JSON.stringify({ success: false, message: 'Lỗi server' })); 
+            }
+        });
+    }
+
+    // API: YÊU CẦU RÚT TIỀN
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -663,15 +795,25 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API BẢNG XẾP HẠNG
+    // API BẢNG XẾP HẠNG 
     else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
         try {
-            // Lấy Top Tuần và Top Tổng gộp chung để Frontend tự tách
-            const topUsers = await User.find({ $or: [{referralCount: { $gt: 0 }}, {weeklyReferralCount: { $gt: 0 }}] })
-                                       .select('firstName lastName referralCount weeklyReferralCount activeFrame')
-                                       .limit(50);
+            const allUsersForBoard = await User.find({ $or: [{referralCount: { $gt: 0 }}, {weeklyReferralCount: { $gt: 0 }}] })
+                                       .select('firstName lastName referralCount weeklyReferralCount activeFrame pendingRefs');
+            
+            const processedUsers = allUsersForBoard.map(u => {
+                let lockedCount = (u.pendingRefs && u.pendingRefs.length > 0) ? u.pendingRefs.length : 0;
+                return {
+                    firstName: u.firstName,
+                    lastName: u.lastName,
+                    activeFrame: u.activeFrame,
+                    referralCount: Math.max(0, u.referralCount - lockedCount), 
+                    weeklyReferralCount: Math.max(0, (u.weeklyReferralCount || 0) - lockedCount) 
+                };
+            });
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(topUsers));
+            res.end(JSON.stringify(processedUsers));
         } catch (e) { res.writeHead(400); res.end(); }
     }
     else { res.writeHead(200); res.end('API Online'); }
@@ -929,7 +1071,12 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
             user.referredBy = refId;
             let referrer = await User.findOne({ userId: refId });
             if (referrer) {
-                let notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI THAM GIA!</b>\n\n👤 <b>Tên:</b> ${firstName} ${lastName}\n🆔 <b>ID:</b> <code>${userId}</code>\n\n⚠️ <b>LƯU Ý:</b> Hãy nhắc họ làm "Nhiệm vụ Tân binh" để hệ thống xác minh tài khoản thật nhé!`;
+                let notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI VỪA BẤM VÀO LINK CỦA BẠN!</b>\n\n` +
+                                `👤 <b>Tên đối tác:</b> ${firstName} ${lastName}\n` +
+                                `🔗 <b>Trang cá nhân:</b> <a href="tg://user?id=${userId}">Bấm vào đây để xem</a>\n\n` +
+                                `⚠️ <b>CHIẾN THUẬT KẾT NỐI:</b>\n` +
+                                `Để tránh bị Telegram chặn vì nhắn tin cho người lạ, Bot đã tạo sẵn nút <b>"Liên hệ Người Hướng Dẫn"</b> bên máy của khách để yêu cầu họ nhắn cho bạn trước.\n\n` +
+                                `👉 <i>Nếu một lúc sau vẫn chưa thấy họ nhắn, bạn hãy chủ động bấm vào link trên để chat trước nhé!</i>`;
                 bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
             }
         }
@@ -939,19 +1086,27 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     await user.save();
     
     let welcomeText = `👋 <b>Chào mừng bạn đến với Cộng Đồng SWC Việt Nam!</b> 🚀\n\nBạn đã bước chân vào trung tâm kết nối của những nhà đầu tư tiên phong. Cơ hội sở hữu trước token SWGT đang ở ngay trước mắt!\n\n👇 <b>HÀNH ĐỘNG NGAY:</b> Bấm nút <b>"MỞ ỨNG DỤNG SWC NGAY"</b> bên dưới để kích hoạt ví và gia tăng tài sản!`;
-    if (isNewUser && refId && refId !== userId) { welcomeText = `🎉 <i>Bạn được mời bởi ID: ${refId}</i>\n\n` + welcomeText; }
+    if (isNewUser && refId && refId !== userId) { welcomeText = `🎉 <i>Bạn được mời tham gia bởi một Đại sứ SWC!</i>\n\n` + welcomeText; }
     
+    let keyboardArray = [
+        [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
+        [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
+        [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
+        [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
+        [{ text: "❓ Đặt Câu hỏi (FAQ)", callback_data: 'show_faq' }],
+        [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
+    ];
+
+    if (user.referredBy && user.referredBy !== userId) {
+        keyboardArray.unshift([
+            { text: "💬 LIÊN HỆ NGƯỜI HƯỚNG DẪN CỦA BẠN", url: `tg://user?id=${user.referredBy}` }
+        ]);
+    }
+
     const opts = {
         parse_mode: 'HTML',
         reply_markup: {
-            inline_keyboard: [
-                [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
-                [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
-                [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
-                [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
-                [{ text: "❓ Đặt Câu hỏi (FAQ)", callback_data: 'show_faq' }],
-                [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
-            ]
+            inline_keyboard: keyboardArray
         }
     };
     bot.sendPhoto(chatId, './Bia.jpg', { caption: welcomeText, parse_mode: 'HTML', reply_markup: opts.reply_markup }).catch(err => { bot.sendMessage(chatId, welcomeText, opts); });
@@ -1416,7 +1571,6 @@ bot.on('chat_member', async (update) => {
     }
 });
 
-// LỆNH TEST KỊCH BẢN GIẢ LẬP 9H VÀ 10H SÁNG
 bot.onText(/\/testkichban/, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const idA = '7515902413'; const idB = '8364834164'; 
