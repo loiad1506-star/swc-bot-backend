@@ -70,15 +70,13 @@ const userSchema = new mongoose.Schema({
     task1Done: { type: Boolean, default: false }, 
     walletRewardDone: { type: Boolean, default: false }, 
     
+    // LƯU VẾT THỜI GIAN NHIỆM VỤ ĐỂ CHỐNG GIAN LẬN
     lastDailyTask: { type: Date, default: null }, 
     readTaskStartTime: { type: Date, default: null }, 
-    
     youtubeTaskDone: { type: Boolean, default: false }, 
     youtubeClickTime: { type: Date, default: null },
-    
     facebookTaskDone: { type: Boolean, default: false },
     facebookClickTime: { type: Date, default: null },
-    
     lastShareTask: { type: Date, default: null },
     shareClickTime: { type: Date, default: null },
 
@@ -181,22 +179,25 @@ setInterval(async () => {
 
             for (let user of allUsers) {
                 let lastReadStr = '';
-                if (user.lastDailyTask) { lastReadStr = new Date(new Date(user.lastDailyTask).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0]; }
-                let lastShareStr = '';
-                if (user.lastShareTask) { lastShareStr = new Date(new Date(user.lastShareTask).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0]; }
+                if (user.lastDailyTask) {
+                    lastReadStr = new Date(new Date(user.lastDailyTask).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
+                }
 
-                if (lastReadStr !== todayStr || !user.youtubeTaskDone || !user.facebookTaskDone || lastShareStr !== todayStr) {
+                if (lastReadStr !== todayStr || !user.youtubeTaskDone || !user.facebookTaskDone) {
                     let readMsg = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN!</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mới mở App để bấm Nhận Thưởng nhé!</i>`;
                     
                     let keyboard = [];
                     if (lastReadStr !== todayStr) keyboard.push([{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }]);
                     if (!user.youtubeTaskDone) keyboard.push([{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }]);
                     if (!user.facebookTaskDone) keyboard.push([{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }]);
-                    if (lastShareStr !== todayStr) keyboard.push([{ text: "📢 CHIA SẺ DỰ ÁN (Đợi 5s)", callback_data: 'go_share' }]);
                     
                     keyboard.push([{ text: "🎁 ĐÃ XONG! MỞ APP NHẬN THƯỞNG", web_app: { url: webAppUrl } }]);
 
-                    bot.sendMessage(user.userId, readMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }).catch(()=>{});
+                    bot.sendMessage(user.userId, readMsg, {
+                        parse_mode: 'HTML',
+                        reply_markup: { inline_keyboard: keyboard }
+                    }).catch(()=>{});
+                    
                     await new Promise(resolve => setTimeout(resolve, 50)); 
                 }
             }
@@ -219,7 +220,9 @@ setInterval(async () => {
             if (topUsers.length > 0) {
                 let topText = "";
                 const medals = ['🥇', '🥈', '🥉'];
-                topUsers.forEach((u, index) => { topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.weeklyReferralCount} cơ hội\n`; });
+                topUsers.forEach((u, index) => {
+                    topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.weeklyReferralCount} cơ hội\n`;
+                });
 
                 const msg = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA TUẦN NÀY - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
                             `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị:\n\n` +
@@ -448,7 +451,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // 🚀 API MỚI: KIỂM TRA & NHẬN THƯỞNG NHIỆM VỤ TỪ APP (BẢO MẬT 2 LỚP - CHUẨN GIỜ VN)
+    // 🛡 BỨC TƯỜNG BẢO MẬT: KIỂM TRA NHIỆM VỤ TRƯỚC KHI TRẢ THƯỞNG
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -468,15 +471,15 @@ const server = http.createServer(async (req, res) => {
                     if (lastDailyStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng đọc bài rồi!";
                     } else if (!user.readTaskStartTime) {
-                        errorMsg = "Bạn chưa bấm nút Mở Đọc Bài trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút 'ĐỌC BÀI VIẾT' trên Bảng Chat Bot!";
                     } else {
                         const clickTimeVNStr = new Date(user.readTaskStartTime.getTime() + 7 * 3600000).toISOString().split('T')[0];
                         if (clickTimeVNStr !== vnNowStr) {
-                            errorMsg = "Hôm nay bạn chưa bấm nút Mở Đọc Bài trên Bot Telegram!";
+                            errorMsg = "Hôm nay bạn chưa bấm nút 'ĐỌC BÀI VIẾT' trên Bảng Chat Bot!";
                         } else {
                             const timeSpent = (now.getTime() - user.readTaskStartTime.getTime()) / 1000;
                             if (timeSpent < 60) {
-                                errorMsg = `Chưa đủ thời gian! Mới đọc được ${Math.round(timeSpent)}/60 giây.`;
+                                errorMsg = `Chưa đủ thời gian! Bạn mới đọc được ${Math.round(timeSpent)}/60 giây.`;
                             } else {
                                 finalReward = 10;
                                 user.lastDailyTask = now;
@@ -489,11 +492,11 @@ const server = http.createServer(async (req, res) => {
                     if (user.youtubeTaskDone) {
                         errorMsg = "Bạn đã nhận phần thưởng này rồi!";
                     } else if (!user.youtubeClickTime) {
-                        errorMsg = "Bạn chưa bấm nút mở link YouTube trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút 'XEM YOUTUBE' trên Bảng Chat Bot!";
                     } else {
                         const timeSpent = (now.getTime() - user.youtubeClickTime.getTime()) / 1000;
                         if (timeSpent < 6) {
-                            errorMsg = `Chưa đủ thời gian! Mới xem được ${Math.round(timeSpent)}/6 giây.`;
+                            errorMsg = `Chưa đủ thời gian! Bạn mới xem được ${Math.round(timeSpent)}/6 giây.`;
                         } else {
                             finalReward = 5;
                             user.youtubeTaskDone = true;
@@ -504,11 +507,11 @@ const server = http.createServer(async (req, res) => {
                     if (user.facebookTaskDone) {
                         errorMsg = "Bạn đã nhận phần thưởng này rồi!";
                     } else if (!user.facebookClickTime) {
-                        errorMsg = "Bạn chưa bấm nút theo dõi Fanpage trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút 'THEO DÕI FANPAGE' trên Bảng Chat Bot!";
                     } else {
                         const timeSpent = (now.getTime() - user.facebookClickTime.getTime()) / 1000;
                         if (timeSpent < 5) {
-                            errorMsg = `Chưa đủ thời gian! Mới thao tác được ${Math.round(timeSpent)}/5 giây.`;
+                            errorMsg = `Chưa đủ thời gian! Bạn mới thao tác được ${Math.round(timeSpent)}/5 giây.`;
                         } else {
                             finalReward = 5;
                             user.facebookTaskDone = true;
@@ -520,15 +523,15 @@ const server = http.createServer(async (req, res) => {
                     if (lastShareStr === vnNowStr) {
                         errorMsg = "Hôm nay bạn đã nhận thưởng chia sẻ rồi!";
                     } else if (!user.shareClickTime) {
-                        errorMsg = "Bạn chưa bấm nút Mở Chia Sẻ trên Bot Telegram!";
+                        errorMsg = "Bạn chưa bấm nút 'MỞ CHIA SẺ' trên Bảng Chat Bot!";
                     } else {
                         const clickTimeVNStr = new Date(user.shareClickTime.getTime() + 7 * 3600000).toISOString().split('T')[0];
                         if (clickTimeVNStr !== vnNowStr) {
-                            errorMsg = "Hôm nay bạn chưa bấm nút Mở Chia Sẻ trên Bot Telegram!";
+                            errorMsg = "Hôm nay bạn chưa bấm nút 'MỞ CHIA SẺ' trên Bảng Chat Bot!";
                         } else {
                             const timeSpent = (now.getTime() - user.shareClickTime.getTime()) / 1000;
                             if (timeSpent < 5) {
-                                errorMsg = `Thao tác quá nhanh, hệ thống chưa kịp ghi nhận.`;
+                                errorMsg = `Thao tác quá nhanh (${Math.round(timeSpent)}s), hệ thống chưa kịp ghi nhận.`;
                             } else {
                                 finalReward = 15;
                                 user.lastShareTask = now;
@@ -579,7 +582,7 @@ const server = http.createServer(async (req, res) => {
                 let reward = 0;
                 if (user.spinCount >= 30) {
                     reward = 500;
-                    user.spinCount = 0;
+                    user.spinCount = 0; 
                 } else {
                     const weights = [
                         { reward: 0, chance: 45 },
@@ -742,18 +745,14 @@ async function checkMembership(userId) {
 // 👮 BỘ CÔNG CỤ CẢNH SÁT TRƯỞNG & QUẢN LÝ (Dành riêng cho Admin)
 // =========================================================
 
-// ==========================================
-// 🔍 LỆNH ADMIN: TRA CỨU NHANH THÔNG TIN 1 NGƯỜI DÙNG BẤT KỲ
-// ==========================================
 bot.onText(/\/tracuu (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
-    
     const targetId = match[1];
     bot.sendMessage(ADMIN_ID, `⏳ Đang truy xuất thông tin của ID: <code>${targetId}</code>...`, { parse_mode: 'HTML' });
 
     try {
         const user = await User.findOne({ userId: targetId });
-        if (!user) return bot.sendMessage(ADMIN_ID, `❌ <b>KHÔNG TÌM THẤY!</b>\nNgười dùng có ID <code>${targetId}</code> chưa từng kết nối với hệ thống SWC Bot.`, { parse_mode: 'HTML' });
+        if (!user) return bot.sendMessage(ADMIN_ID, `❌ <b>KHÔNG TÌM THẤY!</b>`, { parse_mode: 'HTML' });
 
         let report = `🔎 <b>HỒ SƠ NGƯỜI DÙNG (ID: ${targetId})</b>\n\n`;
         report += `👤 <b>Họ và Tên:</b> ${user.firstName} ${user.lastName}\n`;
@@ -764,19 +763,19 @@ bot.onText(/\/tracuu (\d+)/, async (msg, match) => {
         report += `👥 <b>Tổng Lượt Mời:</b> ${user.referralCount} người\n`;
         report += `🏆 <b>Mời Tuần Này:</b> ${user.weeklyReferralCount} người\n\n`;
         report += `⚙️ <b>TRẠNG THÁI NHIỆM VỤ:</b>\n`;
-        report += `- Xác minh Tân Binh (Join Group): ${user.task1Done ? '✅ Hoàn thành' : '❌ Chưa làm'}\n`;
+        report += `- Xác minh Tân Binh: ${user.task1Done ? '✅ Hoàn thành' : '❌ Chưa làm'}\n`;
         report += `- Chuỗi Điểm Danh: ${user.checkInStreak} ngày liên tiếp\n`;
         report += `- Xem YouTube: ${user.youtubeTaskDone ? '✅' : '❌'}\n`;
         report += `- Theo dõi Fanpage: ${user.facebookTaskDone ? '✅' : '❌'}\n\n`;
         report += `💳 <b>THÔNG TIN RÚT TIỀN:</b>\n`;
         report += `- Ví ERC20: <code>${user.wallet || 'Chưa cập nhật'}</code>\n`;
-        report += `- Gatecode/UID: <code>${user.gatecode || 'Chưa cập nhật'}</code>\n`;
+        report += `- Gatecode: <code>${user.gatecode || 'Chưa cập nhật'}</code>\n`;
         report += `- Số điện thoại: ${user.phone || 'Chưa cập nhật'}\n`;
         report += `- Email: ${user.email || 'Chưa cập nhật'}\n\n`;
-        report += `👉 <a href="tg://user?id=${targetId}">Nhấn vào đây để nhắn tin trực tiếp với họ</a>`;
+        report += `👉 <a href="tg://user?id=${targetId}">Nhấn vào đây để nhắn tin trực tiếp</a>`;
 
         bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
-    } catch (error) { bot.sendMessage(ADMIN_ID, `❌ Lỗi khi tra cứu: ${error.message}`); }
+    } catch (error) { bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${error.message}`); }
 });
 
 bot.onText(/\/checktop/, async (msg) => {
@@ -912,7 +911,7 @@ bot.onText(/\/phat (\d+)/, async (msg, match) => {
     if (doneCount < 3) user.milestone3 = false;
     await user.save();
 
-    bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref: ${oldRef} ➡️ <b>${doneCount}</b>\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance}</b>\n<i>Đã gửi tin nhắn cảnh cáo dằn mặt!</i>`, { parse_mode: 'HTML' });
+    bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref: ${oldRef} ➡️ <b>${doneCount}</b> (Đã xóa ${notDoneCount} nick ảo)\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance}</b>\n<i>Đã gửi tin nhắn cảnh cáo dằn mặt!</i>`, { parse_mode: 'HTML' });
     bot.sendMessage(targetId, `⚠️ <b>CẢNH BÁO VI PHẠM TỪ HỆ THỐNG!</b>\n\nHệ thống phát hiện tài khoản có hành vi Tool/Clone.\n👮‍♂️ <b>Xử phạt:</b>\n- Xóa <b>${notDoneCount}</b> lượt mời ảo.\n- Thu hồi <b>${penalty} SWGT</b>.\nNếu tiếp tục, tài khoản sẽ bị khóa vĩnh viễn!`, { parse_mode: 'HTML' }).catch(()=>{});
 });
 
@@ -969,7 +968,6 @@ bot.onText(/\/duatop/, async (msg) => {
     } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi: " + error.message); }
 });
 
-// --- 3. XỬ LÝ LỆNH /start ---
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
     if (msg.chat.type !== 'private') return; 
@@ -1127,7 +1125,6 @@ bot.on('message', async (msg) => {
     if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.1) * 100) / 100; }
     await user.save();
 });
-
 
 bot.onText(/^\/(admin|menu)/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
@@ -1415,6 +1412,7 @@ bot.on('callback_query', async (callbackQuery) => {
                           `👉 <b>MỞ APP VÀO MỤC PHẦN THƯỞNG ĐỂ NHẬN QUÂN HÀM VÀ QUÀ TẶNG CỦA BẠN!</b>`;
         bot.sendMessage(chatId, textTask3, { parse_mode: 'HTML' });
     } 
+    
     else if (data === 'task_4') {
         const task4Text = `🏆 <b>KHO LƯU TRỮ ĐẶC QUYỀN VIP</b>\n\nSWGT là quyền lực của bạn! Dùng số dư quy đổi lấy "vũ khí" thực chiến:\n\n🔓 <b>1. Mở Khóa Group Private (500 SWGT)</b>\n☕️ <b>2. Cà Phê Chiến Lược 1:1 (300 SWGT)</b>\n🎟 <b>3. Voucher Ưu Đãi Đầu Tư (1000 SWGT)</b>\n\n👉 <i>Bấm mở App để quy đổi!</i>`;
         bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
