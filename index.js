@@ -96,7 +96,7 @@ const giftCodeSchema = new mongoose.Schema({
 const GiftCode = mongoose.model('GiftCode', giftCodeSchema);
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ ĐIỂM DANH LÚC 8H SÁNG
+// 1. TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ ĐIỂM DANH LÚC 8H SÁNG
 // ==========================================
 setInterval(async () => {
     const now = new Date();
@@ -107,13 +107,11 @@ setInterval(async () => {
     if (vnHour === 8 && vnMinute === 0) {
         const todayStr = vnTime.toISOString().split('T')[0];
         const users = await User.find({});
-        
         for (let user of users) {
             let lastCheckinStr = '';
             if (user.lastCheckInDate) {
                 lastCheckinStr = new Date(new Date(user.lastCheckInDate).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
             }
-
             if (lastCheckinStr !== todayStr) {
                 const remindMsg = `☀️ <b>CHÀO BUỔI SÁNG!</b>\n\nPhần thưởng điểm danh SWGT ngày hôm nay của bạn đã sẵn sàng.\n\n⚠️ <i>Lưu ý: Nếu bỏ lỡ 1 ngày, chuỗi phần thưởng của bạn sẽ bị quay lại từ Ngày 1.</i>\n\n👉 Hãy bấm <b>"MỞ ỨNG DỤNG ĐIỂM DANH"</b> ở menu bên dưới để nhận nhé!`;
                 try { 
@@ -129,7 +127,7 @@ setInterval(async () => {
 }, 60000); 
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ LÚC 9H SÁNG & 10H SÁNG
+// 2. TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ LÚC 9H SÁNG & 10H SÁNG
 // ==========================================
 setInterval(async () => {
     const now = new Date();
@@ -137,11 +135,11 @@ setInterval(async () => {
     const vnHour = vnTime.getUTCHours();
     const vnMinute = vnTime.getUTCMinutes();
 
+    // 9H SÁNG: NHẮC TÂN BINH & "CHỬI YÊU" NGƯỜI MỜI
     if (vnHour === 9 && vnMinute === 0) {
         try {
             const inactiveUsers = await User.find({ task1Done: false });
             let referrersMap = {}; 
-
             for (let user of inactiveUsers) {
                 let remindMsg = `⏰ <b>ĐÃ 9H SÁNG RỒI, DẬY LÀM NHIỆM VỤ THÔI!</b>\n\nBạn ơi, vốn khởi nghiệp SWGT của bạn vẫn đang bị treo chờ bạn nhận kìa! Chỉ mất đúng 1 phút để tham gia Group và chat 1 câu chào để xác minh thôi.\n\n👉 Nhấn nút bên dưới mở App, chọn <b>1️⃣ Nhiệm vụ Tân binh</b> để lụm tiền ngay nhé!`;
                 bot.sendMessage(user.userId, remindMsg, { 
@@ -155,13 +153,11 @@ setInterval(async () => {
                 }
                 await new Promise(resolve => setTimeout(resolve, 50)); 
             }
-
             for (let refId in referrersMap) {
                 let referrer = await User.findOne({ userId: refId });
                 if (referrer) {
                     let count = referrersMap[refId];
                     let scoldMsg = `🤬 <b>TRỜI ƠI CÁI NHÀ ĐẦU TƯ NÀY! MANG CƠ HỘI ĐẾN MÀ BỎ BÊ ĐỒNG ĐỘI HẢ?</b>\n\nĐùa chút thôi! 😂 \nHiện tại hệ thống báo động bạn đang có <b>${count} đối tác</b> đã bấm link nhưng "lười biếng" chưa chịu hoàn thành nhiệm vụ Tân Binh (Join Group).\n\n💡 <i>Bạn hãy xách mông đi nhắn tin giục họ hoàn thành đi! Họ làm xong là phần thưởng sẽ "ting ting" vào ví của bạn ngay lập tức!</i>\n\n🌈 Dù sao cũng ghi nhận sự nỗ lực lan tỏa của bạn. Hãy tiếp tục chia sẻ cơ hội sở hữu SWGT này cho nhiều anh bè bạn em hơn nữa để sớm thăng hàm Tướng nhé! 🚀💎`;
-                    
                     bot.sendMessage(refId, scoldMsg, { parse_mode: 'HTML' }).catch(()=>{});
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
@@ -169,38 +165,28 @@ setInterval(async () => {
         } catch (error) { console.error("Lỗi thông báo 9h:", error); }
     }
 
+    // 10H SÁNG: GỬI NHIỆM VỤ CHO TẤT CẢ MỌI NGƯỜI
     if (vnHour === 10 && vnMinute === 0) {
         try {
-            const todayStr = vnTime.toISOString().split('T')[0]; 
             const allUsers = await User.find({});
-
             for (let user of allUsers) {
-                let lastReadStr = '';
-                if (user.lastDailyTask) { lastReadStr = new Date(new Date(user.lastDailyTask).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0]; }
-                let lastShareStr = '';
-                if (user.lastShareTask) { lastShareStr = new Date(new Date(user.lastShareTask).getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0]; }
-
-                if (lastReadStr !== todayStr || !user.youtubeTaskDone || !user.facebookTaskDone || lastShareStr !== todayStr) {
-                    let readMsg = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN!</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mới mở App để bấm Nhận Thưởng nhé!</i>`;
-                    
-                    let keyboard = [];
-                    if (lastReadStr !== todayStr) keyboard.push([{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }]);
-                    if (!user.youtubeTaskDone) keyboard.push([{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }]);
-                    if (!user.facebookTaskDone) keyboard.push([{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }]);
-                    if (lastShareStr !== todayStr) keyboard.push([{ text: "📢 CHIA SẺ DỰ ÁN (Đợi 5s)", callback_data: 'go_share' }]);
-                    
-                    keyboard.push([{ text: "🎁 ĐÃ XONG! MỞ APP NHẬN THƯỞNG", web_app: { url: webAppUrl } }]);
-
-                    bot.sendMessage(user.userId, readMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }).catch(()=>{});
-                    await new Promise(resolve => setTimeout(resolve, 50)); 
-                }
+                let readMsg = `☀️ <b>GIỜ NẠP KIẾN THỨC VÀ HÚP TIỀN ĐÃ ĐẾN!</b>\n\nHãy nhấn vào các nút bên dưới để xem thông tin dự án. \n⚠️ <i>Lưu ý: Bạn phải nhấn mở link tại đây, nán lại đủ thời gian, sau đó mới mở App để bấm Nhận Thưởng nhé!</i>`;
+                let keyboard = [
+                    [{ text: "📖 ĐỌC BÀI VIẾT (Đợi 60s)", callback_data: 'go_read' }],
+                    [{ text: "▶️ XEM YOUTUBE (Đợi 6s)", callback_data: 'go_youtube' }],
+                    [{ text: "📘 THEO DÕI FANPAGE", callback_data: 'go_facebook' }],
+                    [{ text: "📢 CHIA SẺ DỰ ÁN (Đợi 5s)", callback_data: 'go_share' }],
+                    [{ text: "🎁 ĐÃ XONG! MỞ APP NHẬN THƯỞNG", web_app: { url: webAppUrl } }]
+                ];
+                bot.sendMessage(user.userId, readMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }).catch(()=>{});
+                await new Promise(resolve => setTimeout(resolve, 50)); 
             }
         } catch (error) { console.error("Lỗi thông báo 10h:", error); }
     }
 }, 60000); 
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI
+// 3. TÍNH NĂNG TỰ ĐỘNG BÁO CÁO ĐUA TOP LAN TỎA LÚC 20H TỐI
 // ==========================================
 setInterval(async () => {
     const now = new Date();
@@ -217,13 +203,11 @@ setInterval(async () => {
                 topUsers.forEach((u, index) => {
                     topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Trao ${u.weeklyReferralCount} cơ hội\n`;
                 });
-
                 const msg = `🏆 <b>BẢNG VÀNG ĐẠI SỨ LAN TỎA TUẦN NÀY - BẠN ĐANG Ở ĐÂU?</b> 🏆\n\n` +
                             `Hành trình kiến tạo tự do tài chính cùng Cộng đồng SWC đang lan tỏa mạnh mẽ hơn bao giờ hết! Hôm nay, những Đại sứ xuất sắc nhất đã tiếp tục trao đi giá trị:\n\n` +
                             `${topText}\n` +
                             `💡 <i>"Thành công lớn nhất không phải là bạn có bao nhiêu tiền, mà là bạn giúp được bao nhiêu người trở nên giàu có."</i>\n\n` +
                             `👉 Hãy copy <b>Đường dẫn đặc quyền</b> của bạn trong Bot và gửi cho những người bạn trân quý nhất ngay tối nay nhé! Đua top tuần này để nhận phần thưởng xứng đáng! 🚀`;
-                
                 bot.sendMessage(GROUP_USERNAME, msg, { parse_mode: 'HTML' }).catch(()=>{});
             }
         } catch (error) { console.error("Lỗi gửi thông báo Top:", error); }
@@ -232,7 +216,7 @@ setInterval(async () => {
 }, 30000);
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG THÔNG BÁO HALVING 
+// 4. TÍNH NĂNG TỰ ĐỘNG THÔNG BÁO HALVING 
 // ==========================================
 setInterval(async () => {
     try {
@@ -257,7 +241,7 @@ setInterval(async () => {
 }, 15 * 60 * 1000); 
 
 // ==========================================
-// TÍNH NĂNG MỚI: TỰ ĐỘNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
+// 5. TÍNH NĂNG CHỐT TOP TUẦN & RESET VÀO 23:59 CHỦ NHẬT
 // ==========================================
 setInterval(async () => {
     const now = new Date();
@@ -273,7 +257,6 @@ setInterval(async () => {
                 let topText = "";
                 const medals = ['🥇', '🥈', '🥉'];
                 topUsers.forEach((u, index) => { topText += `${medals[index]} <b>${u.firstName} ${u.lastName}</b>: Mời ${u.weeklyReferralCount} khách\n`; });
-
                 const msg = `🏆 <b>TỔNG KẾT ĐẠI SỨ LAN TỎA TUẦN NÀY</b> 🏆\n\nKhép lại một tuần hoạt động bùng nổ, xin vinh danh những chiến binh xuất sắc nhất đã mang cơ hội SWC đến với nhiều đối tác nhất trong tuần qua:\n\n${topText}\n🔄 <i>Hệ thống sẽ tự động Reset bộ đếm số lượt mời của tuần này về 0. Hãy chuẩn bị sẵn sàng cho một cuộc đua mới công bằng cho tất cả mọi người vào Thứ Hai nhé!</i>\n\n👉 <b>Chúc các Đại sứ một tuần mới bùng nổ doanh số! 🚀</b>`;
                 bot.sendMessage(GROUP_USERNAME, msg, { parse_mode: 'HTML' }).catch(()=>{});
             }
@@ -284,7 +267,7 @@ setInterval(async () => {
 }, 30000);
 
 // ==========================================
-// TÍNH NĂNG TỰ ĐỘNG RÃ ĐÔNG REF (SAU 30 NGÀY + LỌC HOẠT ĐỘNG)
+// 6. TÍNH NĂNG TỰ ĐỘNG RÃ ĐÔNG REF (SAU 30 NGÀY)
 // ==========================================
 setInterval(async () => {
     try {
@@ -293,7 +276,6 @@ setInterval(async () => {
 
         for (let user of usersWithPending) {
             let newlyUnlockedCount = 0; let newlyUnlockedReward = 0; let stillPending = []; let rejectedCount = 0; 
-
             for (let ref of user.pendingRefs) {
                 if (ref.unlockDate <= now) {
                     const referee = await User.findOne({ userId: ref.refereeId });
@@ -322,7 +304,9 @@ setInterval(async () => {
     } catch (error) { console.error("Lỗi khi rã đông Ref:", error); }
 }, 6 * 60 * 60 * 1000); 
 
-// --- 1. API SERVER CHO MINI APP ---
+// ==========================================
+// 7. API SERVER CHO MINI APP 
+// ==========================================
 const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -331,7 +315,6 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.end(); return; }
     const parsedUrl = url.parse(req.url, true);
     
-    // API: LẤY THÔNG TIN USER 
     if (parsedUrl.pathname === '/api/user' && req.method === 'GET') {
         const userId = parsedUrl.query.id;
         let userData = await User.findOne({ userId: userId });
@@ -350,7 +333,6 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ...userData._doc, serverDateVN: vnNowStr, lockedBalance: lockedBalance, lockedRefsCount: lockedRefsCount }));
     } 
     
-    // API: LƯU VÍ
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -378,7 +360,6 @@ const server = http.createServer(async (req, res) => {
         });
     } 
     
-    // API: NHẬP MÃ GIFTCODE
     else if (parsedUrl.pathname === '/api/claim-giftcode' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -386,10 +367,8 @@ const server = http.createServer(async (req, res) => {
             try {
                 const data = JSON.parse(body);
                 const inputCode = data.code.trim().toUpperCase(); 
-                
                 let user = await User.findOne({ userId: data.userId });
                 if (!user) return res.writeHead(400), res.end();
-
                 let gift = await GiftCode.findOne({ code: inputCode });
                 
                 if (!gift) {
@@ -404,13 +383,11 @@ const server = http.createServer(async (req, res) => {
 
                 user.balance = Math.round((user.balance + gift.reward) * 100) / 100;
                 await user.save();
-
                 gift.usedBy.push(user.userId);
                 await gift.save();
 
                 const fomoMsg = `🔥 <b>TING TING! CÓ NGƯỜI NHẬN QUÀ THÀNH CÔNG!</b> 🔥\n\nThành viên <b>${user.firstName} ${user.lastName}</b> vừa nhanh tay nhập mã <code>${inputCode}</code> và giật ngay <b>${gift.reward} SWGT</b> vào ví!\n\n👉 <i>Mọi người nhớ bật thông báo Group để không bỏ lỡ những mã Code cực khủng tiếp theo từ Admin nhé!</i>`;
                 bot.sendMessage(GROUP_USERNAME, fomoMsg, {parse_mode: 'HTML'}).catch(()=>{});
-
                 bot.sendMessage(user.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã nhập đúng mã <code>${inputCode}</code>. Cộng ngay <b>${gift.reward} SWGT</b> vào tài khoản. Quá xuất sắc!`, {parse_mode: 'HTML'}).catch(()=>{});
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -418,7 +395,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API: TỰ BẤM NHẬN THƯỞNG MỐC
+
     else if (parsedUrl.pathname === '/api/claim-milestone' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -455,7 +432,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
         
-    // API: ĐIỂM DANH
     else if (parsedUrl.pathname === '/api/checkin' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -502,7 +478,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // 🚀 API MỚI: BẢO MẬT TUYỆT ĐỐI KIỂM TRA NHIỆM VỤ APP
     else if (parsedUrl.pathname === '/api/claim-app-task' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -582,7 +557,7 @@ const server = http.createServer(async (req, res) => {
                         } else {
                             const timeSpent = (now.getTime() - user.shareClickTime.getTime()) / 1000;
                             if (timeSpent < 5) {
-                                errorMsg = `Thao tác quá nhanh, hệ thống chưa kịp ghi nhận.`;
+                                errorMsg = `Thao tác quá nhanh (${Math.round(timeSpent)}s), hệ thống chưa kịp ghi nhận.`;
                             } else {
                                 finalReward = 15;
                                 user.lastShareTask = now;
@@ -610,9 +585,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // ==========================================
-    // 😈 API MỚI: RƯƠNG GACHA (TÂM LÝ NHÀ CÁI)
-    // ==========================================
     else if (parsedUrl.pathname === '/api/spin-wheel' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -667,9 +639,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-// ==========================================
-    // CỬA HÀNG VÀ ĐỔI QUÀ (REDEEM) 
-    // ==========================================
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -724,7 +693,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // API: YÊU CẦU RÚT TIỀN
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -770,7 +738,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    // API BẢNG XẾP HẠNG 
+    
     else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
         try {
             const allUsersForBoard = await User.find({ $or: [{referralCount: { $gt: 0 }}, {weeklyReferralCount: { $gt: 0 }}] })
@@ -795,7 +763,7 @@ const server = http.createServer(async (req, res) => {
 });
 server.listen(process.env.PORT || 3000);
 
-// --- CÁC HÀM KIỂM TRA & LỆNH ADMIN BÊN DƯỚI GIỮ NGUYÊN NHƯ CŨ ---
+// --- 8. LỆNH BOT VÀ XỬ LÝ SỰ KIỆN ---
 
 async function checkMembership(userId) {
     try {
@@ -806,7 +774,46 @@ async function checkMembership(userId) {
     } catch (error) { return { error: true }; }
 }
 
-bot.onText(/\/tracuu (\d+)/, async (msg, match) => {
+bot.onText(/^\/(admin|menu)/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const adminText = `👨‍💻 <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ (ADMIN PANEL)</b>`;
+    const adminMenu = {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "📊 Top 10 Tổng", callback_data: 'admin_checktop' }, { text: "🏆 Top Tuần", callback_data: 'admin_toptuan' }],
+                [{ text: "💰 Thống Kê Két Sắt", callback_data: 'admin_thongke' }, { text: "👀 Soi Dòng Tiền", callback_data: 'admin_soivietien' }],
+                [{ text: "🚀 Nổ Bảng Xếp Hạng Lên Group", callback_data: 'admin_duatop' }],
+                [{ text: "🔍 Tra Cứu 1 Người", callback_data: 'admin_help_tracuu' }, { text: "👮 Xử Lý Gian Lận", callback_data: 'admin_help_cheat' }],
+                [{ text: "🎁 Tạo Code & Truyền Thông", callback_data: 'admin_help_mkt' }]
+            ]
+        }
+    };
+    bot.sendMessage(msg.chat.id, adminText, adminMenu).catch(err => console.log("Lỗi gửi menu:", err));
+});
+
+bot.onText(/^\/testkichban/i, async (msg) => {
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+
+    const testMenu = {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "🤝 Kịch bản Mời người (A mời B)", callback_data: 'test_invite' }],
+                [{ text: "☀️ Kịch bản 8H (Nhắc Điểm danh)", callback_data: 'test_8h' }],
+                [{ text: "⏰ Kịch bản 9H (Nhắc việc + Phạt A)", callback_data: 'test_9h' }],
+                [{ text: "📖 Kịch bản 10H (Làm nhiệm vụ)", callback_data: 'test_10h' }],
+                [{ text: "🔓 Kịch bản Băng Tan (Rã đông 30D)", callback_data: 'test_unlock' }],
+                [{ text: "📉 Kịch bản Halving (Giảm thưởng)", callback_data: 'test_halving' }],
+                [{ text: "🏃 Kịch bản Rời nhóm (Phạt B & A)", callback_data: 'test_leave' }]
+            ]
+        }
+    };
+    
+    bot.sendMessage(ADMIN_ID, `🛠 <b>BẢNG ĐIỀU KHIỂN TEST KỊCH BẢN</b>\n\nNgười A (Leader): <code>7515902413</code>\nNgười B (Khách): <code>8364834164</code>\n\nHãy chọn kịch bản bạn muốn test ngay bây giờ:`, testMenu);
+});
+
+bot.onText(/^\/tracuu (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
     bot.sendMessage(ADMIN_ID, `⏳ Đang truy xuất thông tin của ID: <code>${targetId}</code>...`, { parse_mode: 'HTML' });
@@ -844,7 +851,7 @@ bot.onText(/\/tracuu (\d+)/, async (msg, match) => {
     } catch (error) { bot.sendMessage(ADMIN_ID, `❌ Lỗi khi tra cứu: ${error.message}`); }
 });
 
-bot.onText(/\/checktop/, async (msg) => {
+bot.onText(/^\/checktop/i, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10);
     let response = "🕵️‍♂️ <b>DANH SÁCH TOP 10 TỔNG CỘNG ĐỒNG (KÈM ID):</b>\n\n";
@@ -854,7 +861,7 @@ bot.onText(/\/checktop/, async (msg) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-bot.onText(/\/toptuan/, async (msg) => {
+bot.onText(/^\/toptuan/i, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const users = await User.find({ weeklyReferralCount: { $gt: 0 } }).sort({ weeklyReferralCount: -1 }).limit(10);
     if (users.length === 0) return bot.sendMessage(ADMIN_ID, "⚠️ Tuần này chưa có ai mời được khách nào.");
@@ -865,7 +872,7 @@ bot.onText(/\/toptuan/, async (msg) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-bot.onText(/\/checkref (\d+)/, async (msg, match) => {
+bot.onText(/^\/checkref (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
     bot.sendMessage(ADMIN_ID, "⏳ Đang trích xuất và thống kê dữ liệu...");
@@ -888,7 +895,7 @@ bot.onText(/\/checkref (\d+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-bot.onText(/\/resetref (\d+)/, async (msg, match) => {
+bot.onText(/^\/resetref (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
     bot.sendMessage(ADMIN_ID, "⏳ Đang tự động quét, trừ tiền và gửi thông báo...");
@@ -924,7 +931,7 @@ bot.onText(/\/resetref (\d+)/, async (msg, match) => {
     bot.sendMessage(targetId, userMsg, { parse_mode: 'HTML' }).catch(()=>{});
 });
 
-bot.onText(/\/locref (\d+)/, async (msg, match) => {
+bot.onText(/^\/locref (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
     bot.sendMessage(ADMIN_ID, "⏳ Đang quét và dọn dẹp dữ liệu rác...");
@@ -941,7 +948,7 @@ bot.onText(/\/locref (\d+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-bot.onText(/\/phat (\d+)/, async (msg, match) => {
+bot.onText(/^\/phat (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
     bot.sendMessage(ADMIN_ID, "⏳ Đang quét dữ liệu gian lận để xử phạt...");
@@ -972,7 +979,7 @@ bot.onText(/\/phat (\d+)/, async (msg, match) => {
     bot.sendMessage(targetId, `⚠️ <b>CẢNH BÁO VI PHẠM TỪ HỆ THỐNG!</b>\n\nHệ thống phát hiện tài khoản có hành vi Tool/Clone.\n👮‍♂️ <b>Xử phạt:</b>\n- Xóa <b>${notDoneCount}</b> lượt mời ảo.\n- Thu hồi <b>${penalty} SWGT</b>.\nNếu tiếp tục, tài khoản sẽ bị khóa vĩnh viễn!`, { parse_mode: 'HTML' }).catch(()=>{});
 });
 
-bot.onText(/\/setref (\d+) (\d+) (\d+)/, async (msg, match) => {
+bot.onText(/^\/setref (\d+) (\d+) (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1]; const newRef = parseInt(match[2]); const newBal = parseFloat(match[3]);
     let user = await User.findOne({ userId: targetId });
@@ -981,7 +988,7 @@ bot.onText(/\/setref (\d+) (\d+) (\d+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, `✅ Đã chỉnh sửa thủ công:\nUser ${targetId} -> Ref: ${newRef}, Balance: ${newBal}`);
 });
 
-bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
+bot.onText(/^\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const codeInput = match[1].toUpperCase(); const reward = parseInt(match[2]); const maxUses = parseInt(match[3]);
     try {
@@ -993,7 +1000,7 @@ bot.onText(/\/createcode (\S+) (\d+) (\d+)/, async (msg, match) => {
     } catch (e) {}
 });
 
-bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
+bot.onText(/^\/sendall ([\s\S]+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     const broadcastMsg = match[1];
     const users = await User.find({});
@@ -1004,13 +1011,13 @@ bot.onText(/\/sendall ([\s\S]+)/, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, `✅ Đã gửi tin nhắn hàng loạt.`);
 });
 
-bot.onText(/\/deletecode (\S+)/, async (msg, match) => {
+bot.onText(/^\/deletecode (\S+)/, async (msg, match) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     await GiftCode.findOneAndDelete({ code: match[1].toUpperCase() });
     bot.sendMessage(ADMIN_ID, `✅ Đã xóa mã ${match[1]}`);
 });
 
-bot.onText(/\/duatop/, async (msg) => {
+bot.onText(/^\/duatop/i, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
     bot.sendMessage(ADMIN_ID, "⏳ Đang đẩy Bảng Xếp Hạng lên Group...");
     try {
@@ -1025,28 +1032,85 @@ bot.onText(/\/duatop/, async (msg) => {
     } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi: " + error.message); }
 });
 
-// ==========================================
-// 🛠 BẢNG ĐIỀU KHIỂN TEST KỊCH BẢN CHO ADMIN
-// ==========================================
-bot.onText(/^\/testkichban/i, async (msg) => {
+bot.onText(/^\/soivietien/i, async (msg) => {
     if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+    bot.sendMessage(ADMIN_ID, "⏳ Đang bật Radar quét các giao dịch sinh tiền gần nhất...");
+    try {
+        const recentUsers = await User.find({ $or: [ { lastCheckInDate: { $ne: null } }, { lastDailyTask: { $ne: null } }, { lastShareTask: { $ne: null } } ] }).sort({ lastCheckInDate: -1, lastDailyTask: -1, lastShareTask: -1 }).limit(10);
+        if (recentUsers.length === 0) return bot.sendMessage(ADMIN_ID, "⚠️ Hệ thống chưa ghi nhận hoạt động nào gần đây.");
+        let response = "🕵️‍♂️ <b>BÁO CÁO: 10 NGƯỜI VỪA CÀY SWGT GẦN NHẤT</b> 🕵️‍♂️\n\n";
+        recentUsers.forEach((u, i) => {
+            response += `${i + 1}. <b>${u.firstName} ${u.lastName}</b> (ID: <code>${u.userId}</code>)\n💰 Tổng tài sản: <b>${u.balance} SWGT</b>\n⏱ <b>Hoạt động hái ra tiền gần nhất:</b>\n`;
+            if (u.lastCheckInDate) response += ` 🔹 Điểm danh: ${new Date(new Date(u.lastCheckInDate).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+            if (u.lastDailyTask) response += ` 🔹 Đọc bài web: ${new Date(new Date(u.lastDailyTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+            if (u.lastShareTask) response += ` 🔹 Chia sẻ MXH: ${new Date(new Date(u.lastShareTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
+            response += `--------------------------\n`;
+        });
+        bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+    } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi khi soi ví: " + error.message); }
+});
 
-    const testMenu = {
+bot.onText(/^\/start(.*)/i, async (msg, match) => {
+    const chatId = msg.chat.id;
+    if (msg.chat.type !== 'private') return; 
+
+    const userId = msg.from.id.toString();
+    const refId = match[1].trim(); 
+    const isPremium = msg.from.is_premium || false;
+    const firstName = msg.from.first_name || '';
+    const lastName = msg.from.last_name || '';
+    const username = msg.from.username ? `@${msg.from.username}` : '';
+
+    let user = await User.findOne({ userId: userId });
+    let isNewUser = false;
+
+    if (!user) {
+        isNewUser = true;
+        user = new User({ userId: userId, firstName: firstName, lastName: lastName, username: username, isPremium: isPremium });
+        
+        if (refId && refId !== userId) {
+            user.referredBy = refId;
+            let referrer = await User.findOne({ userId: refId });
+            if (referrer) {
+                let notifyMsg = `🎉 <b>CÓ NGƯỜI MỚI VỪA BẤM VÀO LINK CỦA BẠN!</b>\n\n` +
+                                `👤 <b>Tên đối tác:</b> ${firstName} ${lastName}\n` +
+                                `🔗 <b>Trang cá nhân:</b> <a href="tg://user?id=${userId}">Bấm vào đây để xem</a>\n\n` +
+                                `⚠️ <b>CHIẾN THUẬT KẾT NỐI:</b>\n` +
+                                `Để tránh bị Telegram chặn vì nhắn tin cho người lạ, Bot đã tạo sẵn nút <b>"Liên hệ Người Hướng Dẫn"</b> bên máy của khách để yêu cầu họ nhắn cho bạn trước.\n\n` +
+                                `👉 <i>Nếu một lúc sau vẫn chưa thấy họ nhắn, bạn hãy chủ động bấm vào chữ "Bấm vào đây để xem" ở trên, gửi lời chào và hướng dẫn họ làm Nhiệm vụ Tân Binh nhé!</i>`;
+                bot.sendMessage(refId, notifyMsg, {parse_mode: 'HTML'}).catch(()=>{});
+            }
+        }
+    } else {
+        user.firstName = firstName; user.lastName = lastName; user.username = username; user.isPremium = isPremium;
+    }
+    await user.save();
+    
+    let welcomeText = `👋 <b>Chào mừng bạn đến với Cộng Đồng SWC Việt Nam!</b> 🚀\n\nBạn đã bước chân vào trung tâm kết nối của những nhà đầu tư tiên phong. Cơ hội sở hữu trước token SWGT đang ở ngay trước mắt!\n\n👇 <b>HÀNH ĐỘNG NGAY:</b> Bấm nút <b>"MỞ ỨNG DỤNG SWC NGAY"</b> bên dưới để kích hoạt ví và gia tăng tài sản!`;
+    if (isNewUser && refId && refId !== userId) { welcomeText = `🎉 <i>Bạn được mời tham gia bởi một Đại sứ SWC!</i>\n\n` + welcomeText; }
+    
+    let keyboardArray = [
+        [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
+        [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
+        [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
+        [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
+        [{ text: "❓ Đặt Câu hỏi (FAQ)", callback_data: 'show_faq' }],
+        [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
+    ];
+
+    if (user.referredBy && user.referredBy !== userId) {
+        keyboardArray.unshift([
+            { text: "💬 LIÊN HỆ NGƯỜI HƯỚNG DẪN CỦA BẠN", url: `tg://user?id=${user.referredBy}` }
+        ]);
+    }
+
+    const opts = {
         parse_mode: 'HTML',
         reply_markup: {
-            inline_keyboard: [
-                [{ text: "🤝 Kịch bản Mời người (A mời B)", callback_data: 'test_invite' }],
-                [{ text: "☀️ Kịch bản 8H (Nhắc Điểm danh)", callback_data: 'test_8h' }],
-                [{ text: "⏰ Kịch bản 9H (Nhắc việc + Phạt A)", callback_data: 'test_9h' }],
-                [{ text: "📖 Kịch bản 10H (Làm nhiệm vụ)", callback_data: 'test_10h' }],
-                [{ text: "🔓 Kịch bản Băng Tan (Rã đông 30D)", callback_data: 'test_unlock' }],
-                [{ text: "📉 Kịch bản Halving (Giảm thưởng)", callback_data: 'test_halving' }],
-                [{ text: "🏃 Kịch bản Rời nhóm (Phạt B & A)", callback_data: 'test_leave' }]
-            ]
+            inline_keyboard: keyboardArray
         }
     };
-    
-    bot.sendMessage(ADMIN_ID, `🛠 <b>BẢNG ĐIỀU KHIỂN TEST KỊCH BẢN</b>\n\nNgười A (Leader): <code>7515902413</code>\nNgười B (Khách): <code>8364834164</code>\n\nHãy chọn kịch bản bạn muốn test ngay bây giờ:`, testMenu);
+    bot.sendPhoto(chatId, './Bia.jpg', { caption: welcomeText, parse_mode: 'HTML', reply_markup: opts.reply_markup }).catch(err => { bot.sendMessage(chatId, welcomeText, opts); });
 });
 
 bot.on('callback_query', async (callbackQuery) => {
@@ -1121,7 +1185,6 @@ bot.on('callback_query', async (callbackQuery) => {
 
             let notifyReferrerMsg = `⚠️ <b>THÔNG BÁO THU HỒI LƯỢT MỜI! (TEST)</b> ⚠️\n\nThành viên <b>Khách Test</b> do bạn mời vừa <b>RỜI KHỎI</b> mạng lưới Cộng đồng SWC khi chưa gắn bó đủ 21 ngày.\n\n📉 Hệ thống đã tự động thu hồi <b>1 lượt mời</b> và trừ <b>10 SWGT</b> tiền thưởng tương ứng khỏi ví của bạn.`;
             bot.sendMessage(idA, notifyReferrerMsg, {parse_mode: 'HTML'}).catch(()=>{});
-
             bot.sendMessage(ADMIN_ID, "✅ Đã test kịch bản B rời nhóm (Phạt A và B) thành công!");
         }
         return;
@@ -1402,9 +1465,125 @@ bot.on('callback_query', async (callbackQuery) => {
     }
 });
 
-// ==========================================
-// HỆ THỐNG RADAR THEO DÕI RỜI NHÓM & XỬ PHẠT 
-// ==========================================
+bot.on('message', async (msg) => {
+    // 1. ADMIN REPLY LỆNH
+    if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
+        const replyText = msg.text ? msg.text.toLowerCase() : (msg.caption ? msg.caption.toLowerCase() : '');
+        const originalText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
+        const idMatch = originalText.match(/ID:\s*(\d+)/); 
+        
+        if (idMatch) {
+            const targetUserId = idMatch[1];
+            const targetUser = await User.findOne({ userId: targetUserId });
+            
+            if ((replyText.includes('xong') || replyText.includes('done')) && (originalText.includes('YÊU CẦU') || originalText.includes('RÚT TIỀN') || originalText.includes('ĐỔI QUÀ'))) {
+                const successMsg = `🚀 <b>ĐẦU TƯ CHIẾN LƯỢC SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC.`;
+                if (msg.photo) {
+                    const photoId = msg.photo[msg.photo.length - 1].file_id; 
+                    bot.sendPhoto(targetUserId, photoId, { caption: successMsg, parse_mode: 'HTML' }).catch(()=>{});
+                } else { bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{}); }
+                
+                if (originalText.includes('RÚT TIỀN')) {
+                    const amountMatch = originalText.match(/Số lượng.*:\s*([0-9,\.]+)\s*SWGT/);
+                    const amount = amountMatch ? amountMatch[1] : '...';
+                    let rankTitle = "Tân Binh 🚀";
+                    if (targetUser) {
+                        const refCount = targetUser.referralCount || 0;
+                        if (refCount >= 500) rankTitle = "Đại Tướng 🌟🌟🌟🌟";
+                        else if (refCount >= 350) rankTitle = "Thượng Tướng 🌟🌟🌟";
+                        else if (refCount >= 200) rankTitle = "Trung Tướng 🌟🌟";
+                        else if (refCount >= 120) rankTitle = "Thiếu Tướng 🌟";
+                        else if (refCount >= 80) rankTitle = "Đại Tá 🎖️";
+                        else if (refCount >= 50) rankTitle = "Thượng Tá 🎖️";
+                        else if (refCount >= 20) rankTitle = "Trung Tá 🎖️";
+                        else if (refCount >= 10) rankTitle = "Thiếu Tá 🎖️";
+                        else if (refCount >= 3) rankTitle = "Đại Úy 🎖️";
+                    }
+                    const userName = targetUser ? `${targetUser.firstName} ${targetUser.lastName}`.trim() : 'Thành viên';
+                    const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\nQuá đẳng cấp! Chúc mừng <b>${rankTitle} ${userName}</b> vừa "bỏ túi" thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n👉 <b>Vào Bot làm nhiệm vụ và lấy Link đặc quyền ngay!</b> 🚀👇`;
+                    const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 VÀO BOT CÀY SWGT NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
+                    if (msg.photo) {
+                        const photoId = msg.photo[msg.photo.length - 1].file_id;
+                        bot.sendPhoto(GROUP_USERNAME, photoId, { caption: fomoGroupMsg, ...optsFomo }).catch(()=>{});
+                    } else { bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, optsFomo).catch(()=>{}); }
+                }
+                bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo cho khách hàng.`);
+                return; 
+            }
+            else if (originalText.includes('TIN NHẮN TỪ KHÁCH HÀNG')) {
+                const adminReplyMsg = `👨‍💻 <b>Phản hồi từ Admin SWC:</b>\n\n${msg.text || msg.caption || '[File/Ảnh đính kèm]'}`;
+                if (msg.photo) {
+                    const photoId = msg.photo[msg.photo.length - 1].file_id;
+                    bot.sendPhoto(targetUserId, photoId, { caption: adminReplyMsg, parse_mode: 'HTML' }).catch(()=>{});
+                } else { bot.sendMessage(targetUserId, adminReplyMsg, { parse_mode: 'HTML' }).catch(()=>{}); }
+                bot.sendMessage(ADMIN_ID, `✅ Đã gửi câu trả lời cho khách hàng.`);
+                return;
+            }
+        }
+    }
+
+    // 2. KHÁCH NHẮN TIN CHO BOT
+    if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
+        if (msg.text && msg.text.startsWith('/')) return;
+        const userId = msg.from.id.toString();
+        const name = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
+        const username = msg.from.username ? `@${msg.from.username}` : 'Không có';
+        const content = msg.text || msg.caption || '[Khách gửi Tệp/Ảnh/Video]';
+        
+        const alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n\n💬 <b>Nội dung:</b>\n${content}\n\n👉 <i>Admin hãy Reply (Trả lời) tin nhắn này để chat lại với khách nhé!</i>`;
+        const replyMarkup = { inline_keyboard: [[{ text: "💬 Chat trực tiếp với khách", url: `tg://user?id=${userId}` }]] };
+        if (msg.photo) {
+            const photoId = msg.photo[msg.photo.length - 1].file_id;
+            bot.sendPhoto(ADMIN_ID, photoId, { caption: alertMsg, parse_mode: 'HTML', reply_markup: replyMarkup }).catch(()=>{});
+        } else { bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkup }).catch(()=>{}); }
+
+        // GIẢI PHÁP CHO NGƯỜI CŨ: CHÈN NÚT LIÊN HỆ VÀO AUTO-REPLY
+        let currentUser = await User.findOne({ userId: userId });
+        let faqKeyboard = [
+            [{ text: "💬 VÀO GROUP CHAT CỘNG ĐỒNG NGAY", url: "https://t.me/swc_capital_chat" }],
+            [{ text: "👮 Trợ lý này mang lại giá trị gì?", callback_data: 'faq_1' }],
+            [{ text: "🚀 Bí quyết tạo Dòng Tiền với Vốn 0đ?", callback_data: 'faq_4' }],
+            [{ text: "🎁 Cách cày SWGT tạo thu nhập thụ động?", callback_data: 'faq_2' }],
+            [{ text: "💸 Hướng dẫn Chốt lời & Rút tiền", callback_data: 'faq_3' }],
+            [{ text: "⏳ Thanh khoản & Thời gian rút tiền?", callback_data: 'faq_5' }]
+        ];
+
+        if (currentUser && currentUser.referredBy && currentUser.referredBy !== userId) {
+            faqKeyboard.unshift([
+                { text: "💬 LIÊN HỆ NGƯỜI HƯỚNG DẪN CỦA BẠN", url: `tg://user?id=${currentUser.referredBy}` }
+            ]);
+        }
+
+        const autoReplyMsg = `👋 Chào <b>${name}</b>, hệ thống đã ghi nhận yêu cầu của bạn và chuyển đến Ban Tổ Chức. Vui lòng chờ Admin phản hồi nhé!\n\n👇 <b>HOẶC XEM NHANH CÁC BÍ MẬT TÀI CHÍNH DƯỚI ĐÂY:</b>`;
+        const faqMenu = { parse_mode: 'HTML', reply_markup: { inline_keyboard: faqKeyboard } };
+        
+        bot.sendMessage(userId, autoReplyMsg, faqMenu).catch(()=>{});
+        return; 
+    }
+
+    // 3. TÍNH TIỀN CHAT TRONG GROUP
+    if (msg.chat.type === 'private' || msg.from.is_bot) return;
+    if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
+
+    try {
+        const member = await bot.getChatMember(msg.chat.id, msg.from.id);
+        if (['administrator', 'creator'].includes(member.status)) return;
+    } catch(e) {}
+
+    if (!msg.text) return;
+    const userId = msg.from.id.toString();
+    const isPremium = msg.from.is_premium || false;
+    let user = await User.findOne({ userId: userId });
+    
+    if (!user) {
+        user = new User({ userId: userId, firstName: msg.from.first_name || '', lastName: msg.from.last_name || '', username: msg.from.username ? `@${msg.from.username}` : '', isPremium: isPremium });
+    } else { user.isPremium = isPremium; }
+
+    user.groupMessageCount += 1; 
+    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.1) * 100) / 100; }
+    await user.save();
+});
+
 bot.on('chat_member', async (update) => {
     const debugUser = update.new_chat_member.user;
     const chat = update.chat;
@@ -1455,22 +1634,4 @@ bot.on('chat_member', async (update) => {
             }
         }
     }
-});
-
-bot.onText(/\/soivietien/, async (msg) => {
-    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
-    bot.sendMessage(ADMIN_ID, "⏳ Đang bật Radar quét các giao dịch sinh tiền gần nhất...");
-    try {
-        const recentUsers = await User.find({ $or: [ { lastCheckInDate: { $ne: null } }, { lastDailyTask: { $ne: null } }, { lastShareTask: { $ne: null } } ] }).sort({ lastCheckInDate: -1, lastDailyTask: -1, lastShareTask: -1 }).limit(10);
-        if (recentUsers.length === 0) return bot.sendMessage(ADMIN_ID, "⚠️ Hệ thống chưa ghi nhận hoạt động nào gần đây.");
-        let response = "🕵️‍♂️ <b>BÁO CÁO: 10 NGƯỜI VỪA CÀY SWGT GẦN NHẤT</b> 🕵️‍♂️\n\n";
-        recentUsers.forEach((u, i) => {
-            response += `${i + 1}. <b>${u.firstName} ${u.lastName}</b> (ID: <code>${u.userId}</code>)\n💰 Tổng tài sản: <b>${u.balance} SWGT</b>\n⏱ <b>Hoạt động hái ra tiền gần nhất:</b>\n`;
-            if (u.lastCheckInDate) response += ` 🔹 Điểm danh: ${new Date(new Date(u.lastCheckInDate).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
-            if (u.lastDailyTask) response += ` 🔹 Đọc bài web: ${new Date(new Date(u.lastDailyTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
-            if (u.lastShareTask) response += ` 🔹 Chia sẻ MXH: ${new Date(new Date(u.lastShareTask).getTime() + 7*3600000).toLocaleString('vi-VN')}\n`;
-            response += `--------------------------\n`;
-        });
-        bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
-    } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi khi soi ví: " + error.message); }
 });
