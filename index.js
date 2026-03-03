@@ -775,8 +775,10 @@ async function checkMembership(userId) {
 }
 
 bot.onText(/^\/(admin|menu)/i, async (msg) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const adminText = `👨‍💻 <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ (ADMIN PANEL)</b>`;
+    // 1. Thêm điều kiện bắt buộc là tin nhắn riêng (private) giống như /testkichban
+    if (msg.chat.type !== 'private' || msg.from.id.toString() !== ADMIN_ID) return;
+
+    const adminText = `👨‍💻 <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ. Xin chào Boss! Hãy chọn chức năng bạn muốn sử dụng bên dưới. Đối với các lệnh cần nhập dữ liệu (ID, Nội dung...), bot sẽ hiển thị cú pháp để bạn copy nhanh. (ADMIN PANEL)</b>`;
     const adminMenu = {
         parse_mode: 'HTML',
         reply_markup: {
@@ -789,7 +791,9 @@ bot.onText(/^\/(admin|menu)/i, async (msg) => {
             ]
         }
     };
-    bot.sendMessage(msg.chat.id, adminText, adminMenu).catch(err => console.log("Lỗi gửi menu:", err));
+    
+    // 2. Ép gửi thẳng về ADMIN_ID thay vì msg.chat.id để đảm bảo độ ổn định tuyệt đối
+    bot.sendMessage(ADMIN_ID, adminText, adminMenu).catch(err => console.log("⚠️ Lỗi gửi menu Admin:", err));
 });
 
 bot.onText(/^\/testkichban/i, async (msg) => {
