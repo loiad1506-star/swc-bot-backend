@@ -1094,7 +1094,7 @@ bot.onText(/^\/start(.*)/i, async (msg, match) => {
     if (isNewUser && refId && refId !== userId) { welcomeText = `🎉 <i>Bạn được mời tham gia bởi một Đại sứ SWC!</i>\n\n` + welcomeText; }
     
     let keyboardArray = [
-        [{ text: "🇻🇳 Chuyển Ngôn Ngữ Sang Tiếng Việt", callback_data: 'lang_vi' }], // <-- Nút ngôn ngữ mới được thêm vào đây
+        [{ text: "🇻🇳 Cài đặt Tiếng Việt cho Telegram", url: 'https://t.me/setlanguage/vi-beta' }], // <-- Nút ngôn ngữ mới được thêm vào đây
         [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
         [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
         [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
