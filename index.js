@@ -1094,13 +1094,14 @@ bot.onText(/^\/start(.*)/i, async (msg, match) => {
     if (isNewUser && refId && refId !== userId) { welcomeText = `🎉 <i>Bạn được mời tham gia bởi một Đại sứ SWC!</i>\n\n` + welcomeText; }
     
     let keyboardArray = [
-        [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
-        [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
-        [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
-        [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
-        [{ text: "❓ Đặt Câu hỏi (FAQ)", callback_data: 'show_faq' }],
-        [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
-    ];
+        [{ text: "🇻🇳 Chuyển Ngôn Ngữ Sang Tiếng Việt", callback_data: 'lang_vi' }], // <-- Nút ngôn ngữ mới được thêm vào đây
+        [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
+        [{ text: "2️⃣ Nhiệm vụ Kiến thức & Lan tỏa", callback_data: 'task_2' }],
+        [{ text: "3️⃣ Tăng trưởng (Mời bạn bè)", callback_data: 'task_3' }],
+        [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
+        [{ text: "❓ Đặt Câu hỏi (FAQ)", callback_data: 'show_faq' }],
+        [{ text: "🚀 MỞ ỨNG DỤNG SWC NGAY", web_app: { url: webAppUrl } }]
+    ];
 
     if (user.referredBy && user.referredBy !== userId) {
         keyboardArray.unshift([
@@ -1296,6 +1297,15 @@ bot.on('callback_query', async (callbackQuery) => {
     let user = await User.findOne({ userId: userId });
     if (!user) return bot.answerCallbackQuery(callbackQuery.id);
 
+    // --- XỬ LÝ NÚT NGÔN NGỮ ---
+    if (data === 'lang_vi') {
+        bot.answerCallbackQuery(callbackQuery.id, { 
+            text: "✅ Cập nhật thành công! Ngôn ngữ mặc định của bạn đã được đặt là Tiếng Việt.", 
+            show_alert: true 
+        });
+        return;
+    }
+    
     if (data === 'task_1') {
         const opts = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [ [{ text: "🔵 Join Kênh Thông tin", url: "https://t.me/swc_capital_vn" }], [{ text: "💬 Join Group Cộng Đồng", url: "https://t.me/swc_capital_chat" }], [{ text: "✅ KIỂM TRA & NHẬN THƯỞNG", callback_data: 'check_join' }] ] } };
         const totalReward = user.isPremium ? 40 : 20;
@@ -1463,7 +1473,7 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, task4Text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP ĐỂ QUY ĐỔI", web_app: { url: webAppUrl } }]] }});
     }
 
-    const validCallbacks = ['check_join', 'go_read', 'go_youtube', 'go_facebook', 'go_share', 'task_1', 'task_2', 'task_3', 'task_4', 'show_faq'];
+    const validCallbacks = ['check_join', 'go_read', 'go_youtube', 'go_facebook', 'go_share', 'task_1', 'task_2', 'task_3', 'task_4', 'show_faq', 'lang_vi'];
     if (!data.startsWith('admin_') && !data.startsWith('test_') && !validCallbacks.includes(data)) {
         bot.answerCallbackQuery(callbackQuery.id);
     }
