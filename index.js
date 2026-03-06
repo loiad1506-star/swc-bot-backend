@@ -924,6 +924,20 @@ bot.onText(/\/locref (\d+)/i, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
+// Lệnh gửi tin nhắn riêng cho 1 ID bất kỳ
+bot.onText(/\/sendto (\d+) ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const targetId = match[1];
+    const content = match[2];
+    
+    try {
+        await bot.sendMessage(targetId, `👨‍💻 <b>THÔNG BÁO TỪ BQT SWC:</b>\n\n${content}`, { parse_mode: 'HTML' });
+        bot.sendMessage(ADMIN_ID, `✅ Đã gửi tin nhắn thành công tới ID: <code>${targetId}</code>`, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: Không thể gửi (Có thể do sai ID hoặc khách đã block Bot).`);
+    }
+});
+
 bot.onText(/\/phat (\d+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
