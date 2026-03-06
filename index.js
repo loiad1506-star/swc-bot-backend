@@ -571,7 +571,7 @@ const server = http.createServer(async (req, res) => {
                     const optsVip = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "💎 THAM GIA KÊNH VIP NGAY", url: `https://t.me/swctradings` }]] } };
                     bot.sendMessage(user.userId, vipMsg, optsVip).catch(()=>{});
                     
-                    const fomoVipMsg = `👑 <b>CHÚA TỂ NHÂN PHẨM XUẤT HIỆN!</b> 👑\n\nĐỉnh cao! <b>${userName}</b> vừa đập rương sưu tập đủ bộ tài liệu mật và vinh dự nhận được <b>Vé Đặc Cách vào Kênh Kín VIP (@swctradings)</b> - Nơi chia sẻ những kèo x10 tài khoản!\n\n👉 <i>Anh em vào Đảo Kho Báu thử vận may ngay!</i> 🏴‍☠️`;
+                    const fomoVipMsg = `👑 <b>CHÚA TỂ NHÂN PHẨM XUẤT HIỆN!</b> 👑\n\nĐỉnh cao! <b>${userName}</b> vừa đập rương sưu tập đủ bộ tài liệu mật và vinh dự nhận được <b>Vé Đặc Cách vào Kênh Kín VIP</b> - Nơi chia sẻ những kèo xxx tài khoản!\n\n👉 <i>Anh em vào Đảo Kho Báu thử vận may ngay!</i> 🏴‍☠️`;
                     bot.sendMessage(GROUP_USERNAME, fomoVipMsg, optsFomo).catch(()=>{});
                 }
 
