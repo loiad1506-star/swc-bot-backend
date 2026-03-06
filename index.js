@@ -648,7 +648,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- CHÈN THÊM API THANH KHOẢN VNĐ (BÁN CHO ADMIN) ---
+    // --- API THANH KHOẢN VNĐ (BÁN CHO ADMIN) ---
     else if (parsedUrl.pathname === '/api/liquidate' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -708,7 +708,7 @@ const server = http.createServer(async (req, res) => {
                 user.pendingSWGT = shortfall;
                 await user.save();
 
-                const bankMsg = `⚡ <b>YÊU CẦU GHÉP VỐN ĐÃ ĐƯỢC TẠO</b>\n\nBạn đang thiếu <b>${shortfall} SWGT</b> để đủ hạn mức rút.\n💰 Số tiền cần thanh toán: <b>${data.vndAmount} VNĐ</b> (Vui lòng chuyển chính xác số tiền)\n\n🏦 <b>THÔNG TIN CHUYỂN KHOẢN:</b>\n- Ngân hàng: <b>Techcombank</b>\n- Số tài khoản: <code>568786999999</code>\n- Nội dung chuyển tiền: <code>${user.userId}</code>\n\n📸 <i>Hành động: Vui lòng chuyển ĐÚNG nội dung và <b>GỬI ẢNH BIÊN LAI (BILL)</b> vào đây cho Bot. Lệnh sẽ tự động hủy nếu sau 10 phút Bot không nhận được ảnh!</i>`;
+                const bankMsg = `⚡ <b>YÊU CẦU GHÉP VỐN ĐÃ ĐƯỢC TẠO</b>\n\nBạn đang thiếu <b>${shortfall} SWGT</b> để đủ hạn mức rút.\n💰 Số tiền cần thanh toán: <b>${data.vndAmount} VNĐ</b> (Tỷ giá 27.000đ/USD)\n\n🏦 <b>THÔNG TIN CHUYỂN KHOẢN:</b>\n- Ngân hàng: <b>Techcombank</b>\n- Số tài khoản: <code>568786999999</code>\n- Nội dung chuyển tiền: <code>${user.userId}</code>\n\n📸 <i>Hành động: Vui lòng chuyển ĐÚNG nội dung và <b>GỬI ẢNH BIÊN LAI (BILL)</b> vào đây cho Bot. Lệnh sẽ tự động hủy nếu sau 10 phút Bot không nhận được ảnh!</i>`;
                 
                 bot.sendMessage(data.userId, bankMsg, {parse_mode: 'HTML'}).catch(()=>{});
 
@@ -924,20 +924,6 @@ bot.onText(/\/locref (\d+)/i, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
 
-// Lệnh gửi tin nhắn riêng cho 1 ID bất kỳ
-bot.onText(/\/sendto (\d+) ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const targetId = match[1];
-    const content = match[2];
-    
-    try {
-        await bot.sendMessage(targetId, `👨‍💻 <b>THÔNG BÁO TỪ BQT SWC:</b>\n\n${content}`, { parse_mode: 'HTML' });
-        bot.sendMessage(ADMIN_ID, `✅ Đã gửi tin nhắn thành công tới ID: <code>${targetId}</code>`, { parse_mode: 'HTML' });
-    } catch (error) {
-        bot.sendMessage(ADMIN_ID, `❌ Lỗi: Không thể gửi (Có thể do sai ID hoặc khách đã block Bot).`);
-    }
-});
-
 bot.onText(/\/phat (\d+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const targetId = match[1];
@@ -965,7 +951,7 @@ bot.onText(/\/phat (\d+)/i, async (msg, match) => {
     if (doneCount < 3) user.milestone3 = false;
     await user.save();
 
-    bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref: ${oldRef} ➡️ <b>${doneCount}</b> (Đã xóa ${notDoneCount} nick ảo)\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance}</b>\n<i>Đã gửi tin nhắn cảnh cáo dằn mặt!</i>`, { parse_mode: 'HTML' });
+    bot.sendMessage(ADMIN_ID, `✅ <b>ĐĐÃ THỰC THI CÔNG LÝ!</b>\n\n👤 Đối tượng: ${user.firstName} ${user.lastName}\n📉 Ref: ${oldRef} ➡️ <b>${doneCount}</b> (Đã xóa ${notDoneCount} nick ảo)\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance}</b>\n<i>Đã gửi tin nhắn cảnh cáo dằn mặt!</i>`, { parse_mode: 'HTML' });
     bot.sendMessage(targetId, `⚠️ <b>CẢNH BÁO VI PHẠM TỪ HỆ THỐNG!</b>\n\nHệ thống phát hiện tài khoản có hành vi Tool/Clone.\n👮‍♂️ <b>Xử phạt:</b>\n- Xóa <b>${notDoneCount}</b> lượt mời ảo.\n- Thu hồi <b>${penalty} SWGT</b>.\nNếu tiếp tục, tài khoản sẽ bị khóa vĩnh viễn!`, { parse_mode: 'HTML' }).catch(()=>{});
 });
 
@@ -1113,6 +1099,22 @@ bot.onText(/\/soivietien/i, async (msg) => {
         });
         bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
     } catch (error) { bot.sendMessage(ADMIN_ID, "❌ Lỗi khi soi ví: " + error.message); }
+});
+
+// ==========================================
+// Lệnh gửi tin nhắn riêng cho 1 ID bất kỳ
+// ==========================================
+bot.onText(/\/sendto (\d+) ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const targetId = match[1];
+    const content = match[2];
+    
+    try {
+        await bot.sendMessage(targetId, `👨‍💻 <b>THÔNG BÁO TỪ BQT SWC:</b>\n\n${content}`, { parse_mode: 'HTML' });
+        bot.sendMessage(ADMIN_ID, `✅ Đã gửi tin nhắn thành công tới ID: <code>${targetId}</code>`, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: Không thể gửi (Có thể do sai ID hoặc khách đã block Bot).`);
+    }
 });
 
 bot.onText(/\/start(.*)/i, async (msg, match) => {
@@ -1412,7 +1414,6 @@ bot.on('callback_query', async (callbackQuery) => {
         } else { bot.answerCallbackQuery(callbackQuery.id, { text: "❌ Bạn chưa tham gia đủ Kênh và Nhóm. Hãy làm ngay kẻo mất phần thưởng!", show_alert: true }); }
     }
     
-    // Nút task_2 đã được gỡ khỏi Kịch bản, giữ lại xử lý nhẹ phòng người dùng click nút cũ
     else if (data === 'task_2') {
         bot.sendMessage(chatId, `⚠️ <b>THÔNG BÁO:</b>\n\nChương trình Nhiệm vụ cá nhân (Đọc bài, Chia sẻ) đã kết thúc.\n\nHiện tại bạn có thể kiếm SWGT bằng cách:\n1. Điểm danh hàng ngày trên App.\n2. Mời bạn bè tham gia.\n3. Chat và chia sẻ quan điểm trong Group Cộng Đồng (+0.1 SWGT/tin nhắn).`, { parse_mode: 'HTML' });
     } 
@@ -1469,14 +1470,35 @@ bot.on('message', async (msg) => {
                 return;
             }
 
-            // Xử lý Admin duyệt Rút tiền / Đổi quà
+            // Xử lý Admin duyệt Rút tiền / Đổi quà / Thanh lý
             if ((replyText.includes('xong') || replyText.includes('done')) && (originalText.includes('YÊU CẦU') || originalText.includes('RÚT TIỀN') || originalText.includes('ĐỔI QUÀ') || originalText.includes('THANH LÝ'))) {
+                
+                // 1. Gửi thông báo hoàn tất cho khách
                 const successMsg = `🚀 <b>ĐẦU TƯ CHIẾN LƯỢC SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC.`;
                 if (msg.photo) {
                     const photoId = msg.photo[msg.photo.length - 1].file_id; 
                     bot.sendPhoto(targetUserId, photoId, { caption: successMsg, parse_mode: 'HTML' }).catch(()=>{});
                 } else { bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{}); }
+                
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo hoàn tất cho khách.`);
+
+                // 2. Bắn thông báo FOMO chúc mừng lên Group (Chỉ áp dụng khi Rút tiền hoặc Thanh lý)
+                if (originalText.includes('RÚT TIỀN') || originalText.includes('THANH LÝ')) {
+                    const amountMatch = originalText.match(/Số lượng.*:\s*([0-9,\.]+)\s*SWGT/);
+                    const amount = amountMatch ? amountMatch[1] : '...';
+                    const userName = targetUser ? `${targetUser.firstName} ${targetUser.lastName}`.trim() : 'Một thành viên';
+                    
+                    const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\nQuá đẳng cấp! Chúc mừng <b>${userName}</b> vừa giao dịch thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n👉 <b>Anh em tích cực cày điểm danh hoặc ghép vốn để chốt lời ngay hôm nay nhé!</b> 🚀👇`;
+                    
+                    const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 VÀO BOT CÀY SWGT NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
+                    
+                    if (msg.photo) {
+                        const photoId = msg.photo[msg.photo.length - 1].file_id;
+                        bot.sendPhoto(GROUP_USERNAME, photoId, { caption: fomoGroupMsg, ...optsFomo }).catch(()=>{});
+                    } else { 
+                        bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, optsFomo).catch(()=>{}); 
+                    }
+                }
                 return; 
             }
 
