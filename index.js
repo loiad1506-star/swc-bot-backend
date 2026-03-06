@@ -815,13 +815,15 @@ bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
 
 bot.onText(/\/checktop/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10);
-    let response = "🕵️‍♂️ <b>DANH SÁCH TOP 10 TỔNG CỘNG ĐỒNG (KÈM ID):</b>\n\n";
+    // Đổi limit(10) thành limit(30)
+    const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(30);
+    let response = "🕵️‍♂️ <b>DANH SÁCH TOP 30 ĐẠI SỨ MỜI NHIỀU NHẤT:</b>\n\n";
     users.forEach((u, index) => {
         response += `${index + 1}. ${u.firstName} ${u.lastName}\n🆔 ID: <code>${u.userId}</code>\n👥 Mời: ${u.referralCount} | 💰 Dư: ${u.balance}\n--------------------------\n`;
     });
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
 });
+
 
 bot.onText(/\/toptuan/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
@@ -832,6 +834,39 @@ bot.onText(/\/toptuan/i, async (msg) => {
         response += `${index + 1}. ${u.firstName} ${u.lastName} - <b>${u.weeklyReferralCount}</b> khách\n🆔 ID: <code>${u.userId}</code>\n--------------------------\n`;
     });
     bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+});
+
+// ==========================================
+// Lệnh xem Top 20 người có số dư SWGT cao nhất
+// ==========================================
+bot.onText(/\/top20swgt/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    
+    bot.sendMessage(ADMIN_ID, "⏳ Đang truy xuất dữ liệu Top 20 Phú Hộ SWGT...");
+    
+    try {
+        // Tìm 20 người có balance cao nhất
+        const users = await User.find({ balance: { $gt: 0 } }).sort({ balance: -1 }).limit(20);
+        
+        if (users.length === 0) return bot.sendMessage(ADMIN_ID, "⚠️ Hệ thống chưa có ai có số dư SWGT.");
+        
+        let response = "💰 <b>DANH SÁCH TOP 20 NGƯỜI GIÀU NHẤT (SỐ DƯ SWGT):</b>\n\n";
+        users.forEach((u, index) => {
+            let medal = "👤";
+            if (index === 0) medal = "🥇";
+            if (index === 1) medal = "🥈";
+            if (index === 2) medal = "🥉";
+            
+            response += `${medal} <b>Top ${index + 1}: ${u.firstName} ${u.lastName}</b>\n`;
+            response += `🆔 ID: <code>${u.userId}</code>\n`;
+            response += `💎 Số dư: <b>${u.balance} SWGT</b>\n`;
+            response += `--------------------------\n`;
+        });
+        
+        bot.sendMessage(ADMIN_ID, response, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi truy xuất: ${error.message}`);
+    }
 });
 
 bot.onText(/\/checkref (\d+)/i, async (msg, match) => {
@@ -1266,8 +1301,9 @@ bot.on('callback_query', async (callbackQuery) => {
 
         try {
             if (data === 'admin_checktop') {
-                const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(10);
-                let response = "🕵️‍♂️ <b>DANH SÁCH TOP 10 TỔNG CỘNG ĐỒNG:</b>\n\n";
+                // Đổi limit(10) thành limit(30)
+                const users = await User.find({ referralCount: { $gt: 0 } }).sort({ referralCount: -1 }).limit(30);
+                let response = "🕵️‍♂️ <b>DANH SÁCH TOP 30 ĐẠI SỨ MỜI NHIỀU NHẤT:</b>\n\n";
                 users.forEach((u, index) => { response += `${index + 1}. ${u.firstName} ${u.lastName}\n🆔 ID: <code>${u.userId}</code>\n👥 Mời: ${u.referralCount} | 💰 Dư: ${u.balance}\n--------------------------\n`; });
                 bot.sendMessage(ADMIN_ID, response || "Chưa có dữ liệu.", { parse_mode: 'HTML' });
             }
