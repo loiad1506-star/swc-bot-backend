@@ -1235,7 +1235,6 @@ bot.onText(/\/start(.*)/i, async (msg, match) => {
     if (isNewUser && refId && refId !== userId) { welcomeText = `🎉 <i>Bạn được mời tham gia bởi một Đại sứ SWC!</i>\n\n` + welcomeText; }
     
     let keyboardArray = [
-let keyboardArray = [
         [{ text: "🇻🇳 CÀI ĐẶT TIẾNG VIỆT", url: "https://t.me/setlanguage/vi" }],
         [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
         [{ text: "2️⃣ Lan tỏa Cộng Đồng", callback_data: 'task_3' }],
