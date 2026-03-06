@@ -1488,7 +1488,7 @@ bot.on('message', async (msg) => {
                     const amount = amountMatch ? amountMatch[1] : '...';
                     const userName = targetUser ? `${targetUser.firstName} ${targetUser.lastName}`.trim() : 'Một thành viên';
                     
-                    const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\nQuá đẳng cấp! Chúc mừng <b>${userName}</b> vừa giao dịch thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n👉 <b>Anh em tích cực cày điểm danh hoặc ghép vốn để chốt lời ngay hôm nay nhé!</b> 🚀👇`;
+                    const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\nQuá đẳng cấp! Chúc mừng <b>${userName}</b> vừa giao dịch thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n👉 <b>CHÚC MỪNG THÀNH VIÊN CỦA NỀN TẢNG SKY WORLD COMMUNITY VIET NAM</b> 🚀👇`;
                     
                     const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 VÀO BOT CÀY SWGT NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
                     
