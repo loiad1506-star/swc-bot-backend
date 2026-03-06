@@ -510,7 +510,7 @@ const server = http.createServer(async (req, res) => {
                 let rewardName = 'Chúc bạn may mắn lần sau!';
                 let rewardValue = 0;
 
-                // TỶ LỆ RỚT ĐỒ (Anh có thể chỉnh sửa % ở đây)
+                // TỶ LỆ RỚT ĐỒ 
                 const rand = Math.random() * 100;
                 if (rand < 40) { 
                     rewardType = 'none'; // 40% Tịt ngòi
@@ -526,14 +526,30 @@ const server = http.createServer(async (req, res) => {
                     rewardType = 'audio'; rewardName = 'Audio: Nhân Tính Đen Trắng'; // 4% Trúng Audio
                 }
 
-                // Cộng tiền nếu trúng SWGT
+                const userName = `${user.firstName} ${user.lastName}`.trim();
+                const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🏴‍☠️ VÀO ĐẢO KHO BÁU NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
+
+                // 1. Cộng tiền nếu trúng SWGT
                 if (rewardType === 'swgt') {
                     user.balance = Math.round((user.balance + rewardValue) * 100) / 100;
+                    
+                    // NẾU TRÚNG ĐƯỢC 50 SWGT -> NỔ FOMO LÊN GROUP
+                    if (rewardValue === 50) {
+                        const fomo50Msg = `🎰 <b>BÀN TAY VÀNG TRONG LÀNG ĐẬP RƯƠNG!</b> 🎰\n\nChúc mừng <b>${userName}</b> vừa dùng 20 SWGT đập rương và nổ ngay giải độc đắc <b>50 SWGT</b>! Quá đỉnh! 🔥\n\n👉 <i>Anh em vào Trò Chơi Đảo Kho Báu thử vận may ngay hôm nay!</i>`;
+                        bot.sendMessage(GROUP_USERNAME, fomo50Msg, optsFomo).catch(()=>{});
+                    }
                 } 
-                // Gửi thông báo cho Admin nếu trúng Sách/Audio
+                // 2. Xử lý khi trúng Sách / Audio
                 else if (rewardType === 'ebook' || rewardType === 'audio') {
+                    // Báo cho khách
                     bot.sendMessage(user.userId, `🎉 <b>TRÚNG ĐỘC ĐẮC TỪ RƯƠNG KHO BÁU!</b>\n\nNhân phẩm bùng nổ! Bạn vừa đập rương trúng <b>${rewardName}</b> (Giá trị 200-300 SWGT).\n\n👉 Vui lòng chờ Admin liên hệ và gửi tài liệu trực tiếp vào tin nhắn này nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
-                    bot.sendMessage(ADMIN_ID, `🎁 <b>KHÁCH ĐẬP RƯƠNG TRÚNG TÀI LIỆU CỰC PHẨM</b>\n👤 Khách: ${user.firstName} (ID: <code>${user.userId}</code>)\n🎁 Quà trúng: <b>${rewardName}</b>\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VÀ GỬI FILE CHO KHÁCH</a>`, {parse_mode: 'HTML'}).catch(()=>{});
+                    
+                    // Báo cho Admin gửi tài liệu
+                    bot.sendMessage(ADMIN_ID, `🎁 <b>KHÁCH ĐẬP RƯƠNG TRÚNG TÀI LIỆU CỰC PHẨM</b>\n👤 Khách: ${userName} (ID: <code>${user.userId}</code>)\n🎁 Quà trúng: <b>${rewardName}</b>\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VÀ GỬI FILE CHO KHÁCH</a>`, {parse_mode: 'HTML'}).catch(()=>{});
+                    
+                    // NỔ FOMO LÊN GROUP (Kích thích những người khác thay vì rút tiền thì đem đi đập rương)
+                    const fomoItemMsg = `🎁 <b>NHÂN PHẨM BÙNG NỔ!</b> 🎁\n\nKhông thể tin nổi! <b>${userName}</b> vừa đập rương Bí Ẩn trúng ngay cực phẩm <b>${rewardName}</b> (Giá trị lên tới 300 SWGT)!\n\n👉 <i>Ai sẽ là người may mắn tiếp theo? Thay vì rút tiền, anh em mang SWGT vào Đảo Kho Báu để săn siêu phẩm ngay!</i> 🏴‍☠️`;
+                    bot.sendMessage(GROUP_USERNAME, fomoItemMsg, optsFomo).catch(()=>{});
                 }
 
                 await user.save();
