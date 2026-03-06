@@ -489,7 +489,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-// --- API MỞ RƯƠNG BÍ ẨN ---
+// --- API MỞ RƯƠNG BÍ ẨN (THUẦN NGẪU NHIÊN, VĂN PHONG ĐẦU TƯ) ---
     else if (parsedUrl.pathname === '/api/spin-wheel' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -504,63 +504,52 @@ const server = http.createServer(async (req, res) => {
                     return res.end(JSON.stringify({ success: false, message: "⚠️ Không đủ 20 SWGT để mua búa đập rương!" }));
                 }
 
-                // Trừ tiền và Tăng biến đếm số lần đập rương
+                // Trừ tiền 20 SWGT
                 user.balance = Math.round((user.balance - 20) * 100) / 100;
-                user.spinCount = (user.spinCount || 0) + 1; 
                 
                 let rewardType = 'none';
                 let rewardName = 'Chúc bạn may mắn lần sau!';
                 let rewardValue = 0;
 
-                // KIỂM TRA CƠ CHẾ BẢO HIỂM NỔ HŨ (ĐỦ 30 LẦN = 600 SWGT -> 100% TRÚNG 500 SWGT)
-                if (user.spinCount >= 30) {
-                    rewardType = 'swgt'; 
-                    rewardValue = 500; 
-                    rewardName = 'JACKPOT 500 SWGT';
-                    user.spinCount = 0; // Trúng xong reset bộ đếm về 0 để khách cày lại từ đầu
-                } else {
-                    // Nếu chưa đủ 30 lần thì quay Random bình thường
-                    const rand = Math.random() * 100;
-                    if (rand < 40) { 
-                        rewardType = 'none'; // 40% Tịt ngòi
-                    } else if (rand < 70) { 
-                        rewardType = 'swgt'; rewardValue = 5; rewardName = '5 SWGT'; // 30% Trúng 5
-                    } else if (rand < 85) { 
-                        rewardType = 'swgt'; rewardValue = 10; rewardName = '10 SWGT'; // 15% Trúng 10
-                    } else if (rand < 92) { 
-                        rewardType = 'swgt'; rewardValue = 50; rewardName = '50 SWGT'; // 7% Trúng 50
-                    } else if (rand < 96) { 
-                        rewardType = 'ebook'; rewardName = 'Ebook: Logic Kiếm Tiền'; // 4% Trúng Sách
-                    } else { 
-                        rewardType = 'audio'; rewardName = 'Audio: Nhân Tính Đen Trắng'; // 4% Trúng Audio
-                    }
+                // TỶ LỆ RỚT ĐỒ THUẦN NGẪU NHIÊN
+                const rand = Math.random() * 100;
+                if (rand < 40) { 
+                    rewardType = 'none'; // 40% Rương rỗng
+                } else if (rand < 70) { 
+                    rewardType = 'swgt'; rewardValue = 5; rewardName = '5 SWGT'; // 30% Trúng 5
+                } else if (rand < 85) { 
+                    rewardType = 'swgt'; rewardValue = 10; rewardName = '10 SWGT'; // 15% Trúng 10
+                } else if (rand < 92) { 
+                    rewardType = 'swgt'; rewardValue = 50; rewardName = '50 SWGT'; // 7% Trúng 50
+                } else if (rand < 96) { 
+                    rewardType = 'ebook'; rewardName = 'Ebook: Logic Kiếm Tiền'; // 4% Trúng Sách
+                } else { 
+                    rewardType = 'audio'; rewardName = 'Audio: Nhân Tính Đen Trắng'; // 4% Trúng Audio
                 }
 
                 const userName = `${user.firstName} ${user.lastName}`.trim();
-                const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🏴‍☠️ VÀO ĐẢO KHO BÁU SĂN HŨ NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
+                const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🏴‍☠️ THỬ VẬN MAY NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
 
                 // 1. Xử lý khi trúng Tiền (SWGT)
                 if (rewardType === 'swgt') {
                     user.balance = Math.round((user.balance + rewardValue) * 100) / 100;
                     
-                    // NỔ FOMO GROUP: GIẢI 50 SWGT
+                    // NỔ FOMO GROUP: GIẢI 50 SWGT (Từ ngữ sang trọng)
                     if (rewardValue === 50) {
-                        const fomo50Msg = `🎰 <b>BÀN TAY VÀNG TRONG LÀNG ĐẬP RƯƠNG!</b> 🎰\n\nChúc mừng <b>${userName}</b> vừa dùng 20 SWGT đập rương và nổ ngay giải lớn <b>50 SWGT</b>! Quá đỉnh! 🔥\n\n👉 <i>Anh em vào Trò Chơi Đảo Kho Báu thử vận may ngay hôm nay!</i>`;
+                        const fomo50Msg = `💎 <b>KHO BÁU ĐÃ TÌM THẤY CHỦ NHÂN!</b> 💎\n\nChúc mừng <b>${userName}</b> vừa may mắn khám phá Rương Bí Ẩn và nhận được giải thưởng <b>50 SWGT</b>! Quá tuyệt vời! 🔥\n\n👉 <i>Anh em vào Trò Chơi Đảo Kho Báu thử vận may ngay hôm nay!</i>`;
                         bot.sendMessage(GROUP_USERNAME, fomo50Msg, optsFomo).catch(()=>{});
-                    }
-                    // NỔ FOMO CỰC MẠNH LÊN GROUP: SIÊU JACKPOT 500 SWGT
-                    else if (rewardValue === 500) {
-                        const fomo500Msg = `🌋 <b>CƠN ĐỊA CHẤN: SIÊU JACKPOT ĐÃ NỔ!</b> 🌋\n\nKhông thể tin nổi! Lịch sử gọi tên <b>${userName}</b> vừa đập rương nổ ngay Siêu Hũ <b>500 SWGT</b> (Đủ Min rút thẳng về ví)!\n\n💡 <i>Cơ chế Đảm Bảo 100%: Cứ đập rương tích lũy đủ 30 lần CHẮC CHẮN NỔ HŨ 500 SWGT. Anh em xông lên bào tiền Két sắt thôi!</i> 🏴‍☠️💸`;
-                        bot.sendMessage(GROUP_USERNAME, fomo500Msg, optsFomo).catch(()=>{});
                     }
                 } 
                 // 2. Xử lý khi trúng Sách / Audio
                 else if (rewardType === 'ebook' || rewardType === 'audio') {
-                    bot.sendMessage(user.userId, `🎉 <b>TRÚNG ĐỘC ĐẮC TỪ RƯƠNG KHO BÁU!</b>\n\nNhân phẩm bùng nổ! Bạn vừa đập rương trúng <b>${rewardName}</b>.\n\n👉 Vui lòng quay lại Mini App để nhập Gmail nhận thưởng nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    // Báo cho khách để hiện pop-up nhập mail
+                    bot.sendMessage(user.userId, `🎉 <b>TRÚNG RƯƠNG KHO BÁU!</b>\n\nThật tuyệt vời! Bạn vừa mở rương trúng <b>${rewardName}</b>.\n\n👉 Vui lòng quay lại Mini App để nhập Gmail nhận thưởng nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    
+                    // Báo cho Admin
                     bot.sendMessage(ADMIN_ID, `🎁 <b>KHÁCH ĐẬP RƯƠNG TRÚNG TÀI LIỆU</b>\n👤 Khách: ${userName} (ID: <code>${user.userId}</code>)\n🎁 Quà trúng: <b>${rewardName}</b>\n⏳ <i>Hệ thống đang yêu cầu khách nhập Gmail. Vui lòng chờ tin nhắn tiếp theo...</i>`, {parse_mode: 'HTML'}).catch(()=>{});
                     
                     // NỔ FOMO GROUP: GIẢI TÀI LIỆU
-                    const fomoItemMsg = `🎁 <b>NHÂN PHẨM BÙNG NỔ!</b> 🎁\n\nTuyệt vời! <b>${userName}</b> vừa đập rương Bí Ẩn trúng ngay cực phẩm <b>${rewardName}</b> (Giá trị lên tới 300 SWGT)!\n\n👉 <i>Ai sẽ là người may mắn tiếp theo? Thay vì rút tiền, anh em mang SWGT vào Đảo Kho Báu để săn siêu phẩm ngay!</i> 🏴‍☠️`;
+                    const fomoItemMsg = `🎁 <b>BÍ KÍP ĐÃ XUẤT HIỆN!</b> 🎁\n\nKhông thể tin nổi! <b>${userName}</b> vừa đập rương Bí Ẩn trúng ngay cực phẩm <b>${rewardName}</b> (Giá trị quy đổi lên tới 300 SWGT)!\n\n👉 <i>Ai sẽ là người may mắn tiếp theo? Thay vì rút tiền, anh em mang SWGT vào Đảo Kho Báu để săn siêu phẩm ngay!</i> 🏴‍☠️`;
                     bot.sendMessage(GROUP_USERNAME, fomoItemMsg, optsFomo).catch(()=>{});
                 }
 
