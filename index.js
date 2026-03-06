@@ -890,6 +890,85 @@ bot.onText(/\/deletecode (\S+)/i, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, `✅ Đã xóa mã ${match[1]}`);
 });
 
+bot.onText(/\/sendleader ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const broadcastMsg = match[1];
+    
+    // Tìm những người đã mời ít nhất 1 người
+    const leaders = await User.find({ referralCount: { $gt: 0 } });
+    
+    bot.sendMessage(ADMIN_ID, `⏳ Đang lọc dữ liệu... Bắt đầu gửi thông báo cho ${leaders.length} Đại sứ.`);
+
+    let successCount = 0;
+    for (let i = 0; i < leaders.length; i++) {
+        try { 
+            await bot.sendMessage(leaders[i].userId, broadcastMsg, { 
+                parse_mode: 'HTML', 
+                reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP NGAY", web_app: { url: webAppUrl } }]] } 
+            }); 
+            successCount++;
+        } catch (e) {}
+        await new Promise(resolve => setTimeout(resolve, 50)); // Tránh bị Telegram chặn do spam
+    }
+    bot.sendMessage(ADMIN_ID, `✅ Đã gửi xong cảnh báo cho ${successCount}/${leaders.length} Đại sứ.`);
+});
+
+bot.onText(/\/quettoanhethong/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    bot.sendMessage(ADMIN_ID, `🚨 BẮT ĐẦU KÍCH HOẠT RADAR QUÉT TOÀN HỆ THỐNG...\nQuá trình này sẽ mất một vài phút, vui lòng không thao tác gì thêm.`);
+    
+    try {
+        const leaders = await User.find({ referralCount: { $gt: 0 } });
+        let totalFakeRefsRemoved = 0;
+        let totalTokensRecovered = 0;
+
+        for (let referrer of leaders) {
+            const refs = await User.find({ referredBy: referrer.userId });
+            let doneCount = 0;
+            let notDoneCount = 0;
+
+            // Đếm khách thật và ảo (task1Done = false tức là chưa xác minh)
+            refs.forEach(r => { if (r.task1Done) doneCount++; else notDoneCount++; });
+
+            if (notDoneCount > 0) {
+                const penalty = notDoneCount * 5; // Thu hồi 5 SWGT/1 nick rác
+                referrer.referralCount = doneCount; 
+                referrer.balance = Math.max(0, referrer.balance - penalty);
+                
+                // Tự động rớt hạng Quân hàm nếu không đủ số lượng do bị trừ ref
+                if (doneCount < 500) referrer.milestone500 = false;
+                if (doneCount < 350) referrer.milestone350 = false;
+                if (doneCount < 200) referrer.milestone200 = false;
+                if (doneCount < 120) referrer.milestone120 = false;
+                if (doneCount < 80) referrer.milestone80 = false;
+                if (doneCount < 50) referrer.milestone50 = false;
+                if (doneCount < 20) referrer.milestone20 = false;
+                if (doneCount < 10) referrer.milestone10 = false;
+                if (doneCount < 3) referrer.milestone3 = false;
+
+                await referrer.save();
+                totalFakeRefsRemoved += notDoneCount;
+                totalTokensRecovered += penalty;
+
+                // Gửi tin nhắn dằn mặt cho Leader bị trừ tiền
+                let userMsg = `⚠️ <b>HỆ THỐNG VỪA QUÉT ĐỐI SOÁT</b> ⚠️\n\nPhát hiện <b>${notDoneCount}</b> tài khoản do bạn mời CHƯA THAM GIA Group xác minh (Tài khoản ảo/spam). Hệ thống đã tự động thu hồi <b>${penalty} SWGT</b>.\n\n💡 <i>Luật chơi rất rõ ràng: Khách của bạn phải vào Group Chat thì bạn mới được nhận thưởng. Khách ảo sẽ bị loại bỏ để bảo vệ giá trị SWGT cho toàn cộng đồng!</i>\n\n✅ Đừng lo lắng! Những tài khoản đang bị giam 30 ngày (do là nick Telegram người thật mới tạo nhưng ĐÃ VÀO GROUP) vẫn được bảo lưu an toàn 100%.`;
+                bot.sendMessage(referrer.userId, userMsg, { parse_mode: 'HTML' }).catch(()=>{});
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        const finalReport = `✅ <b>ĐÃ QUÉT VÀ THANH TRỪNG HOÀN TẤT!</b>\n\n` +
+                            `🗑 Tổng số nick rác/ảo đã bị loại bỏ: <b>${totalFakeRefsRemoved} nick</b>\n` +
+                            `💰 Tổng số tiền SWGT cứu vãn về kho: <b>+${totalTokensRecovered} SWGT</b>\n\n` +
+                            `<i>Két sắt của anh đã được làm sạch thành công! Dùng lệnh /admin để kiểm tra lại thống kê.</i>`;
+        bot.sendMessage(ADMIN_ID, finalReport, { parse_mode: 'HTML' });
+
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi khi càn quét: ${error.message}`);
+    }
+});
+
+
 bot.onText(/\/duatop/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     bot.sendMessage(ADMIN_ID, "⏳ Đang đẩy Bảng Xếp Hạng lên Group...");
