@@ -648,7 +648,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- API THANH KHOẢN VNĐ (BÁN CHO ADMIN) ---
+// --- API THANH KHOẢN VNĐ (BÁN CHO ADMIN) ---
     else if (parsedUrl.pathname === '/api/liquidate' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -659,7 +659,8 @@ const server = http.createServer(async (req, res) => {
                 if (!user) return res.writeHead(400), res.end();
 
                 const usdtRate = 25400;
-                const liquidateVND = Math.floor(user.balance * 0.008 * usdtRate);
+                // ĐỔI GIÁ THU MUA THÀNH 0.007
+                const liquidateVND = Math.floor(user.balance * 0.007 * usdtRate);
 
                 if (user.balance <= 0 || user.balance >= 500) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -708,7 +709,8 @@ const server = http.createServer(async (req, res) => {
                 user.pendingSWGT = shortfall;
                 await user.save();
 
-                const bankMsg = `⚡ <b>YÊU CẦU GHÉP VỐN ĐÃ ĐƯỢC TẠO</b>\n\nBạn đang thiếu <b>${shortfall} SWGT</b> để đủ hạn mức rút.\n💰 Số tiền cần thanh toán: <b>${data.vndAmount} VNĐ</b> (Tỷ giá 27.000đ/USD)\n\n🏦 <b>THÔNG TIN CHUYỂN KHOẢN:</b>\n- Ngân hàng: <b>Techcombank</b>\n- Số tài khoản: <code>568786999999</code>\n- Nội dung chuyển tiền: <code>${user.userId}</code>\n\n📸 <i>Hành động: Vui lòng chuyển ĐÚNG nội dung và <b>GỬI ẢNH BIÊN LAI (BILL)</b> vào đây cho Bot. Lệnh sẽ tự động hủy nếu sau 10 phút Bot không nhận được ảnh!</i>`;
+                // ĐÃ XÓA CHỮ "TỶ GIÁ" RA KHỎI TIN NHẮN
+                const bankMsg = `⚡ <b>YÊU CẦU GHÉP VỐN ĐÃ ĐƯỢC TẠO</b>\n\nBạn đang thiếu <b>${shortfall} SWGT</b> để đủ hạn mức rút.\n💰 Số tiền cần thanh toán: <b>${data.vndAmount} VNĐ</b>\n\n🏦 <b>THÔNG TIN CHUYỂN KHOẢN:</b>\n- Ngân hàng: <b>Techcombank</b>\n- Số tài khoản: <code>568786999999</code>\n- Nội dung chuyển tiền: <code>${user.userId}</code>\n\n📸 <i>Hành động: Vui lòng chuyển ĐÚNG nội dung và <b>GỬI ẢNH BIÊN LAI (BILL)</b> vào đây cho Bot. Lệnh sẽ tự động hủy nếu sau 10 phút Bot không nhận được ảnh!</i>`;
                 
                 bot.sendMessage(data.userId, bankMsg, {parse_mode: 'HTML'}).catch(()=>{});
 
