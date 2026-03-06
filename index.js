@@ -1050,6 +1050,46 @@ bot.onText(/\/sendleader ([\s\S]+)/i, async (msg, match) => {
     bot.sendMessage(ADMIN_ID, `✅ Đã gửi xong cảnh báo cho ${successCount}/${leaders.length} Đại sứ.`);
 });
 
+// ==========================================
+// Lệnh nhắc nhở Tân Binh chưa làm nhiệm vụ
+// ==========================================
+bot.onText(/\/nhactanbinh ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const broadcastMsg = match[1];
+
+    // Lọc những người CHƯA hoàn thành nhiệm vụ Tân Binh
+    const newbies = await User.find({ task1Done: false });
+
+    bot.sendMessage(ADMIN_ID, `⏳ Đang bật Radar quét... Phát hiện ${newbies.length} Tân binh chưa làm nhiệm vụ. Bắt đầu gửi nhắc nhở!`);
+
+    let successCount = 0;
+    for (let i = 0; i < newbies.length; i++) {
+        let user = newbies[i];
+        
+        let keyboardArray = [
+            [{ text: "🚀 MỞ APP LÀM NHIỆM VỤ NGAY", web_app: { url: webAppUrl } }]
+        ];
+
+        // Nếu họ có người mời, tự động sinh ra nút Liên hệ hướng dẫn
+        if (user.referredBy && user.referredBy !== user.userId) {
+            keyboardArray.unshift([
+                { text: "💬 CHỦ ĐỘNG LIÊN HỆ NGƯỜI HƯỚNG DẪN", url: `tg://user?id=${user.referredBy}` }
+            ]);
+        }
+
+        try {
+            await bot.sendMessage(user.userId, broadcastMsg, {
+                parse_mode: 'HTML',
+                reply_markup: { inline_keyboard: keyboardArray }
+            });
+            successCount++;
+        } catch (e) {}
+        
+        await new Promise(resolve => setTimeout(resolve, 50)); // Tránh bị Telegram chặn do spam
+    }
+    bot.sendMessage(ADMIN_ID, `✅ Đã gửi đòn tâm lý thành công cho ${successCount}/${newbies.length} Tân binh lười biếng.`);
+});
+
 bot.onText(/\/quettoanhethong/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     bot.sendMessage(ADMIN_ID, `🚨 BẮT ĐẦU KÍCH HOẠT RADAR QUÉT TOÀN HỆ THỐNG...\nQuá trình này sẽ mất một vài phút, vui lòng không thao tác gì thêm.`);
