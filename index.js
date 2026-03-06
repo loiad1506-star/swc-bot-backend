@@ -533,7 +533,6 @@ const server = http.createServer(async (req, res) => {
                 if (rewardType === 'swgt') {
                     user.balance = Math.round((user.balance + rewardValue) * 100) / 100;
                     
-                    // NẾU TRÚNG ĐƯỢC 50 SWGT -> NỔ FOMO LÊN GROUP
                     if (rewardValue === 50) {
                         const fomo50Msg = `🎰 <b>BÀN TAY VÀNG TRONG LÀNG ĐẬP RƯƠNG!</b> 🎰\n\nChúc mừng <b>${userName}</b> vừa dùng 20 SWGT đập rương và nổ ngay giải độc đắc <b>50 SWGT</b>! Quá đỉnh! 🔥\n\n👉 <i>Anh em vào Trò Chơi Đảo Kho Báu thử vận may ngay hôm nay!</i>`;
                         bot.sendMessage(GROUP_USERNAME, fomo50Msg, optsFomo).catch(()=>{});
@@ -541,13 +540,9 @@ const server = http.createServer(async (req, res) => {
                 } 
                 // 2. Xử lý khi trúng Sách / Audio
                 else if (rewardType === 'ebook' || rewardType === 'audio') {
-                    // Báo cho khách
-                    bot.sendMessage(user.userId, `🎉 <b>TRÚNG ĐỘC ĐẮC TỪ RƯƠNG KHO BÁU!</b>\n\nNhân phẩm bùng nổ! Bạn vừa đập rương trúng <b>${rewardName}</b> (Giá trị 200-300 SWGT).\n\n👉 Vui lòng chờ Admin liên hệ và gửi tài liệu trực tiếp vào tin nhắn này nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    bot.sendMessage(user.userId, `🎉 <b>TRÚNG ĐỘC ĐẮC TỪ RƯƠNG KHO BÁU!</b>\n\nNhân phẩm bùng nổ! Bạn vừa đập rương trúng <b>${rewardName}</b>.\n\n👉 Vui lòng quay lại Mini App để nhập Gmail nhận thưởng nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    bot.sendMessage(ADMIN_ID, `🎁 <b>KHÁCH ĐẬP RƯƠNG TRÚNG TÀI LIỆU</b>\n👤 Khách: ${userName} (ID: <code>${user.userId}</code>)\n🎁 Quà trúng: <b>${rewardName}</b>\n⏳ <i>Hệ thống đang yêu cầu khách nhập Gmail. Vui lòng chờ tin nhắn tiếp theo...</i>`, {parse_mode: 'HTML'}).catch(()=>{});
                     
-                    // Báo cho Admin gửi tài liệu
-                    bot.sendMessage(ADMIN_ID, `🎁 <b>KHÁCH ĐẬP RƯƠNG TRÚNG TÀI LIỆU CỰC PHẨM</b>\n👤 Khách: ${userName} (ID: <code>${user.userId}</code>)\n🎁 Quà trúng: <b>${rewardName}</b>\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VÀ GỬI FILE CHO KHÁCH</a>`, {parse_mode: 'HTML'}).catch(()=>{});
-                    
-                    // NỔ FOMO LÊN GROUP (Kích thích những người khác thay vì rút tiền thì đem đi đập rương)
                     const fomoItemMsg = `🎁 <b>NHÂN PHẨM BÙNG NỔ!</b> 🎁\n\nKhông thể tin nổi! <b>${userName}</b> vừa đập rương Bí Ẩn trúng ngay cực phẩm <b>${rewardName}</b> (Giá trị lên tới 300 SWGT)!\n\n👉 <i>Ai sẽ là người may mắn tiếp theo? Thay vì rút tiền, anh em mang SWGT vào Đảo Kho Báu để săn siêu phẩm ngay!</i> 🏴‍☠️`;
                     bot.sendMessage(GROUP_USERNAME, fomoItemMsg, optsFomo).catch(()=>{});
                 }
@@ -559,6 +554,28 @@ const server = http.createServer(async (req, res) => {
             } catch (e) {
                 res.writeHead(400); res.end(JSON.stringify({ success: false }));
             }
+        });
+    }
+
+    // --- API NHẬN GMAIL TỪ GAME ---
+    else if (parsedUrl.pathname === '/api/submit-game-email' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) return res.writeHead(400), res.end();
+
+                // Gửi dưới dạng Tin nhắn Khách Hàng để Admin dễ Reply
+                const alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG (NHẬN QUÀ GAME)</b>\n\n👤 Khách: <b>${user.firstName} ${user.lastName}</b>\n🆔 ID: <code>${user.userId}</code>\n🎁 Quà trúng: <b>${data.rewardName}</b>\n\n💬 <b>Gmail của khách:</b>\n${data.email}\n\n👉 <i>Admin hãy gửi file qua Mail, sau đó Reply (Trả lời) tin nhắn này gõ "Đã gửi qua mail" để báo lại cho khách nhé!</i>`;
+                
+                bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "💬 Chat trực tiếp với khách", url: `tg://user?id=${user.userId}` }]] } }).catch(()=>{});
+                bot.sendMessage(user.userId, `✅ Hệ thống đã ghi nhận Gmail: <b>${data.email}</b>.\n\nAdmin đang tiến hành gửi tài liệu cho bạn. Vui lòng chú ý kiểm tra hộp thư (và cả mục Spam) nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true }));
+            } catch (e) { res.writeHead(400); res.end(); }
         });
     }
 
