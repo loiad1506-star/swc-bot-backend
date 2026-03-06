@@ -624,7 +624,7 @@ const server = http.createServer(async (req, res) => {
                 let user = await User.findOne({ userId: data.userId });
                 if (!user) return res.writeHead(400), res.end();
 
-                // Tính toán min rút (100k)
+                // Tính toán min rút (Hạ xuống 5000 VNĐ)
                 const usdtRate = 25400;
                 const liquidateVND = Math.floor(user.balance * 0.010 * usdtRate);
 
@@ -633,9 +633,9 @@ const server = http.createServer(async (req, res) => {
                     return res.end(JSON.stringify({ success: false, message: "Chỉ áp dụng cho số dư dưới 500 SWGT!" }));
                 }
 
-                if (liquidateVND < 100000) {
+                if (liquidateVND < 5000) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, message: "Số dư của bạn quy đổi chưa đạt Min rút 100.000 VNĐ. Hãy cày thêm SWGT hoặc chọn Ghép Vốn!" }));
+                    return res.end(JSON.stringify({ success: false, message: "Số dư của bạn quy đổi chưa đạt Min tối thiểu 5.000 VNĐ." }));
                 }
 
                 const amountSWGT = user.balance;
@@ -643,15 +643,16 @@ const server = http.createServer(async (req, res) => {
                 await user.save();
 
                 // Lọc ký tự HTML độc hại từ form nhập
-                const safeBankName = data.bankName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                const safeBankAccount = data.bankAccount.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const safeBankName = data.bankName ? data.bankName.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+                const safeAccountName = data.accountName ? data.accountName.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "Không rõ";
+                const safeBankAccount = data.bankAccount ? data.bankAccount.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
 
                 // Gửi thông báo cho Khách
                 bot.sendMessage(data.userId, `✅ <b>YÊU CẦU THANH KHOẢN THÀNH CÔNG!</b>\n\nBạn đã bán <b>${amountSWGT} SWGT</b>. Vui lòng chờ Admin chuyển <b>${data.vndAmount} VNĐ</b> vào tài khoản ngân hàng của bạn.`, {parse_mode: 'HTML'})
                    .catch(err => console.log("LỖI GỬI CHO KHÁCH (Liquidate):", err.message));
                 
                 // Báo cáo cho Admin
-                const adminReport = `🚨 <b>YÊU CẦU THANH LÝ LẤY VNĐ</b>\n\n👤 Khách: ${user.firstName} (ID: <code>${user.userId}</code>)\n💰 Số lượng xả: <b>${amountSWGT} SWGT</b>\n💵 Số tiền Admin cần bank: <b>${data.vndAmount} VNĐ</b>\n\n🏦 <b>Thông tin nhận tiền:</b>\n- Ngân hàng: ${safeBankName}\n- Số TK: <code>${safeBankAccount}</code>\n\n👉 <i>Admin hãy Bank tiền và Reply tin nhắn này gõ "xong" nhé.</i>`;
+                const adminReport = `🚨 <b>YÊU CẦU THANH LÝ LẤY VNĐ</b>\n\n👤 Khách: ${user.firstName} (ID: <code>${user.userId}</code>)\n💰 Số lượng xả: <b>${amountSWGT} SWGT</b>\n💵 Số tiền Admin cần bank: <b>${data.vndAmount} VNĐ</b>\n\n🏦 <b>Thông tin nhận tiền:</b>\n- Ngân hàng: ${safeBankName}\n- Chủ TK: <b>${safeAccountName.toUpperCase()}</b>\n- Số TK: <code>${safeBankAccount}</code>\n\n👉 <i>Admin hãy Bank tiền và Reply tin nhắn này gõ "xong" nhé.</i>`;
                 bot.sendMessage(ADMIN_ID, adminReport, { parse_mode: 'HTML' })
                    .catch(err => console.log("LỖI GỬI CHO ADMIN (Liquidate):", err.message));
 
