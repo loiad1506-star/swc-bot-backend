@@ -489,6 +489,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
+// --- API MỞ RƯƠNG BÍ ẨN ---
     else if (parsedUrl.pathname === '/api/spin-wheel' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -504,39 +505,41 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 user.balance = Math.round((user.balance - 20) * 100) / 100;
-                user.spinCount = (user.spinCount || 0) + 1;
                 
-                let reward = 0;
-                if (user.spinCount >= 30) {
-                    reward = 500;
-                    user.spinCount = 0; 
-                } else {
-                    const weights = [
-                        { reward: 0, chance: 45 },
-                        { reward: 5, chance: 35 },
-                        { reward: 10, chance: 12 },
-                        { reward: 20, chance: 5 },
-                        { reward: 50, chance: 1.5 },
-                        { reward: -2, chance: 1.5 } 
-                    ];
-                    let rand = Math.random() * 100;
-                    let cumulative = 0;
-                    for (let w of weights) {
-                        cumulative += w.chance;
-                        if (rand <= cumulative) { reward = w.reward; break; }
-                    }
+                let rewardType = 'none';
+                let rewardName = 'Chúc bạn may mắn lần sau!';
+                let rewardValue = 0;
+
+                // TỶ LỆ RỚT ĐỒ (Anh có thể chỉnh sửa % ở đây)
+                const rand = Math.random() * 100;
+                if (rand < 40) { 
+                    rewardType = 'none'; // 40% Tịt ngòi
+                } else if (rand < 70) { 
+                    rewardType = 'swgt'; rewardValue = 5; rewardName = '5 SWGT'; // 30% Trúng 5
+                } else if (rand < 85) { 
+                    rewardType = 'swgt'; rewardValue = 10; rewardName = '10 SWGT'; // 15% Trúng 10
+                } else if (rand < 92) { 
+                    rewardType = 'swgt'; rewardValue = 50; rewardName = '50 SWGT'; // 7% Trúng 50
+                } else if (rand < 96) { 
+                    rewardType = 'ebook'; rewardName = 'Ebook: Logic Kiếm Tiền'; // 4% Trúng Sách
+                } else { 
+                    rewardType = 'audio'; rewardName = 'Audio: Nhân Tính Đen Trắng'; // 4% Trúng Audio
                 }
 
-                if (reward === -2) {
-                    if (!user.ownedFrames.includes('light')) { user.ownedFrames.push('light'); }
-                } else if (reward > 0) {
-                    user.balance = Math.round((user.balance + reward) * 100) / 100;
+                // Cộng tiền nếu trúng SWGT
+                if (rewardType === 'swgt') {
+                    user.balance = Math.round((user.balance + rewardValue) * 100) / 100;
+                } 
+                // Gửi thông báo cho Admin nếu trúng Sách/Audio
+                else if (rewardType === 'ebook' || rewardType === 'audio') {
+                    bot.sendMessage(user.userId, `🎉 <b>TRÚNG ĐỘC ĐẮC TỪ RƯƠNG KHO BÁU!</b>\n\nNhân phẩm bùng nổ! Bạn vừa đập rương trúng <b>${rewardName}</b> (Giá trị 200-300 SWGT).\n\n👉 Vui lòng chờ Admin liên hệ và gửi tài liệu trực tiếp vào tin nhắn này nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
+                    bot.sendMessage(ADMIN_ID, `🎁 <b>KHÁCH ĐẬP RƯƠNG TRÚNG TÀI LIỆU CỰC PHẨM</b>\n👤 Khách: ${user.firstName} (ID: <code>${user.userId}</code>)\n🎁 Quà trúng: <b>${rewardName}</b>\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VÀ GỬI FILE CHO KHÁCH</a>`, {parse_mode: 'HTML'}).catch(()=>{});
                 }
+
                 await user.save();
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true, reward: reward, newBalance: user.balance }));
-
+                res.end(JSON.stringify({ success: true, rewardType, rewardName, newBalance: user.balance }));
             } catch (e) {
                 res.writeHead(400); res.end(JSON.stringify({ success: false }));
             }
@@ -1232,6 +1235,8 @@ bot.onText(/\/start(.*)/i, async (msg, match) => {
     if (isNewUser && refId && refId !== userId) { welcomeText = `🎉 <i>Bạn được mời tham gia bởi một Đại sứ SWC!</i>\n\n` + welcomeText; }
     
     let keyboardArray = [
+let keyboardArray = [
+        [{ text: "🇻🇳 CÀI ĐẶT TIẾNG VIỆT", url: "https://t.me/setlanguage/vi" }],
         [{ text: "1️⃣ Nhiệm vụ Tân binh", callback_data: 'task_1' }],
         [{ text: "2️⃣ Lan tỏa Cộng Đồng", callback_data: 'task_3' }],
         [{ text: "🎁 Đặc quyền & Đổi thưởng", callback_data: 'task_4' }],
@@ -1624,6 +1629,7 @@ bot.on('message', async (msg) => {
 
         // Khôi phục lại menu FAQ và nút Liên hệ
         let faqKeyboard = [
+            [{ text: "🇻🇳 CÀI ĐẶT TIẾNG VIỆT", url: "https://t.me/setlanguage/vi" }],
             [{ text: "💬 VÀO GROUP CHAT CỘNG ĐỒNG NGAY", url: "https://t.me/swc_capital_chat" }],
             [{ text: "👮 Trợ lý này mang lại giá trị gì?", callback_data: 'faq_1' }],
             [{ text: "🚀 Bí quyết tạo Dòng Tiền với Vốn 0đ?", callback_data: 'faq_4' }],
