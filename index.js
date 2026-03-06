@@ -543,6 +543,7 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
+// --- API ĐỔI QUÀ (REDEEM) KÈM NHẬN GMAIL ---
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -555,25 +556,6 @@ const server = http.createServer(async (req, res) => {
                     return res.end(JSON.stringify({ success: false, message: "Không tìm thấy người dùng" }));
                 }
                 
-                const frameIds = ['bronze', 'silver', 'gold', 'dragon', 'light']; 
-                if (frameIds.includes(data.itemName)) {
-                    if (data.cost > 0) {
-                        if (user.balance < data.cost) {
-                            res.writeHead(400, { 'Content-Type': 'application/json' });
-                            return res.end(JSON.stringify({ success: false, message: "Không đủ số dư!" }));
-                        }
-                        user.balance = Math.round((user.balance - data.cost) * 100) / 100;
-                    }
-                    user.activeFrame = data.itemName;
-                    if (!user.ownedFrames) user.ownedFrames = ['none'];
-                    if (!user.ownedFrames.includes(data.itemName)) {
-                        user.ownedFrames.push(data.itemName);
-                    }
-                    await user.save();
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: true, balance: user.balance }));
-                }
-
                 if (user.balance < data.cost) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, message: `Bạn cần tích lũy đủ ${data.cost} SWGT để đổi quyền lợi này!` }));
@@ -583,14 +565,17 @@ const server = http.createServer(async (req, res) => {
                 await user.save();
 
                 let userNotify = `⏳ Yêu cầu đổi: <b>${data.itemName}</b> đang được xử lý!`;
-                
+                let adminEmailText = "";
+
+                // Nếu khách mua Sách / Audio -> Gửi kèm Gmail
                 if(data.itemName.includes('Ebook') || data.itemName.includes('Audio') || data.itemName.includes('Combo')) {
-                    userNotify = `🎉 <b>ĐỔI QUÀ THÀNH CÔNG!</b>\n\nBạn đã dùng ${data.cost} SWGT đổi lấy <b>${data.itemName}</b>.\n👉 Vui lòng chờ Admin gửi Link/File tài liệu trực tiếp vào tin nhắn này nhé!`;
+                    userNotify = `🎉 <b>ĐỔI QUÀ THÀNH CÔNG!</b>\n\nBạn đã dùng ${data.cost} SWGT đổi lấy <b>${data.itemName}</b>.\n📧 Tài liệu sẽ được Admin gửi vào Gmail: <b>${data.email}</b> và qua tin nhắn Bot. Vui lòng chú ý kiểm tra!`;
+                    adminEmailText = `\n📧 <b>Gmail nhận:</b> <code>${data.email}</code>`;
                 }
 
                 bot.sendMessage(data.userId, userNotify, {parse_mode: 'HTML'}).catch(()=>{});
                 
-                const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ / MUA TÀI LIỆU</b>\nKhách: ${user.firstName} (ID: <code>${user.userId}</code>)\nQuà: <b>${data.itemName}</b>\n💰 Đã trừ: ${data.cost} SWGT\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ GỬI TÀI LIỆU/TƯ VẤN CHO KHÁCH</a>`;
+                const reportMsg = `🎁 <b>YÊU CẦU ĐỔI QUÀ / MUA TÀI LIỆU</b>\n👤 Khách: ${user.firstName} (ID: <code>${user.userId}</code>)\n🎁 Quà: <b>${data.itemName}</b>\n💰 Đã trừ: ${data.cost} SWGT${adminEmailText}\n\n👉 <a href="tg://user?id=${user.userId}">BẤM VÀO ĐÂY ĐỂ CHAT VỚI KHÁCH</a>`;
                 bot.sendMessage(ADMIN_ID, reportMsg, { parse_mode: 'HTML' }).catch(()=>{});
                 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -601,7 +586,6 @@ const server = http.createServer(async (req, res) => {
             }
         });
     }
-
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
