@@ -614,7 +614,62 @@ const server = http.createServer(async (req, res) => {
             } catch (e) { res.writeHead(400); res.end(); }
         });
     }
-    
+    // --- CHÈN THÊM API THANH KHOẢN VNĐ (BÁN CHO ADMIN) ---
+    else if (parsedUrl.pathname === '/api/liquidate' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) return res.writeHead(400), res.end();
+
+                if (user.balance <= 0 || user.balance >= 500) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: "Chỉ áp dụng cho số dư dưới 500 SWGT!" }));
+                }
+
+                const amountSWGT = user.balance;
+                user.balance = 0; // Trừ sạch tiền
+                await user.save();
+
+                // Gửi thông báo cho Khách
+                bot.sendMessage(data.userId, `✅ <b>YÊU CẦU THANH KHOẢN THÀNH CÔNG!</b>\n\nBạn đã bán <b>${amountSWGT} SWGT</b>. Vui lòng chờ Admin chuyển <b>${data.vndAmount} VNĐ</b> vào tài khoản ngân hàng của bạn.`, {parse_mode: 'HTML'}).catch(()=>{});
+                
+                // Báo cáo cho Admin
+                const adminReport = `🚨 <b>YÊU CẦU THANH LÝ LẤY VNĐ</b>\n\n👤 Khách: ${user.firstName} (ID: <code>${user.userId}</code>)\n💰 Số lượng xả: <b>${amountSWGT} SWGT</b>\n💵 Số tiền Admin cần bank: <b>${data.vndAmount} VNĐ</b>\n\n🏦 <b>Thông tin nhận tiền:</b>\n- Ngân hàng: ${data.bankName}\n- Số TK: <code>${data.bankAccount}</code>\n\n👉 <i>Admin hãy Bank tiền và Reply tin nhắn này gõ "xong" nhé.</i>`;
+                bot.sendMessage(ADMIN_ID, adminReport, { parse_mode: 'HTML' }).catch(()=>{});
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, balance: user.balance }));
+            } catch (e) { res.writeHead(400); res.end(); }
+        });
+    }
+
+    // --- CHÈN THÊM API GHÉP VỐN (MUA THÊM TỪ ADMIN) ---
+    else if (parsedUrl.pathname === '/api/topup' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body);
+                let user = await User.findOne({ userId: data.userId });
+                if (!user) return res.writeHead(400), res.end();
+
+                const shortfall = 500 - user.balance;
+
+                // Báo cho khách
+                bot.sendMessage(data.userId, `⚡ <b>YÊU CẦU GHÉP VỐN ĐANG XỬ LÝ</b>\n\nBạn đang thiếu <b>${shortfall} SWGT</b> để đủ 500.\n👉 Vui lòng thanh toán <b>${data.usdtAmount} USDT</b> (hoặc <b>${data.vndAmount} VNĐ</b>) cho Admin để được duyệt lệnh.\n\nNhắn tin trực tiếp cho Admin tại đây: @swc_capital_vn`, {parse_mode: 'HTML'}).catch(()=>{});
+                
+                // Báo cho Admin
+                const adminReport = `🚨 <b>KHÁCH MUỐN MUA THÊM SWGT</b>\n\n👤 Khách: ${user.firstName} (ID: <code>${user.userId}</code>)\n📉 Đang có: ${user.balance} SWGT (Thiếu ${shortfall})\n💰 <b>Khách cần nộp: ${data.usdtAmount} USDT (hoặc ${data.vndAmount} VNĐ)</b>\n\n👉 <i>Admin hãy liên hệ thu tiền. Khi nhận được tiền, dùng lệnh:</i>\n<code>/setref ${user.userId} ${user.referralCount} 500</code>\n<i>để đẩy số dư của khách lên 500 cho họ rút.</i>`;
+                bot.sendMessage(ADMIN_ID, adminReport, { parse_mode: 'HTML' }).catch(()=>{});
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true }));
+            } catch (e) { res.writeHead(400); res.end(); }
+        });
+    }
     else if (parsedUrl.pathname === '/api/leaderboard' && req.method === 'GET') {
         try {
             const allUsersForBoard = await User.find({ $or: [{referralCount: { $gt: 0 }}, {weeklyReferralCount: { $gt: 0 }}] })
