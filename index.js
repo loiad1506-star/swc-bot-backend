@@ -882,6 +882,29 @@ bot.on('callback_query', async (callbackQuery) => {
     bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
 });
 
+// ==========================================
+// LỆNH ĐỀN BÙ / CỘNG TIỀN THỦ CÔNG CHO KHÁCH
+// ==========================================
+bot.onText(/\/congtien (\d+) (\d+\.?\d*)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const targetId = match[1];
+    const amountToAdd = parseFloat(match[2]);
+
+    try {
+        let user = await User.findOne({ userId: targetId });
+        if (!user) return bot.sendMessage(ADMIN_ID, "❌ Không tìm thấy người dùng này!");
+
+        const oldBal = user.balance;
+        user.balance = Math.round((user.balance + amountToAdd) * 100) / 100;
+        await user.save();
+
+        bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ CỘNG TIỀN ĐỀN BÙ XONG!</b>\n\n👤 ID: <code>${targetId}</code>\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance} SWGT</b> (Đã cộng thêm ${amountToAdd})`, { parse_mode: 'HTML' });
+        
+        // Gửi tin nhắn xoa dịu khách hàng
+        bot.sendMessage(targetId, `🎁 <b>THÔNG BÁO TỪ BQT SWC</b> 🎁\n\nHệ thống đã kiểm tra, đối soát và hoàn trả <b>+${amountToAdd} SWGT</b> vào Két sắt của bạn do sự cố nhầm lẫn trong đợt quét an ninh vừa qua.\n\nThành thật xin lỗi bạn vì sự bất tiện này. Cảm ơn bạn đã luôn đồng hành cùng Cộng đồng!`, { parse_mode: 'HTML' }).catch(()=>{});
+    } catch (e) { bot.sendMessage(ADMIN_ID, "❌ Lỗi thực thi."); }
+});
+
 // CHỐNG SPAM CHAT GROUP (CŨ)
 bot.on('message', async (msg) => {
     if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) { return; }
