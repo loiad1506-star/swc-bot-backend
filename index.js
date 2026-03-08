@@ -114,7 +114,6 @@ const gameLogSchema = new mongoose.Schema({
 });
 const GameLog = mongoose.model('GameLog', gameLogSchema);
 
-
 // ==========================================
 // 1. TÍNH NĂNG TỰ ĐỘNG NHẮC NHỞ ĐIỂM DANH LÚC 8H SÁNG
 // ==========================================
@@ -621,7 +620,7 @@ bot.onText(/\/audit (\d+)/i, async (msg, match) => {
         report += `- Trúng từ Game (Lịch sử mới): +${earnedFromNewGameLogs} SWGT\n\n`;
         report += `⚠️ Mức Dôi Dư Không Ghi Log: <b>${Math.round((currentBal - validBalance)*100)/100} SWGT</b>\n`;
         
-        if ((currentBal - validBalance) > 200) {
+        if ((currentBal - validBalance) > 250) {
             report += `🚨 <b>CẢNH BÁO ĐỎ:</b> Mức dôi dư quá lớn. Khả năng cao là Tool lách API!\n`;
         } else {
             report += `✅ <b>KẾT LUẬN:</b> Hợp lý (Nằm trong biên độ dung sai của người từng chơi game/điểm danh thời kỳ cũ).\n`;
@@ -702,6 +701,25 @@ bot.onText(/\/truphat (\d+) (\d+\.?\d*)/i, async (msg, match) => {
         await user.save();
         bot.sendMessage(ADMIN_ID, `✅ Đã trừ thủ công ${amountToDeduct} từ ID ${targetId}. Số dư mới: ${user.balance}`);
     } catch (e) {}
+});
+
+// LỆNH ĐỀN BÙ / CỘNG TIỀN THỦ CÔNG CHO KHÁCH
+bot.onText(/\/congtien (\d+) (\d+\.?\d*)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const targetId = match[1];
+    const amountToAdd = parseFloat(match[2]);
+
+    try {
+        let user = await User.findOne({ userId: targetId });
+        if (!user) return bot.sendMessage(ADMIN_ID, "❌ Không tìm thấy người dùng này!");
+
+        const oldBal = user.balance;
+        user.balance = Math.round((user.balance + amountToAdd) * 100) / 100;
+        await user.save();
+
+        bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ CỘNG TIỀN ĐỀN BÙ XONG!</b>\n\n👤 ID: <code>${targetId}</code>\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance} SWGT</b> (Đã cộng thêm ${amountToAdd})`, { parse_mode: 'HTML' });
+        bot.sendMessage(targetId, `🎁 <b>THÔNG BÁO TỪ BQT SWC</b> 🎁\n\nHệ thống đã kiểm tra, đối soát và hoàn trả <b>+${amountToAdd} SWGT</b> vào Két sắt của bạn do sự cố nhầm lẫn trong đợt quét an ninh vừa qua.\n\nThành thật xin lỗi bạn vì sự bất tiện này. Cảm ơn bạn đã luôn đồng hành cùng Cộng đồng!`, { parse_mode: 'HTML' }).catch(()=>{});
+    } catch (e) { bot.sendMessage(ADMIN_ID, "❌ Lỗi thực thi."); }
 });
 
 // Các lệnh CŨ
@@ -882,32 +900,92 @@ bot.on('callback_query', async (callbackQuery) => {
     bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
 });
 
-// ==========================================
-// LỆNH ĐỀN BÙ / CỘNG TIỀN THỦ CÔNG CHO KHÁCH
-// ==========================================
-bot.onText(/\/congtien (\d+) (\d+\.?\d*)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const targetId = match[1];
-    const amountToAdd = parseFloat(match[2]);
-
-    try {
-        let user = await User.findOne({ userId: targetId });
-        if (!user) return bot.sendMessage(ADMIN_ID, "❌ Không tìm thấy người dùng này!");
-
-        const oldBal = user.balance;
-        user.balance = Math.round((user.balance + amountToAdd) * 100) / 100;
-        await user.save();
-
-        bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ CỘNG TIỀN ĐỀN BÙ XONG!</b>\n\n👤 ID: <code>${targetId}</code>\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance} SWGT</b> (Đã cộng thêm ${amountToAdd})`, { parse_mode: 'HTML' });
-        
-        // Gửi tin nhắn xoa dịu khách hàng
-        bot.sendMessage(targetId, `🎁 <b>THÔNG BÁO TỪ BQT SWC</b> 🎁\n\nHệ thống đã kiểm tra, đối soát và hoàn trả <b>+${amountToAdd} SWGT</b> vào Két sắt của bạn do sự cố nhầm lẫn trong đợt quét an ninh vừa qua.\n\nThành thật xin lỗi bạn vì sự bất tiện này. Cảm ơn bạn đã luôn đồng hành cùng Cộng đồng!`, { parse_mode: 'HTML' }).catch(()=>{});
-    } catch (e) { bot.sendMessage(ADMIN_ID, "❌ Lỗi thực thi."); }
-});
-
-// CHỐNG SPAM CHAT GROUP (CŨ)
+// KHÔI PHỤC CHAT 2 CHIỀU & CHỐNG SPAM CHAT GROUP
 bot.on('message', async (msg) => {
-    if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) { return; }
+    // 1. ADMIN REPLY LỆNH DUYỆT BILL HOẶC TRẢ LỜI KHÁCH (CHAT 2 CHIỀU)
+    if (msg.from && msg.from.id.toString() === ADMIN_ID && msg.reply_to_message) {
+        const replyText = msg.text ? msg.text.toLowerCase() : (msg.caption ? msg.caption.toLowerCase() : '');
+        const originalText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
+        const idMatch = originalText.match(/ID:\s*(\d+)/); 
+        
+        if (idMatch) {
+            const targetUserId = idMatch[1];
+            const targetUser = await User.findOne({ userId: targetUserId });
+            
+            // Xử lý Admin duyệt Bill nạp tiền
+            if (originalText.includes('BILL NẠP TIỀN') && (replyText.includes('xong') || replyText.includes('nạp xong'))) {
+                if (targetUser && targetUser.topUpStatus === 'awaiting_admin') {
+                    targetUser.balance = Math.round((targetUser.balance + targetUser.pendingSWGT) * 100) / 100;
+                    targetUser.topUpStatus = 'none';
+                    await targetUser.save();
+                    const successMsg = `✅ <b>NẠP TIỀN THÀNH CÔNG!</b>\n\nTài khoản của bạn đã được cộng thêm <b>${targetUser.pendingSWGT} SWGT</b>. Tổng số dư hiện tại là <b>${targetUser.balance} SWGT</b>.\n\n👉 <b>BẠN CÓ MUỐN RÚT SWGT NGAY KHÔNG?</b>\nHãy mở App và vào mục Ví để thực hiện rút Token về ví cá nhân nhé!`;
+                    bot.sendMessage(targetUser.userId, successMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP RÚT TIỀN", web_app: { url: webAppUrl } }]] } }).catch(()=>{});
+                    bot.sendMessage(ADMIN_ID, `✅ Đã duyệt Bill và cộng đủ 500 SWGT cho khách ${targetUser.firstName}.`);
+                }
+                return;
+            }
+
+            // Xử lý Admin duyệt Rút tiền / Thanh lý
+            if ((replyText.includes('xong') || replyText.includes('done')) && (originalText.includes('YÊU CẦU') || originalText.includes('RÚT TIỀN') || originalText.includes('ĐỔI QUÀ') || originalText.includes('THANH LÝ'))) {
+                const successMsg = `🚀 <b>ĐẦU TƯ CHIẾN LƯỢC SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC.`;
+                if (msg.photo) { bot.sendPhoto(targetUserId, msg.photo[msg.photo.length - 1].file_id, { caption: successMsg, parse_mode: 'HTML' }).catch(()=>{}); } 
+                else { bot.sendMessage(targetUserId, successMsg, {parse_mode: 'HTML'}).catch(()=>{}); }
+                bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo hoàn tất cho khách.`);
+                return; 
+            }
+
+            // XỬ LÝ ADMIN CHAT 2 CHIỀU VỚI KHÁCH HÀNG
+            if (originalText.includes('TIN NHẮN TỪ KHÁCH HÀNG')) {
+                const adminReplyMsg = `👨‍💻 <b>Phản hồi từ Admin SWC:</b>\n\n${msg.text || msg.caption || '[File/Ảnh đính kèm]'}`;
+                if (msg.photo) {
+                    bot.sendPhoto(targetUserId, msg.photo[msg.photo.length - 1].file_id, { caption: adminReplyMsg, parse_mode: 'HTML' }).catch(()=>{});
+                } else { bot.sendMessage(targetUserId, adminReplyMsg, { parse_mode: 'HTML' }).catch(()=>{}); }
+                bot.sendMessage(ADMIN_ID, `✅ Đã gửi câu trả lời cho khách hàng.`);
+                return;
+            }
+        }
+    }
+
+    // 2. KHÁCH NHẮN TIN CHO BOT (TÍNH NĂNG CHAT 2 CHIỀU)
+    if (msg.chat.type === 'private' && msg.from.id.toString() !== ADMIN_ID && !msg.from.is_bot) {
+        if (msg.text && msg.text.startsWith('/')) return;
+        const userId = msg.from.id.toString();
+        let user = await User.findOne({ userId: userId });
+
+        if (msg.photo && user && user.topUpStatus === 'waiting_bill') {
+            user.topUpStatus = 'awaiting_admin'; await user.save();
+            bot.sendMessage(userId, `⏳ <b>ĐÃ NHẬN BILL CHUYỂN KHOẢN</b>\n\nBot đã chuyển biên lai tới Admin để kiểm tra.`, {parse_mode: 'HTML'}).catch(()=>{});
+            const adminCaption = `🚨 <b>BILL NẠP TIỀN (GHÉP VỐN)</b>\n\n👤 Khách: ${user.firstName} ${user.lastName}\n🆔 ID: <code>${userId}</code>\n💰 Số lượng khách mua: <b>${user.pendingSWGT} SWGT</b>\n\n👉 <i>Admin hãy kiểm tra App. Nếu đã nhận được tiền, hãy REPLY ảnh này gõ <b>"xong"</b>.</i>`;
+            bot.sendPhoto(ADMIN_ID, msg.photo[msg.photo.length - 1].file_id, { caption: adminCaption, parse_mode: 'HTML' }).catch(()=>{});
+            return; 
+        }
+
+        // KHÁCH GỬI TIN NHẮN THƯỜNG -> CHUYỂN TIẾP CHO ADMIN
+        const name = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
+        const username = msg.from.username ? `@${msg.from.username}` : 'Không có';
+        const content = msg.text || msg.caption || '[Khách gửi Tệp/Ảnh/Video]';
+        
+        const alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n\n💬 <b>Nội dung:</b>\n${content}\n\n👉 <i>Admin hãy Reply (Trả lời) tin nhắn này để chat lại với khách nhé!</i>`;
+        const replyMarkupAdmin = { inline_keyboard: [[{ text: "💬 Chat trực tiếp", url: `tg://user?id=${userId}` }]] };
+        
+        if (msg.photo) { bot.sendPhoto(ADMIN_ID, msg.photo[msg.photo.length - 1].file_id, { caption: alertMsg, parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{}); } 
+        else { bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{}); }
+
+        // BẢNG FAQ & NÚT LIÊN HỆ NGƯỜI HƯỚNG DẪN
+        let faqKeyboard = [
+            [{ text: "💬 VÀO GROUP CHAT CỘNG ĐỒNG NGAY", url: "https://t.me/swc_capital_chat" }],
+            [{ text: "👮 Trợ lý này mang lại giá trị gì?", callback_data: 'faq_1' }],
+            [{ text: "🚀 Bí quyết tạo Dòng Tiền?", callback_data: 'faq_4' }],
+            [{ text: "💸 Hướng dẫn Chốt lời & Rút tiền", callback_data: 'faq_3' }]
+        ];
+        if (user && user.referredBy && user.referredBy !== userId) { faqKeyboard.unshift([{ text: "💬 LIÊN HỆ NGƯỜI HƯỚNG DẪN CỦA BẠN", url: `tg://user?id=${user.referredBy}` }]); }
+
+        const autoReplyMsg = `👋 Chào <b>${name}</b>, hệ thống đã ghi nhận yêu cầu của bạn và chuyển đến Ban Tổ Chức. Vui lòng chờ Admin phản hồi nhé!\n\n👇 <b>HOẶC XEM NHANH CÁC BÍ MẬT TÀI CHÍNH DƯỚI ĐÂY:</b>`;
+        bot.sendMessage(userId, autoReplyMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: faqKeyboard } }).catch(()=>{});
+        return; 
+    }
+
+    // 3. TÍNH TIỀN CHAT GROUP (CHỐNG SPAM)
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
     if (!msg.text) return;
