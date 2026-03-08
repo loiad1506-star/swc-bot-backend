@@ -1002,3 +1002,32 @@ bot.on('message', async (msg) => {
     }
     await user.save();
 });
+// ==========================================
+// LỆNH ĐĂNG THÔNG BÁO LÊN GROUP VÀ KÊNH
+// ==========================================
+
+// 1. Gửi tin nhắn lên Group Cộng Đồng
+bot.onText(/\/sendgroup ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const content = match[1];
+    
+    try {
+        await bot.sendMessage(GROUP_USERNAME, content, { parse_mode: 'HTML' });
+        bot.sendMessage(ADMIN_ID, `✅ Đã đăng thông báo lên Group <b>${GROUP_USERNAME}</b> thành công!`, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: Không thể đăng bài. Vui lòng kiểm tra lại xem Bot còn quyền gửi tin trong Group không.`);
+    }
+});
+
+// 2. Gửi tin nhắn lên Kênh Thông Tin
+bot.onText(/\/sendchannel ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const content = match[1];
+    
+    try {
+        await bot.sendMessage(CHANNEL_USERNAME, content, { parse_mode: 'HTML' });
+        bot.sendMessage(ADMIN_ID, `✅ Đã phát sóng thông báo lên Kênh <b>${CHANNEL_USERNAME}</b> thành công!`, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: Không thể phát sóng. Vui lòng kiểm tra lại quyền Admin của Bot trong Kênh.`);
+    }
+});
