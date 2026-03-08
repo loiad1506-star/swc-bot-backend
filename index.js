@@ -1675,66 +1675,52 @@ bot.on('message', async (msg) => {
 
 
 // ==========================================
-// LỆNH KHÔI PHỤC SỐ DƯ KHẨN CẤP
+// LỆNH ĐẶC QUYỀN: KHÔI PHỤC SỐ DƯ CHÍNH XÁC CHO TOP 20 VIP (BẢN 3)
 // ==========================================
-bot.onText(/\/khoiphuc/i, async (msg) => {
+bot.onText(/\/phuchoivip3/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    
-    bot.sendMessage(ADMIN_ID, "⏳ BẮT ĐẦU CHẠY CHIẾN DỊCH KHÔI PHỤC DỮ LIỆU...\nHệ thống đang quét toàn bộ user và tính toán lại tài sản. Vui lòng không thao tác gì thêm!");
+
+    bot.sendMessage(ADMIN_ID, "⏳ Đang nạp lại dữ liệu bảo chứng 100% cho 20 Phú Hộ SWGT (Bản Venture Top 1)...");
+
+    // Danh sách 20 VIP trích xuất từ dữ liệu chuẩn của Admin
+    const vipData = [
+        { id: "507318519", bal: 1398.25 }, // Venture
+        { id: "5792590251", bal: 990.25 }, // Vũ Dũng
+        { id: "6310397088", bal: 929 }, // PHƯƠNG ANH PHÙNG
+        { id: "7112692963", bal: 925.15 }, // LINH NGUYEN
+        { id: "7515902413", bal: 921.8 }, // Phương Phương Support
+        { id: "1654755377", bal: 681.25 }, // Minh Ngọc Hoàng
+        { id: "5612116610", bal: 612.75 }, // Khánh Ninh
+        { id: "1678351323", bal: 454.55 }, // Boss
+        { id: "860241080", bal: 417.35 }, // Nguyễn Nhâm
+        { id: "6138017259", bal: 404.25 }, // Thị Tường
+        { id: "6715206376", bal: 372.25 }, // Hang Nguyen
+        { id: "7038066878", bal: 354.65 }, // Nguyễn Trung Dũng
+        { id: "6006292677", bal: 347 }, // Ngoc lan Huỳnh
+        { id: "8105909826", bal: 338.35 }, // Nguyễn Văn Trường
+        { id: "8259884658", bal: 335.35 }, // Hg Son
+        { id: "6209050073", bal: 334.55 }, // Kim Thuỷ
+        { id: "1740657531", bal: 334.25 }, // Quy
+        { id: "6451788452", bal: 329.55 }, // JUHEE OH
+        { id: "8221844336", bal: 327.45 }, // nga Lý thị
+        { id: "5623180005", bal: 324.65 }  // Quang
+    ];
 
     try {
-        const users = await User.find({});
         let count = 0;
-        let totalRecovered = 0;
-
-        for (let u of users) {
-            // Chỉ khôi phục cho những người đang bị 0 SWGT hoặc null
-            if (u.balance === 0 || u.balance == null) {
-                let estimatedBalance = 0;
-
-                // 1. Tiền nhiệm vụ
-                if (u.task1Done) estimatedBalance += 10;
-                if (u.walletRewardDone) estimatedBalance += 5;
-
-                // 2. Tiền mời F1 (5 SWGT / 1 người thật)
-                if (u.referralCount > 0) {
-                    estimatedBalance += (u.referralCount * 5);
-                }
-
-                // 3. Tiền thưởng các mốc Quân hàm
-                if (u.milestone3) estimatedBalance += 10;
-                if (u.milestone10) estimatedBalance += 20;
-                if (u.milestone20) estimatedBalance += 40;
-                if (u.milestone50) estimatedBalance += 80;
-                if (u.milestone80) estimatedBalance += 150;
-                if (u.milestone120) estimatedBalance += 200;
-                if (u.milestone200) estimatedBalance += 300;
-                if (u.milestone350) estimatedBalance += 500;
-                if (u.milestone500) estimatedBalance += 700;
-
-                // 4. Tiền chat trong Group (0.1 / tin)
-                if (u.groupMessageCount > 0) {
-                    estimatedBalance += (u.groupMessageCount * 0.1);
-                }
-
-                // Gán lại số dư nếu tính toán ra có tiền
-                if (estimatedBalance > 0) {
-                    u.balance = Math.round(estimatedBalance * 100) / 100;
-                    await u.save();
-                    count++;
-                    totalRecovered += u.balance;
-                }
+        for (let vip of vipData) {
+            let user = await User.findOne({ userId: vip.id });
+            if (user) {
+                user.balance = vip.bal;
+                await user.save();
+                count++;
             }
-            await new Promise(resolve => setTimeout(resolve, 10)); // Chống sập RAM
         }
-
-        bot.sendMessage(ADMIN_ID, `✅ <b>KHÔI PHỤC THÀNH CÔNG!</b>\n\n- Đã cứu được tài khoản cho: <b>${count} người</b>.\n- Tổng số SWGT được khôi phục: <b>${Math.round(totalRecovered)} SWGT</b>.\n\n<i>Lưu ý: Số tiền này được tính dựa trên số F1 và Nhiệm vụ của họ. Tiền điểm danh và vòng quay không thể khôi phục chính xác 100%.</i>`, { parse_mode: 'HTML' });
-        
+        bot.sendMessage(ADMIN_ID, `✅ <b>HOÀN TẤT CHIẾN DỊCH KHÔI PHỤC VIP BẢN 3!</b>\n\nĐã nạp chính xác đến từng số thập phân cho ${count} tài khoản lớn nhất. Anh dùng lệnh /top20swgt để kiểm tra lại nhé!`, { parse_mode: 'HTML' });
     } catch (error) {
-        bot.sendMessage(ADMIN_ID, `❌ Lỗi trong quá trình khôi phục: ${error.message}`);
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${error.message}`);
     }
 });
-
 
 bot.on('chat_member', async (update) => {
     const debugUser = update.new_chat_member.user;
