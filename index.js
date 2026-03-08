@@ -1788,3 +1788,50 @@ bot.on('chat_member', async (update) => {
     }
 });
 
+// ==========================================
+// LỆNH ĐẶC QUYỀN: KHÔI PHỤC SỐ DƯ CHÍNH XÁC CHO TOP 20 VIP (BẢN CẬP NHẬT MỚI NHẤT)
+// ==========================================
+bot.onText(/\/phuchoivip2/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+
+    bot.sendMessage(ADMIN_ID, "⏳ Đang nạp lại dữ liệu bảo chứng 100% cho 20 Phú Hộ SWGT (Bản mới nhất)...");
+
+    // Danh sách 20 VIP trích xuất từ dữ liệu chuẩn mới nhất
+    const vipData = [
+        { id: "7515902413", bal: 1551.8 }, // Phương Phương Support
+        { id: "507318519", bal: 1428 }, // Venture
+        { id: "5792590251", bal: 1296.75 }, // Vũ Dũng
+        { id: "6310397088", bal: 1224 }, // PHƯƠNG ANH PHÙNG
+        { id: "7112692963", bal: 1156.55 }, // LINH NGUYEN
+        { id: "1654755377", bal: 971.25 }, // Minh Ngọc Hoàng
+        { id: "5612116610", bal: 629.25 }, // Khánh Ninh
+        { id: "7316891827", bal: 626.15 }, // Mai Thiều Thị
+        { id: "1833893439", bal: 518.6 }, // Trinh Lê
+        { id: "1678351323", bal: 456.05 }, // Boss
+        { id: "6138017259", bal: 445.75 }, // Thị Tường
+        { id: "860241080", bal: 413.85 }, // Nguyễn Nhâm
+        { id: "901276977", bal: 401 }, // WDo
+        { id: "6715206376", bal: 374.75 }, // Hang Nguyen
+        { id: "2076678387", bal: 369.9 }, // OSAKA CHAU HUYNH
+        { id: "5182757479", bal: 360.45 }, // Trinh Thanh Hien
+        { id: "7038066878", bal: 351.15 }, // Nguyễn Trung Dũng
+        { id: "2111900745", bal: 348.75 }, // Telegram
+        { id: "6006292677", bal: 342.5 }, // Ngoc lan Huỳnh
+        { id: "1740657531", bal: 335.75 }  // Quy Dang Xuan
+    ];
+
+    try {
+        let count = 0;
+        for (let vip of vipData) {
+            let user = await User.findOne({ userId: vip.id });
+            if (user) {
+                user.balance = vip.bal;
+                await user.save();
+                count++;
+            }
+        }
+        bot.sendMessage(ADMIN_ID, `✅ <b>HOÀN TẤT CHIẾN DỊCH KHÔI PHỤC VIP MỚI NHẤT!</b>\n\nĐã nạp chính xác đến từng số thập phân cho ${count} tài khoản lớn nhất. Anh dùng lệnh /top20swgt để kiểm tra lại nhé!`, { parse_mode: 'HTML' });
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${error.message}`);
+    }
+});
