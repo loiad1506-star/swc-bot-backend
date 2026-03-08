@@ -82,7 +82,10 @@ const userSchema = new mongoose.Schema({
     lastShareTask: { type: Date, default: null },
     shareClickTime: { type: Date, default: null },
 
+    // BIẾN KIỂM SOÁT SPAM TIN NHẮN GROUP (CHỐNG CLONE)
     groupMessageCount: { type: Number, default: 0 },
+    dailyMessageCount: { type: Number, default: 0 },
+    lastMessageDate: { type: String, default: '' },
 
     activeFrame: { type: String, default: 'none' },
     ownedFrames: { type: [String], default: ['none'] },
@@ -307,13 +310,11 @@ setInterval(async () => {
             const diffMins = (now - new Date(u.topUpTimestamp).getTime()) / 60000;
 
             if (diffMins >= 10) {
-                // Quá 10 phút -> Hủy lệnh
                 u.topUpStatus = 'none';
                 await u.save();
                 bot.sendMessage(u.userId, `❌ <b>LỆNH ĐÃ BỊ HỦY</b>\n\nĐã quá 10 phút nhưng hệ thống không nhận được hình ảnh Biên lai chuyển khoản của bạn. Lệnh ghép vốn đã tự động bị hủy.\n\nNếu bạn vẫn muốn nạp, vui lòng lên Mini App thao tác lại nhé.`, {parse_mode: 'HTML'}).catch(()=>{});
             } 
             else if (diffMins >= 5 && !u.topUpReminderSent) {
-                // Quá 5 phút -> Nhắc nhở
                 u.topUpReminderSent = true;
                 await u.save();
                 bot.sendMessage(u.userId, `⚠️ <b>NHẮC NHỞ CHUYỂN KHOẢN</b>\n\nLệnh ghép vốn của bạn chỉ còn <b>5 phút nữa sẽ bị hủy</b>.\n\n👉 Nếu bạn đã chuyển khoản, vui lòng gửi ngay <b>ẢNH BIÊN LAI (BILL)</b> vào đoạn chat này cho Bot để hệ thống duyệt tiền nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
@@ -351,12 +352,24 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ...userData._doc, serverDateVN: vnNowStr, lockedBalance: lockedBalance, lockedRefsCount: lockedRefsCount }));
     } 
     
+    // 🔥 BẢO MẬT: CHẶN TRÙNG LẶP THÔNG TIN VÍ / GATECODE TỪ APP GỬI VỀ
     else if (parsedUrl.pathname === '/api/save-wallet' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', async () => {
             try {
                 const data = JSON.parse(body);
+
+                // KIỂM TRA CHỐNG CLONE
+                if (data.gatecode) {
+                    const existGate = await User.findOne({ gatecode: data.gatecode, userId: { $ne: data.userId } });
+                    if (existGate) return res.writeHead(400), res.end(JSON.stringify({ success: false, message: "❌ Lỗi: Gatecode này đã được sử dụng ở một tài khoản khác. Có dấu hiệu gian lận!" }));
+                }
+                if (data.wallet) {
+                    const existWallet = await User.findOne({ wallet: data.wallet, userId: { $ne: data.userId } });
+                    if (existWallet) return res.writeHead(400), res.end(JSON.stringify({ success: false, message: "❌ Lỗi: Ví ERC20 này đã được sử dụng ở một tài khoản khác!" }));
+                }
+
                 let user = await User.findOne({ userId: data.userId });
                 if (user) {
                     if (data.wallet) user.wallet = data.wallet;
@@ -366,7 +379,7 @@ const server = http.createServer(async (req, res) => {
                     if (data.phone) user.phone = data.phone;
 
                     if (!user.walletRewardDone) {
-                        user.balance += 5; // Giảm xuống 5 SWGT
+                        user.balance += 5; 
                         user.walletRewardDone = true;
                         bot.sendMessage(data.userId, `🎉 <b>CHÚC MỪNG!</b>\nBạn đã thiết lập thông tin thanh toán thành công, +5 SWGT!`, {parse_mode: 'HTML'}).catch(()=>{});
                     }
@@ -493,7 +506,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- API MỞ RƯƠNG BÍ ẨN (THUẦN NGẪU NHIÊN & TÍCH LŨY VIP) ---
     else if (parsedUrl.pathname === '/api/spin-wheel' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -517,29 +529,27 @@ const server = http.createServer(async (req, res) => {
                 const rand = Math.random() * 100;
                 
                 if (rand < 40) { 
-                    rewardType = 'none'; // 40% Rỗng
+                    rewardType = 'none'; 
                 } else if (rand < 70) { 
-                    rewardType = 'swgt'; rewardValue = 5; rewardName = '5 SWGT'; // 30% Trúng 5
+                    rewardType = 'swgt'; rewardValue = 5; rewardName = '5 SWGT'; 
                 } else if (rand < 85) { 
-                    rewardType = 'swgt'; rewardValue = 10; rewardName = '10 SWGT'; // 15% Trúng 10
+                    rewardType = 'swgt'; rewardValue = 10; rewardName = '10 SWGT'; 
                 } else if (rand < 92) { 
-                    rewardType = 'swgt'; rewardValue = 50; rewardName = '50 SWGT'; // 7% Trúng 50
+                    rewardType = 'swgt'; rewardValue = 50; rewardName = '50 SWGT'; 
                 } else { 
-                    // 8% Trúng đồ hiếm (Sách / Audio / VIP)
                     if (user.hasWonEbook && user.hasWonAudio) {
-                        // Đã sưu tập đủ cả 2 -> Chuyển thành Vé VIP
                         rewardType = 'vip_invite'; 
                         rewardName = 'Vé Đặc Cách Nhóm Kín VIP';
                     } else if (rand < 96) { 
                         if (!user.hasWonEbook) {
                             rewardType = 'ebook'; rewardName = 'Ebook: Logic Kiếm Tiền'; user.hasWonEbook = true;
-                        } else { // Nếu có Sách rồi thì tự chuyển sang Audio
+                        } else { 
                             rewardType = 'audio'; rewardName = 'Audio: Nhân Tính Đen Trắng'; user.hasWonAudio = true;
                         }
                     } else { 
                         if (!user.hasWonAudio) {
                             rewardType = 'audio'; rewardName = 'Audio: Nhân Tính Đen Trắng'; user.hasWonAudio = true;
-                        } else { // Nếu có Audio rồi thì tự chuyển sang Sách
+                        } else { 
                             rewardType = 'ebook'; rewardName = 'Ebook: Logic Kiếm Tiền'; user.hasWonEbook = true;
                         }
                     }
@@ -548,16 +558,13 @@ const server = http.createServer(async (req, res) => {
                 const userName = `${user.firstName} ${user.lastName}`.trim();
                 const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🏴‍☠️ THỬ VẬN MAY NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
 
-                // 1. Trúng SWGT
                 if (rewardType === 'swgt') {
                     user.balance = Math.round((user.balance + rewardValue) * 100) / 100;
-                    
                     if (rewardValue === 50) {
                         const fomo50Msg = `💎 <b>KHO BÁU ĐÃ TÌM THẤY CHỦ NHÂN!</b> 💎\n\nChúc mừng <b>${userName}</b> vừa may mắn khám phá Rương Bí Ẩn và nhận được giải thưởng <b>50 SWGT</b>! Quá tuyệt vời! 🔥\n\n👉 <i>Anh em vào Trò Chơi Đảo Kho Báu thử vận may ngay hôm nay!</i>`;
                         bot.sendMessage(GROUP_USERNAME, fomo50Msg, optsFomo).catch(()=>{});
                     }
                 } 
-                // 2. Trúng Sách / Audio
                 else if (rewardType === 'ebook' || rewardType === 'audio') {
                     bot.sendMessage(user.userId, `🎉 <b>TRÚNG RƯƠNG KHO BÁU!</b>\n\nThật tuyệt vời! Bạn vừa mở rương trúng <b>${rewardName}</b>.\n\n👉 Vui lòng quay lại Mini App để nhập Gmail nhận thưởng nhé!`, {parse_mode: 'HTML'}).catch(()=>{});
                     bot.sendMessage(ADMIN_ID, `🎁 <b>KHÁCH ĐẬP RƯƠNG TRÚNG TÀI LIỆU</b>\n👤 Khách: ${userName} (ID: <code>${user.userId}</code>)\n🎁 Quà trúng: <b>${rewardName}</b>\n⏳ <i>Hệ thống đang yêu cầu khách nhập Gmail. Vui lòng chờ tin nhắn tiếp theo...</i>`, {parse_mode: 'HTML'}).catch(()=>{});
@@ -565,7 +572,6 @@ const server = http.createServer(async (req, res) => {
                     const fomoItemMsg = `🎁 <b>BÍ KÍP ĐÃ XUẤT HIỆN!</b> 🎁\n\nKhông thể tin nổi! <b>${userName}</b> vừa đập rương Bí Ẩn trúng ngay cực phẩm <b>${rewardName}</b> (Giá trị quy đổi lên tới 300 SWGT)!\n\n👉 <i>Ai sẽ là người may mắn tiếp theo? Thay vì rút tiền, anh em mang SWGT vào Đảo Kho Báu để săn siêu phẩm ngay!</i> 🏴‍☠️`;
                     bot.sendMessage(GROUP_USERNAME, fomoItemMsg, optsFomo).catch(()=>{});
                 }
-                // 3. Đã có đủ bộ -> Trúng VÉ VIP
                 else if (rewardType === 'vip_invite') {
                     const vipMsg = `👑 <b>ĐẶC QUYỀN THƯỢNG LƯU TỪ RƯƠNG BÍ ẨN!</b>\n\nChúc mừng <b>${userName}</b>! Hệ thống nhận thấy bạn đã thu thập trọn bộ Tài liệu Mật. BQT đánh giá rất cao sự kiên trì của bạn.\n\n👉 Trân trọng mời bạn bước chân vào giới tinh hoa tại Kênh Kín SWC Tradings:`;
                     const optsVip = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "💎 THAM GIA KÊNH VIP NGAY", url: `https://t.me/swctradings` }]] } };
@@ -585,7 +591,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- API NHẬN GMAIL TỪ GAME ---
     else if (parsedUrl.pathname === '/api/submit-game-email' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -606,7 +611,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- API ĐỔI QUÀ (REDEEM) KÈM NHẬN GMAIL ---
     else if (parsedUrl.pathname === '/api/redeem' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -626,7 +630,6 @@ const server = http.createServer(async (req, res) => {
                 
                 user.balance = Math.round((user.balance - data.cost) * 100) / 100;
                 
-                // Đồng bộ bộ nhớ Sách/Audio nếu khách dùng SWGT mua trực tiếp
                 if(data.itemName.includes('Ebook') || data.itemName.includes('Combo') || data.itemName.includes('Gói 3') || data.itemName.includes('Gói 4')) user.hasWonEbook = true;
                 if(data.itemName.includes('Audio') || data.itemName.includes('Combo') || data.itemName.includes('Gói 2') || data.itemName.includes('Gói 3')) user.hasWonAudio = true;
 
@@ -654,7 +657,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- API RÚT TIỀN VỀ VÍ (KỶ LUẬT THÉP: KHÓA NGÀY + MIN 500) ---
     else if (parsedUrl.pathname === '/api/withdraw' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -701,7 +703,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- API THANH KHOẢN VNĐ (BÁN CHO ADMIN) ---
     else if (parsedUrl.pathname === '/api/liquidate' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -743,7 +744,6 @@ const server = http.createServer(async (req, res) => {
         });
     }
 
-    // --- API GHÉP VỐN (MUA THÊM TỪ ADMIN) ---
     else if (parsedUrl.pathname === '/api/topup' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -797,6 +797,99 @@ server.listen(process.env.PORT || 3000);
 
 // --- 8. LỆNH BOT VÀ XỬ LÝ SỰ KIỆN ---
 
+// 🔥 CÁC LỆNH CHỐNG GIAN LẬN MỚI TẠO 🔥
+bot.onText(/\/audit (\d+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const targetId = match[1];
+    bot.sendMessage(ADMIN_ID, `⏳ Đang kiểm toán dòng tiền của ID: <code>${targetId}</code>...`, { parse_mode: 'HTML' });
+    
+    try {
+        const user = await User.findOne({ userId: targetId });
+        if (!user) return bot.sendMessage(ADMIN_ID, `❌ KHÔNG TÌM THẤY USER!`);
+
+        let earnedFromTasks = (user.task1Done ? 10 : 0) + (user.walletRewardDone ? 5 : 0);
+        let earnedFromRefs = user.referralCount * 5; 
+        let earnedFromChat = user.groupMessageCount * 0.1;
+        let earnedFromCheckIn = user.checkInStreak * 1.5; 
+
+        let report = `🔎 <b>KIỂM TOÁN DÒNG TIỀN (ID: ${targetId})</b>\n\n`;
+        report += `👤 <b>Tên:</b> ${user.firstName} ${user.lastName}\n`;
+        report += `📅 <b>Ngày tham gia:</b> ${new Date(user.joinDate).toLocaleString('vi-VN')}\n`;
+        report += `💰 <b>SỐ DƯ HIỆN TẠI:</b> <b>${Math.round(user.balance*100)/100} SWGT</b>\n\n`;
+        
+        report += `🛠 <b>BÓC TÁCH NGUỒN TIỀN (Ước lượng):</b>\n`;
+        report += `- Nhiệm vụ cơ bản: ~${earnedFromTasks} SWGT\n`;
+        report += `- Từ Lượt mời (${user.referralCount} ref): ~${earnedFromRefs} SWGT\n`;
+        report += `- Từ Chat (${user.groupMessageCount} tin): ~${Math.round(earnedFromChat*100)/100} SWGT\n`;
+        report += `- Từ Điểm danh: ~${Math.round(earnedFromCheckIn)} SWGT\n\n`;
+        
+        if (earnedFromChat > 50) {
+            report += `🚨 <b>CẢNH BÁO ĐỎ:</b> Tài khoản này có dấu hiệu dùng Tool Spam Chat Group để bào tiền (${user.groupMessageCount} tin nhắn)!\n`;
+        }
+        if (user.referralCount === 0 && user.balance > 100) {
+            report += `🚨 <b>CẢNH BÁO ĐỎ:</b> Không mời ai nhưng số dư cực lớn. Khả năng cao là Clone bào tiền!\n`;
+        }
+
+        report += `\n👉 <i>Dùng lệnh <code>/truphat ${targetId} [Số_Tiền]</code> để trừ tiền tài khoản này.</i>`;
+        bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
+    } catch (e) { bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`); }
+});
+
+bot.onText(/\/scanfraud/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    bot.sendMessage(ADMIN_ID, "⏳ Đang rà quét toàn bộ Database để tìm Dấu hiệu Clone/Spam...");
+
+    try {
+        const spammers = await User.find({ groupMessageCount: { $gt: 200 } }).limit(10);
+        const duplicateGatecodes = await User.aggregate([
+            { $match: { gatecode: { $ne: '' } } },
+            { $group: { _id: "$gatecode", count: { $sum: 1 }, users: { $push: "$userId" } } },
+            { $match: { count: { $gt: 1 } } }
+        ]);
+        const duplicateWallets = await User.aggregate([
+            { $match: { wallet: { $ne: '' } } },
+            { $group: { _id: "$wallet", count: { $sum: 1 }, users: { $push: "$userId" } } },
+            { $match: { count: { $gt: 1 } } }
+        ]);
+
+        let report = `🛑 <b>BÁO CÁO AN NINH HỆ THỐNG</b> 🛑\n\n`;
+        report += `💬 <b>TOP SPAM TIN NHẮN BÀO TIỀN:</b>\n`;
+        if (spammers.length === 0) report += `- Không phát hiện.\n`;
+        spammers.forEach(u => { report += `- ID <code>${u.userId}</code>: ${u.groupMessageCount} tin nhắn (${Math.round(u.balance)} SWGT)\n`; });
+        
+        report += `\n🏦 <b>TÀI KHOẢN DÙNG CHUNG GATECODE (CLONE):</b>\n`;
+        if (duplicateGatecodes.length === 0) report += `- Không phát hiện.\n`;
+        duplicateGatecodes.forEach(d => { report += `- Gatecode ${d._id} dùng chung bởi: ${d.users.join(', ')}\n`; });
+
+        report += `\n🦊 <b>TÀI KHOẢN DÙNG CHUNG VÍ ERC20 (CLONE):</b>\n`;
+        if (duplicateWallets.length === 0) report += `- Không phát hiện.\n`;
+        duplicateWallets.forEach(d => { report += `- Ví ${d._id.substring(0,8)}... dùng chung bởi: ${d.users.join(', ')}\n`; });
+
+        report += `\n👉 <i>Hãy dùng lệnh <code>/truphat [ID] [Số_Tiền]</code> để trừ tiền các tài khoản trên.</i>`;
+        bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
+    } catch (e) { bot.sendMessage(ADMIN_ID, `❌ Lỗi quét: ${e.message}`); }
+});
+
+bot.onText(/\/truphat (\d+) (\d+\.?\d*)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const targetId = match[1];
+    const amountToDeduct = parseFloat(match[2]);
+
+    try {
+        let user = await User.findOne({ userId: targetId });
+        if (!user) return bot.sendMessage(ADMIN_ID, "❌ Không tìm thấy người dùng này!");
+
+        const oldBal = user.balance;
+        user.balance = Math.max(0, user.balance - amountToDeduct);
+        await user.save();
+
+        bot.sendMessage(ADMIN_ID, `✅ <b>ĐÃ TRỪ TIỀN THÀNH CÔNG!</b>\n\n👤 ID: <code>${targetId}</code>\n💸 Số dư: ${oldBal} ➡️ <b>${user.balance} SWGT</b> (Trừ ${amountToDeduct})`, { parse_mode: 'HTML' });
+        bot.sendMessage(targetId, `⚠️ <b>CẢNH BÁO VI PHẠM TỪ BQT SWC</b> ⚠️\n\nHệ thống rà soát và phát hiện tài khoản của bạn có hành vi lợi dụng lỗi hệ thống (Clone/Spam) để trục lợi SWGT.\n\n🛑 <b>Hình phạt:</b> Thu hồi <b>${amountToDeduct} SWGT</b> khỏi Két Sắt.\n\n<i>Việc lạm dụng hệ thống sẽ dẫn đến việc bị khóa tài khoản vĩnh viễn và từ chối thanh khoản. Vui lòng tham gia công bằng!</i>`, { parse_mode: 'HTML' }).catch(()=>{});
+    } catch (e) { bot.sendMessage(ADMIN_ID, "❌ Lỗi thực thi."); }
+});
+
+
+// CÁC LỆNH GỐC CỦA BẠN
 async function checkMembership(userId) {
     try {
         const channelMember = await bot.getChatMember(CHANNEL_USERNAME, userId);
@@ -1331,7 +1424,7 @@ bot.on('callback_query', async (callbackQuery) => {
         else if (data === 'faq_5') answerText = `⏳ <b>HỎI: Thanh khoản và thời gian rút tiền?</b>\n\n<b>ĐÁP:</b> Khóa 7-15 ngày. Đặc quyền cày 1500 SWGT sẽ được rút ngay.`;
         else if (data === 'faq_6') answerText = `💎 <b>HỎI: Các Thương Vụ Đầu Tư Chiến Lược là gì?</b>\n\n<b>ĐÁP:</b> Đầu tư Pre-IPO uST...`;
 
-        bot.sendMessage(chatId, answerText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 M MỞ APP & BẮT ĐẦU TẠO DÒNG TIỀN", web_app: { url: webAppUrl } }]] } });
+        bot.sendMessage(chatId, answerText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 MỞ APP & BẮT ĐẦU TẠO DÒNG TIỀN", web_app: { url: webAppUrl } }]] } });
         return;
     }
 
@@ -1443,7 +1536,6 @@ bot.on('message', async (msg) => {
             const targetUserId = idMatch[1];
             const targetUser = await User.findOne({ userId: targetUserId });
             
-            // Xử lý Admin duyệt Bill nạp tiền
             if (originalText.includes('BILL NẠP TIỀN') && (replyText.includes('xong') || replyText.includes('nạp xong'))) {
                 if (targetUser && targetUser.topUpStatus === 'awaiting_admin') {
                     targetUser.balance = Math.round((targetUser.balance + targetUser.pendingSWGT) * 100) / 100;
@@ -1460,10 +1552,7 @@ bot.on('message', async (msg) => {
                 return;
             }
 
-            // Xử lý Admin duyệt Rút tiền / Đổi quà / Thanh lý
             if ((replyText.includes('xong') || replyText.includes('done')) && (originalText.includes('YÊU CẦU') || originalText.includes('RÚT TIỀN') || originalText.includes('ĐỔI QUÀ') || originalText.includes('THANH LÝ'))) {
-                
-                // 1. Gửi thông báo hoàn tất cho khách
                 const successMsg = `🚀 <b>ĐẦU TƯ CHIẾN LƯỢC SWC - YÊU CẦU HOÀN TẤT!</b>\n\nChào <b>${targetUser ? targetUser.firstName : 'bạn'}</b>, Admin đã kiểm duyệt thành công và thực hiện chuyển lệnh cho bạn!\n\n🎉 <b>TRẠNG THÁI:</b> GIAO DỊCH THÀNH CÔNG!\n🌈 Cảm ơn bạn đã luôn tin tưởng và đồng hành cùng Cộng đồng SWC.`;
                 if (msg.photo) {
                     const photoId = msg.photo[msg.photo.length - 1].file_id; 
@@ -1472,19 +1561,14 @@ bot.on('message', async (msg) => {
                 
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo hoàn tất cho khách.`);
 
-                // 2. Bắn thông báo FOMO chúc mừng lên Group (Chỉ áp dụng khi Rút tiền hoặc Thanh lý)
                 if (originalText.includes('RÚT TIỀN') || originalText.includes('THANH LÝ')) {
                     const amountMatch = originalText.match(/Số lượng.*:\s*([0-9,\.]+)\s*SWGT/);
                     const amount = amountMatch ? amountMatch[1] : '...';
                     const userName = targetUser ? `${targetUser.firstName} ${targetUser.lastName}`.trim() : 'Một thành viên';
-                    
                     const fomoGroupMsg = `🔥🔥 <b>TING TING! VÍ LẠI NỔ THÊM LẦN NỮA!</b> 🔥🔥\n\nQuá đẳng cấp! Chúc mừng <b>${userName}</b> vừa giao dịch thành công <b>${amount} SWGT</b> thẳng về ví cá nhân! 💸\n\n👉 <b>CHÚC MỪNG THÀNH VIÊN CỦA NỀN TẢNG SKY WORLD COMMUNITY VIET NAM</b> 🚀👇`;
-                    
                     const optsFomo = { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "🚀 VÀO BOT CÀY SWGT NGAY", url: `https://t.me/Dau_Tu_SWC_bot` }]] } };
-                    
                     if (msg.photo) {
-                        const photoId = msg.photo[msg.photo.length - 1].file_id;
-                        bot.sendPhoto(GROUP_USERNAME, photoId, { caption: fomoGroupMsg, ...optsFomo }).catch(()=>{});
+                        bot.sendPhoto(GROUP_USERNAME, msg.photo[msg.photo.length - 1].file_id, { caption: fomoGroupMsg, ...optsFomo }).catch(()=>{});
                     } else { 
                         bot.sendMessage(GROUP_USERNAME, fomoGroupMsg, optsFomo).catch(()=>{}); 
                     }
@@ -1492,12 +1576,10 @@ bot.on('message', async (msg) => {
                 return; 
             }
 
-            // Xử lý Admin Reply trực tiếp tin nhắn chat của khách (PHỤC HỒI)
             if (originalText.includes('TIN NHẮN TỪ KHÁCH HÀNG')) {
                 const adminReplyMsg = `👨‍💻 <b>Phản hồi từ Admin SWC:</b>\n\n${msg.text || msg.caption || '[File/Ảnh đính kèm]'}`;
                 if (msg.photo) {
-                    const photoId = msg.photo[msg.photo.length - 1].file_id;
-                    bot.sendPhoto(targetUserId, photoId, { caption: adminReplyMsg, parse_mode: 'HTML' }).catch(()=>{});
+                    bot.sendPhoto(targetUserId, msg.photo[msg.photo.length - 1].file_id, { caption: adminReplyMsg, parse_mode: 'HTML' }).catch(()=>{});
                 } else { bot.sendMessage(targetUserId, adminReplyMsg, { parse_mode: 'HTML' }).catch(()=>{}); }
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi câu trả lời cho khách hàng.`);
                 return;
@@ -1511,11 +1593,9 @@ bot.on('message', async (msg) => {
         const userId = msg.from.id.toString();
         let user = await User.findOne({ userId: userId });
 
-        // Khách gửi Ảnh (Bắt Bill chuyển khoản)
         if (msg.photo && user && user.topUpStatus === 'waiting_bill') {
             user.topUpStatus = 'awaiting_admin';
             await user.save();
-
             bot.sendMessage(userId, `⏳ <b>ĐĐÃ NHẬN BILL CHUYỂN KHOẢN</b>\n\nBot đã chuyển biên lai của bạn tới Admin để kiểm tra. Số dư sẽ tự động được cộng sau 1-3 phút. Vui lòng không gửi lại để tránh trôi lệnh!`, {parse_mode: 'HTML'}).catch(()=>{});
 
             const photoId = msg.photo[msg.photo.length - 1].file_id;
@@ -1524,7 +1604,6 @@ bot.on('message', async (msg) => {
             return; 
         }
 
-        // Nếu gửi text/ảnh bình thường (PHỤC HỒI NÚT LIÊN HỆ NGƯỜI HƯỚNG DẪN)
         const name = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
         const username = msg.from.username ? `@${msg.from.username}` : 'Không có';
         const content = msg.text || msg.caption || '[Khách gửi Tệp/Ảnh/Video]';
@@ -1536,7 +1615,6 @@ bot.on('message', async (msg) => {
             bot.sendPhoto(ADMIN_ID, msg.photo[msg.photo.length - 1].file_id, { caption: alertMsg, parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{});
         } else { bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{}); }
 
-        // Khôi phục lại menu FAQ và nút Liên hệ
         let faqKeyboard = [
             [{ text: "🇻🇳 CÀI ĐẶT TIẾNG VIỆT", url: "https://t.me/setlanguage/vi" }],
             [{ text: "💬 VÀO GROUP CHAT CỘNG ĐỒNG NGAY", url: "https://t.me/swc_capital_chat" }],
@@ -1554,13 +1632,11 @@ bot.on('message', async (msg) => {
         }
 
         const autoReplyMsg = `👋 Chào <b>${name}</b>, hệ thống đã ghi nhận yêu cầu của bạn và chuyển đến Ban Tổ Chức. Vui lòng chờ Admin phản hồi nhé!\n\n👇 <b>HOẶC XEM NHANH CÁC BÍ MẬT TÀI CHÍNH DƯỚI ĐÂY:</b>`;
-        const faqMenu = { parse_mode: 'HTML', reply_markup: { inline_keyboard: faqKeyboard } };
-        
-        bot.sendMessage(userId, autoReplyMsg, faqMenu).catch(()=>{});
+        bot.sendMessage(userId, autoReplyMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: faqKeyboard } }).catch(()=>{});
         return; 
     }
 
-    // 3. TÍNH TIỀN CHAT TRONG GROUP
+    // 3. TÍNH TIỀN CHAT TRONG GROUP (ĐÃ CHẶN SPAM: Tối đa 20 tin/ngày)
     if (msg.chat.type === 'private' || msg.from.is_bot) return;
     if (msg.chat.username && msg.chat.username.toLowerCase() !== GROUP_USERNAME.replace('@', '').toLowerCase()) return;
 
@@ -1579,12 +1655,22 @@ bot.on('message', async (msg) => {
     } else { user.isPremium = isPremium; }
 
     user.groupMessageCount += 1; 
-    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.1) * 100) / 100; }
+
+    // Kiểm tra & Cập nhật giới hạn tin nhắn ngày
+    const todayStr = new Date(new Date().getTime() + (7 * 3600000)).toISOString().split('T')[0];
+    if (user.lastMessageDate !== todayStr) {
+        user.dailyMessageCount = 0; 
+        user.lastMessageDate = todayStr;
+    }
+
+    if (msg.text.trim().length >= 10 && user.dailyMessageCount < 20) { 
+        user.balance = Math.round((user.balance + 0.1) * 100) / 100; 
+        user.dailyMessageCount += 1;
+    }
     await user.save();
 });
 
 bot.on('chat_member', async (update) => {
-    const debugUser = update.new_chat_member.user;
     const chat = update.chat;
     const chatUsername = chat.username ? chat.username.toLowerCase() : '';
     const targetChannel = CHANNEL_USERNAME.replace('@', '').toLowerCase();
