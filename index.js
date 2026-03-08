@@ -1673,6 +1673,69 @@ bot.on('message', async (msg) => {
     await user.save();
 });
 
+
+// ==========================================
+// LỆNH KHÔI PHỤC SỐ DƯ KHẨN CẤP
+// ==========================================
+bot.onText(/\/khoiphuc/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    
+    bot.sendMessage(ADMIN_ID, "⏳ BẮT ĐẦU CHẠY CHIẾN DỊCH KHÔI PHỤC DỮ LIỆU...\nHệ thống đang quét toàn bộ user và tính toán lại tài sản. Vui lòng không thao tác gì thêm!");
+
+    try {
+        const users = await User.find({});
+        let count = 0;
+        let totalRecovered = 0;
+
+        for (let u of users) {
+            // Chỉ khôi phục cho những người đang bị 0 SWGT hoặc null
+            if (u.balance === 0 || u.balance == null) {
+                let estimatedBalance = 0;
+
+                // 1. Tiền nhiệm vụ
+                if (u.task1Done) estimatedBalance += 10;
+                if (u.walletRewardDone) estimatedBalance += 5;
+
+                // 2. Tiền mời F1 (5 SWGT / 1 người thật)
+                if (u.referralCount > 0) {
+                    estimatedBalance += (u.referralCount * 5);
+                }
+
+                // 3. Tiền thưởng các mốc Quân hàm
+                if (u.milestone3) estimatedBalance += 10;
+                if (u.milestone10) estimatedBalance += 20;
+                if (u.milestone20) estimatedBalance += 40;
+                if (u.milestone50) estimatedBalance += 80;
+                if (u.milestone80) estimatedBalance += 150;
+                if (u.milestone120) estimatedBalance += 200;
+                if (u.milestone200) estimatedBalance += 300;
+                if (u.milestone350) estimatedBalance += 500;
+                if (u.milestone500) estimatedBalance += 700;
+
+                // 4. Tiền chat trong Group (0.1 / tin)
+                if (u.groupMessageCount > 0) {
+                    estimatedBalance += (u.groupMessageCount * 0.1);
+                }
+
+                // Gán lại số dư nếu tính toán ra có tiền
+                if (estimatedBalance > 0) {
+                    u.balance = Math.round(estimatedBalance * 100) / 100;
+                    await u.save();
+                    count++;
+                    totalRecovered += u.balance;
+                }
+            }
+            await new Promise(resolve => setTimeout(resolve, 10)); // Chống sập RAM
+        }
+
+        bot.sendMessage(ADMIN_ID, `✅ <b>KHÔI PHỤC THÀNH CÔNG!</b>\n\n- Đã cứu được tài khoản cho: <b>${count} người</b>.\n- Tổng số SWGT được khôi phục: <b>${Math.round(totalRecovered)} SWGT</b>.\n\n<i>Lưu ý: Số tiền này được tính dựa trên số F1 và Nhiệm vụ của họ. Tiền điểm danh và vòng quay không thể khôi phục chính xác 100%.</i>`, { parse_mode: 'HTML' });
+        
+    } catch (error) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi trong quá trình khôi phục: ${error.message}`);
+    }
+});
+
+
 bot.on('chat_member', async (update) => {
     const debugUser = update.new_chat_member.user;
     const chat = update.chat;
