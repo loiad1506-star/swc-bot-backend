@@ -1720,3 +1720,80 @@ bot.on('chat_member', async (update) => {
         }
     }
 });
+// ==========================================
+// LỆNH TỐI THƯỢNG: ĐỒNG BỘ VÀ THANH TRỪNG TOÀN HỆ THỐNG
+// ==========================================
+bot.onText(/\/dongbotoanhethong/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    bot.sendMessage(ADMIN_ID, "🚨 <b>BẮT ĐẦU KÍCH HOẠT LƯỚI QUÉT THANH TRỪNG...</b>\n\nQuá trình này sẽ quét HÀNG NGÀN tài khoản, tự động phân tích và bóc tách dữ liệu để tìm ra những kẻ Bypass API. Vui lòng chờ 1-3 phút và KHÔNG thao tác thêm để tránh kẹt Server.", {parse_mode: 'HTML'});
+
+    try {
+        const allUsers = await User.find({});
+        let countCheaters = 0;
+        let totalTokensRecovered = 0;
+
+        for (let user of allUsers) {
+            let validBalance = 0;
+            
+            // 1. Tiền từ nhiệm vụ cơ bản
+            if (user.task1Done) validBalance += 10;
+            if (user.walletRewardDone) validBalance += 5;
+
+            // 2. Tiền từ mời Ref thật (Đã qua bộ lọc xác minh)
+            validBalance += (user.referralCount * 5);
+
+            // 3. Tiền từ Cột mốc Ref
+            if (user.milestone3 && user.referralCount >= 3) validBalance += 10;
+            if (user.milestone10 && user.referralCount >= 10) validBalance += 20;
+            if (user.milestone20 && user.referralCount >= 20) validBalance += 40;
+            if (user.milestone50 && user.referralCount >= 50) validBalance += 80;
+            if (user.milestone80 && user.referralCount >= 80) validBalance += 150;
+            if (user.milestone120 && user.referralCount >= 120) validBalance += 200;
+            if (user.milestone200 && user.referralCount >= 200) validBalance += 300;
+            if (user.milestone350 && user.referralCount >= 350) validBalance += 500;
+            if (user.milestone500 && user.referralCount >= 500) validBalance += 700;
+
+            // 4. Tiền từ Chat Group (Trần giới hạn 200 tin nhắn = 20 SWGT để chống Spam)
+            let validChat = user.groupMessageCount > 200 ? 200 : user.groupMessageCount;
+            validBalance += (validChat * 0.1);
+
+            // 5. Biên độ cho phép (Dành cho Điểm danh và Đập Rương hên xui)
+            // Cài đặt mức chênh lệch tối đa là 35 SWGT
+            const bufferReward = 35; 
+            const absoluteMaxValid = validBalance + bufferReward;
+
+            const currentBal = user.balance;
+
+            // NẾU SỐ DƯ HIỆN TẠI LỚN HƠN MỨC CHO PHÉP -> LÀ KẺ GIAN LẬN
+            if (currentBal > absoluteMaxValid) {
+                // Tịch thu tiền ảo, ép số dư về đúng giá trị "Lao động thật"
+                user.balance = Math.round(validBalance * 100) / 100;
+                const stolenAmount = Math.round((currentBal - validBalance) * 100) / 100;
+                await user.save();
+
+                countCheaters++;
+                totalTokensRecovered += stolenAmount;
+
+                // Gửi tin nhắn cảnh cáo kín cho người đó (Dùng try-catch để lỡ họ block bot thì ko bị lỗi)
+                try {
+                    bot.sendMessage(user.userId, `⚠️ <b>HỆ THỐNG AN NINH SWC VỪA QUÉT TÀI KHOẢN CỦA BẠN!</b>\n\nPhát hiện tài khoản có lượng SWGT gia tăng bất thường (không tương xứng với lịch sử nhiệm vụ và số lượt mời hợp lệ).\n\n🛑 <b>Hành động xử lý:</b>\n- Loại bỏ lượng SWGT do khai thác lỗi Server.\n- Đồng bộ số dư của bạn về đúng giá trị thực lực!\n\n<i>Việc tiếp tục lạm dụng tool sẽ dẫn đến cấm vĩnh viễn!</i>`, {parse_mode: 'HTML'});
+                } catch (err) {}
+            }
+            
+            // Delay 20ms mỗi vòng lặp để tránh nghẽn CPU và Telegram chặn do gửi tin quá nhanh
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+
+        // BÁO CÁO TỔNG KẾT CHO ADMIN
+        let finalReport = `✅ <b>ĐÃ ĐỒNG BỘ & THANH TRỪNG TOÀN BỘ HỆ THỐNG XONG!</b>\n\n`;
+        finalReport += `📊 Tổng số tài khoản đã được đưa vào máy quét: <b>${allUsers.length}</b>\n`;
+        finalReport += `🚨 Số kẻ gian lận đã bị ép về số dư thực tế: <b>${countCheaters} người</b>\n`;
+        finalReport += `💰 Tổng số tiền ảo đã bay màu khỏi Server: <b>-${Math.round(totalTokensRecovered * 100) / 100} SWGT</b>\n\n`;
+        finalReport += `<i>Bầu không khí đã hoàn toàn sạch sẽ. Két sắt của hệ thống đã được bảo vệ tuyệt đối thưa Admin!</i>`;
+        
+        bot.sendMessage(ADMIN_ID, finalReport, {parse_mode: 'HTML'});
+
+    } catch (e) { 
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi khi quét toàn hệ thống: ${e.message}`); 
+    }
+});
