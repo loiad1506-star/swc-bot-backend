@@ -143,7 +143,7 @@ setInterval(async () => {
     if (vnHour === 9 && vnMinute === 0) {
         try {
             const allUsers = await User.find({});
-            const morningMsg = `☀️ <b>CHÀO BUỔI SÁNG CỘNG ĐỒNG SWC!</b>\n\nTin tức và nhận định mới nhất về tiến độ dự án uST đã được cập nhật. Hãy vào Kênh Thông Tin để nắm bắt ngay!\n\n💬 <i>Đừng quên: Mỗi bình luận chia sẻ quan điểm (trên 10 ký tự) trong Group Chat sẽ được hệ thống tự động cộng <b>+0.1 SWGT</b>. Vào chém gió ngay anh em nhé!</i>`;
+            const morningMsg = `☀️ <b>CHÀO BUỔI SÁNG CỘNG ĐỒNG SWC!</b>\n\nTin tức và nhận định mới nhất về tiến độ dự án uST đã được cập nhật. Hãy vào Kênh Thông Tin để nắm bắt ngay!\n\n💬 <i></b>. Vào chém gió ngay anh em nhé!</i>`;
             
             let keyboard = [
                 [{ text: "🔵 ĐỌC TIN TỨC TRÊN KÊNH", url: `https://t.me/${CHANNEL_USERNAME.replace('@','')}` }],
@@ -160,7 +160,7 @@ setInterval(async () => {
     if (vnHour === 19 && vnMinute === 30) {
         try {
             const allUsers = await User.find({});
-            const eveningMsg = `🌙 <b>TỔNG KẾT NGÀY DÀI - VÀO GROUP GIAO LƯU NÀO!</b>\n\nMột ngày bận rộn sắp khép lại. Mọi người có nhận định gì về thị trường hay các bước đi tiếp theo của SWC không?\n\n👉 Hãy vào Group Cộng Đồng chia sẻ góc nhìn của bạn. Vừa trao đổi kiến thức, vừa nhặt thêm SWGT miễn phí <b>(+0.1 SWGT/tin nhắn)</b>!`;
+            const eveningMsg = `🌙 <b>TỔNG KẾT NGÀY DÀI - VÀO GROUP GIAO LƯU NÀO!</b>\n\nMột ngày bận rộn sắp khép lại. Mọi người có nhận định gì về thị trường hay các bước đi tiếp theo của SWC không?\n\n👉 Hãy vào Group Cộng Đồng chia sẻ góc nhìn của bạn.</b>!`;
             
             let keyboard = [
                 [{ text: "💬 VÀO GROUP CHÉM GIÓ NGAY", url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }]
@@ -1292,7 +1292,7 @@ bot.on('callback_query', async (callbackQuery) => {
             bot.sendMessage(ADMIN_ID, "✅ Đã gửi nhắc điểm danh (8H) cho B.");
         }
         else if (data === 'test_9h') {
-            const morningMsg = `☀️ <b>CHÀO BUỔI SÁNG CỘNG ĐỒNG SWC! (TEST)</b>\n\nTin tức và nhận định mới nhất về tiến độ dự án uST đã được cập nhật. Hãy vào Kênh Thông Tin để nắm bắt ngay!\n\n💬 <i>Đừng quên: Mỗi bình luận chia sẻ quan điểm (trên 10 ký tự) trong Group Chat sẽ được hệ thống tự động cộng <b>+0.1 SWGT</b>. Vào chém gió ngay anh em nhé!</i>`;
+            const morningMsg = `☀️ <b>CHÀO BUỔI SÁNG CỘNG ĐỒNG SWC! (TEST)</b>\n\nTin tức và nhận định mới nhất về tiến độ dự án uST đã được cập nhật. Hãy vào Kênh Thông Tin để nắm bắt ngay!\n\n💬 <i></b>. Vào chém gió ngay anh em nhé!</i>`;
             let keyboard = [
                 [{ text: "🔵 ĐỌC TIN TỨC TRÊN KÊNH", url: `https://t.me/${CHANNEL_USERNAME.replace('@','')}` }],
                 [{ text: "💬 VÀO GROUP CHAT NHẬN THƯỞNG", url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }]
@@ -1301,7 +1301,7 @@ bot.on('callback_query', async (callbackQuery) => {
             bot.sendMessage(ADMIN_ID, "✅ Đã gửi kịch bản Lùa Traffic 9H Sáng cho B.");
         }
         else if (data === 'test_19h30') {
-            const eveningMsg = `🌙 <b>TỔNG KẾT NGÀY DÀI - VÀO GROUP GIAO LƯU NÀO! (TEST)</b>\n\nMột ngày bận rộn sắp khép lại. Mọi người có nhận định gì về thị trường hay các bước đi tiếp theo của SWC không?\n\n👉 Hãy vào Group Cộng Đồng chia sẻ góc nhìn của bạn. Vừa trao đổi kiến thức, vừa nhặt thêm SWGT miễn phí <b>(+0.1 SWGT/tin nhắn)</b>!`;
+            const eveningMsg = `🌙 <b>TỔNG KẾT NGÀY DÀI - VÀO GROUP GIAO LƯU NÀO! (TEST)</b>\n\nMột ngày bận rộn sắp khép lại. Mọi người có nhận định gì về thị trường hay các bước đi tiếp theo của SWC không?\n\n👉 Hãy vào Group Cộng Đồng chia sẻ góc nhìn của bạn. </b>!`;
             let keyboard = [
                 [{ text: "💬 VÀO GROUP CHÉM GIÓ NGAY", url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }]
             ];
@@ -1495,7 +1495,7 @@ bot.on('callback_query', async (callbackQuery) => {
     }
     
     else if (data === 'task_2') {
-        bot.sendMessage(chatId, `⚠️ <b>THÔNG BÁO:</b>\n\nChương trình Nhiệm vụ cá nhân (Đọc bài, Chia sẻ) đã kết thúc.\n\nHiện tại bạn có thể kiếm SWGT bằng cách:\n1. Điểm danh hàng ngày trên App.\n2. Mời bạn bè tham gia.\n3. Chat và chia sẻ quan điểm trong Group Cộng Đồng (+0.1 SWGT/tin nhắn).`, { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, `⚠️ <b>THÔNG BÁO:</b>\n\nChương trình Nhiệm vụ cá nhân (Đọc bài, Chia sẻ) đã kết thúc.\n\nHiện tại bạn có thể kiếm SWGT bằng cách:\n1. Điểm danh hàng ngày trên App.\n2. Mời bạn bè tham gia.\n3. .`, { parse_mode: 'HTML' });
     } 
 
     else if (data === 'task_3') {
@@ -1669,7 +1669,7 @@ bot.on('message', async (msg) => {
     } else { user.isPremium = isPremium; }
 
     user.groupMessageCount += 1; 
-    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.1) * 100) / 100; }
+    if (msg.text.trim().length >= 10) { user.balance = Math.round((user.balance + 0.0) * 100) / 100; }
     await user.save();
 });
 
