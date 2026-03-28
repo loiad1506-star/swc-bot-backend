@@ -21,9 +21,15 @@ bot.on("polling_error", (msg) => console.log("⚠️ LỖI POLLING:", msg));
 bot.on("webhook_error", (msg) => console.log("⚠️ LỖI WEBHOOK:", msg));
 bot.on("error", (msg) => console.log("⚠️ LỖI CHUNG:", msg));
 
+// --- TỔNG HỢP CÁC ĐƯỜNG LINK CHUẨN ---
 const webAppUrl = 'https://telegram-mini-app-k1n1.onrender.com';
-const GROUP_ZALO_LINK = "https://zalo.me/g/yeiaea989";
-const WEBINAR_LINK = "https://launch.swc.capital/broadcast_31_vi";
+const NEWS_CHANNEL = "https://t.me/swc_capital_vn";
+const DISCUSSION_GROUP = "https://t.me/swc_capital_chat";
+const SWC_PASS_WEB = "https://swcpass.vn";
+const SWC_FIELD_WEB = "https://swcfield.com/vi";
+const EVENT_WEBINAR_LINK = "https://launch.swc.capital/broadcast_31_vi";
+const PRIVATE_TG_GROUP = "https://t.me/+1M_PlogMd_M1ZjNl";
+const PRIVATE_ZALO_GROUP = "https://zalo.me/g/yeiaea989";
 
 const ADMIN_ID = '507318519'; 
 const CHANNEL_USERNAME = '@swc_capital_vn';
@@ -74,18 +80,7 @@ const userSchema = new mongoose.Schema({
 
     task1Done: { type: Boolean, default: false }, 
     walletRewardDone: { type: Boolean, default: false }, 
-    
-    lastDailyTask: { type: Date, default: null }, 
-    readTaskStartTime: { type: Date, default: null }, 
-    youtubeTaskDone: { type: Boolean, default: false }, 
-    youtubeClickTime: { type: Date, default: null },
-    facebookTaskDone: { type: Boolean, default: false },
-    facebookClickTime: { type: Date, default: null },
-    lastShareTask: { type: Date, default: null },
-    shareClickTime: { type: Date, default: null },
-
     groupMessageCount: { type: Number, default: 0 },
-
     activeFrame: { type: String, default: 'none' },
     ownedFrames: { type: [String], default: ['none'] },
     spinCount: { type: Number, default: 0 },
@@ -110,8 +105,8 @@ setInterval(async () => {
     if (vnTime.getUTCHours() === 19 && vnTime.getUTCMinutes() === 30) {
         try {
             const allUsers = await User.find({});
-            const eveningMsg = `📚 <b>THỜI GIAN NÂNG CẤP KIẾN THỨC & CẬP NHẬT TIN TỨC DỰ ÁN!</b>\n\nSự kiện Airdrop đã khép lại, giờ là lúc chúng ta tập trung vào giá trị cốt lõi: <b>Đầu tư và Kiến thức tài chính</b>.\n\n💡 Bạn có biết: <i>"Khoản đầu tư sinh lời cao nhất chính là đầu tư vào trí tuệ của bản thân"</i>. \n\n👉 Hãy vào Group Cộng Đồng ngay để cập nhật tin tức mới nhất!`;
-            let keyboard = [[{ text: "💬 VÀO GROUP THẢO LUẬN NGAY", url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }]];
+            const eveningMsg = `📚 <b>THỜI GIAN NÂNG CẤP KIẾN THỨC & CẬP NHẬT TIN TỨC DỰ ÁN!</b>\n\nGiờ là lúc chúng ta tập trung vào giá trị cốt lõi: <b>Đầu tư và Kiến thức tài chính</b>.\n\n💡 Bạn có biết: <i>"Khoản đầu tư sinh lời cao nhất chính là đầu tư vào trí tuệ của bản thân"</i>. \n\n👉 Hãy vào Group Cộng Đồng ngay để cập nhật tin tức mới nhất!`;
+            let keyboard = [[{ text: "💬 VÀO GROUP THẢO LUẬN NGAY", url: DISCUSSION_GROUP }]];
             for (let user of allUsers) {
                 bot.sendMessage(user.userId, eveningMsg, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }).catch(()=>{});
                 await new Promise(resolve => setTimeout(resolve, 50)); 
@@ -120,7 +115,6 @@ setInterval(async () => {
     }
 }, 60000); 
 
-// (Các cronjob leaderboard, halving, rã đông, check bill 10 phút vẫn giữ nguyên hoạt động ngầm)
 setInterval(async () => {
     try {
         const now = new Date().getTime();
@@ -164,7 +158,6 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ...userData._doc, serverDateVN: vnNowStr, lockedBalance: lockedBalance, lockedRefsCount: lockedRefsCount }));
     } 
-    // Các API save-wallet, claim-giftcode, claim-milestone, spin, redeem, withdraw, liquidate, topup giữ nguyên
     else { res.writeHead(200); res.end('API Online'); }
 });
 server.listen(process.env.PORT || 3000);
@@ -174,21 +167,33 @@ server.listen(process.env.PORT || 3000);
 // KỊCH BẢN CHÍNH - PHỄU SWC PASS
 // ==========================================
 
-function sendMainMenu(chatId) {
-    const successMsg = `✅ Hồ sơ của bạn đã được lưu trữ an toàn. Chào mừng bạn gia nhập cộng đồng Sky World Community Viet Nam.\n\nNgay lúc này, cánh cửa nền tảng **SWC Pass** và siêu dự án **ATLAS** đang đếm ngược đến ngày 31/03. Bạn muốn khám phá điều gì tiếp theo?`;
+// NÚT SỰ KIỆN LUÔN GHIM Ở ĐÁY MÀN HÌNH CỦA MỌI MENU
+const persistentEventBtn = [{ text: "🚨 ĐĂNG KÝ SỰ KIỆN ATLAS (31/03)", url: EVENT_WEBINAR_LINK }];
+
+function sendMainMenu(chatId, messageIdToEdit = null) {
+    const msg = `✅ <b>Hồ sơ của bạn đã được lưu trữ an toàn.</b> Chào mừng bạn gia nhập cộng đồng <b>Sky World Community Viet Nam</b>.\n\nNgay lúc này, cánh cửa nền tảng <b>SWC Pass</b> và siêu dự án <b>ATLAS</b> đang đếm ngược đến ngày 31/03. Bạn muốn khám phá điều gì tiếp theo?\n\n<b>🌐 HỆ SINH THÁI CỦA CHÚNG TÔI:</b>\n📡 Kênh tin tức chính thức: <a href="${NEWS_CHANNEL}">Bấm vào đây</a>\n🗣 Nhóm thảo luận cộng đồng: <a href="${DISCUSSION_GROUP}">Bấm vào đây</a>`;
+    
     const options = {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
         reply_markup: {
             inline_keyboard: [
                 [{ text: "🚀 MỞ ỨNG DỤNG SWC PASS", web_app: { url: webAppUrl } }],
-                [{ text: "💎 Tìm hiểu SWC Pass & Quyền lợi", callback_data: 'menu_swcpass' }],
+                [{ text: "💎 Đặc quyền & Tính năng SWC Pass", callback_data: 'menu_swcpass' }],
                 [{ text: "🏢 Khám phá Siêu dự án ATLAS", callback_data: 'menu_atlas' }],
-                [{ text: "🎟 Đăng ký Webinar 31/03", callback_data: 'menu_webinar' }],
-                [{ text: "❓ Giải đáp thắc mắc (FAQ)", callback_data: 'menu_faq' }]
+                [{ text: "❓ Giải đáp thắc mắc (FAQ)", callback_data: 'menu_faq' }],
+                persistentEventBtn
             ]
         }
     };
-    bot.sendMessage(chatId, successMsg, options).catch(()=>{});
+
+    if (messageIdToEdit) {
+        options.chat_id = chatId;
+        options.message_id = messageIdToEdit;
+        bot.editMessageText(msg, options).catch(()=>{});
+    } else {
+        bot.sendMessage(chatId, msg, options).catch(()=>{});
+    }
 }
 
 bot.onText(/\/start(.*)/i, async (msg, match) => {
@@ -203,12 +208,9 @@ bot.onText(/\/start(.*)/i, async (msg, match) => {
     const username = msg.from.username ? `@${msg.from.username}` : '';
 
     let user = await User.findOne({ userId: userId });
-    let isNewUser = false;
 
     if (!user) {
-        isNewUser = true;
         user = new User({ userId: userId, firstName: firstName, lastName: lastName, username: username, isPremium: isPremium });
-        
         if (refId && refId !== userId) {
             user.referredBy = refId;
             let referrer = await User.findOne({ userId: refId });
@@ -222,15 +224,14 @@ bot.onText(/\/start(.*)/i, async (msg, match) => {
     }
     await user.save();
     
-    const welcomeMessage = `Xin chào ${firstName}! 🦁\n\nChào mừng bạn bước vào Hệ sinh thái Đầu tư Tinh anh của **Sky World Community Viet Nam**.\n\nTôi là Trợ lý AI của nền tảng. Mục tiêu của chúng tôi rất rõ ràng: Vốn của bạn phải sinh lời và vị thế của bạn phải thăng hạng!\n\n🌱 Để nhận thông tin nội bộ và tham gia các thương vụ vòng kín (Private Round), vui lòng xác nhận chính sách bảo mật và chia sẻ số điện thoại của bạn bên dưới.`;
+    const welcomeMessage = `Xin chào <b>${firstName}</b>! 🦁\n\nChào mừng bạn bước vào Hệ sinh thái Đầu tư Tinh anh của <b>Sky World Community Viet Nam</b>.\n\nTôi là Trợ lý AI của <b>SWC Pass</b>. Mục tiêu của chúng tôi rất rõ ràng: <b>Vốn của bạn phải sinh lời và vị thế của bạn phải thăng hạng!</b>\n\n🌱 Để nhận thông tin nội bộ và tham gia các thương vụ vòng kín (Private Round), vui lòng <b>xác nhận chính sách bảo mật và chia sẻ số điện thoại</b> của bạn bên dưới.`;
 
     if (!user.phone) {
         const options = {
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 keyboard: [
-                    [{ text: "📞 Chia sẻ Số điện thoại để bắt đầu", request_contact: true }],
-                    [{ text: "📜 Xem Chính sách bảo mật" }]
+                    [{ text: "📞 Chia sẻ Số điện thoại để bắt đầu", request_contact: true }]
                 ],
                 resize_keyboard: true,
                 one_time_keyboard: true
@@ -249,20 +250,18 @@ bot.on('contact', async (msg) => {
     const userId = msg.from.id.toString();
 
     try {
-        await User.updateOne(
-            { userId: userId },
-            { $set: { phone: phoneNumber, tag: 'new' } }
-        );
+        await User.updateOne({ userId: userId }, { $set: { phone: phoneNumber, tag: 'new' } });
     } catch (err) {}
 
-    bot.sendMessage(chatId, "Hệ thống đang tải dữ liệu...", { reply_markup: { remove_keyboard: true } }).then((sentMsg) => {
+    bot.sendMessage(chatId, "⏳ Đang tải dữ liệu...", { reply_markup: { remove_keyboard: true } }).then((sentMsg) => {
         bot.deleteMessage(chatId, sentMsg.message_id).catch(()=>{});
         sendMainMenu(chatId);
     });
 
     setTimeout(() => {
-        const surveyMsg = `Xin chào! Chúng tôi muốn hiểu bạn rõ hơn 🙌\nMột số người trong cộng đồng Sky World Community Viet Nam đã đầu tư nhiều năm, một số khác mới bắt đầu. Để đội ngũ chuyên gia hỗ trợ bạn một cách chính xác nhất, hãy dành 10 giây cho chúng tôi biết vị thế hiện tại của bạn:`;
+        const surveyMsg = `👋 Xin chào! Chúng tôi muốn hiểu bạn rõ hơn.\nMột số người trong cộng đồng <b>Sky World Community Viet Nam</b> đã đầu tư nhiều năm, một số khác mới bắt đầu.\n\n<b>Để đội ngũ chuyên gia hỗ trợ bạn một cách chính xác nhất</b>, hãy dành 10 giây cho chúng tôi biết vị thế hiện tại của bạn:`;
         const surveyOptions = {
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "🙋‍♂️ Tôi là nhà đầu tư mới", callback_data: 'survey_newbie' }],
@@ -276,10 +275,11 @@ bot.on('contact', async (msg) => {
 });
 
 // ==========================================
-// XỬ LÝ NÚT BẤM VỚI NỘI DUNG SÂU SẮC HƠN
+// XỬ LÝ NÚT BẤM (TỰ ĐỘNG EDIT TIN NHẮN)
 // ==========================================
 bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
+    const messageId = callbackQuery.message.message_id; // Lấy ID tin nhắn hiện tại để ghi đè
     const userId = callbackQuery.from.id.toString(); 
     const data = callbackQuery.data;
 
@@ -287,88 +287,110 @@ bot.on('callback_query', async (callbackQuery) => {
     if (!user) return bot.answerCallbackQuery(callbackQuery.id);
 
     let text = "";
-    let options = { parse_mode: 'Markdown', disable_web_page_preview: true, reply_markup: { inline_keyboard: [] } };
-    const ctaButtons = [
-        [{ text: "🚀 MỞ SWC PASS", web_app: { url: webAppUrl } }],
-        [{ text: "💬 THAM GIA NHÓM ZALO KÍN", url: GROUP_ZALO_LINK }],
-        [{ text: "🔙 Quay lại Menu Chính", callback_data: 'main_menu' }]
+    let options = { 
+        chat_id: chatId, 
+        message_id: messageId, 
+        parse_mode: 'HTML', 
+        disable_web_page_preview: true, 
+        reply_markup: { inline_keyboard: [] } 
+    };
+
+    const commonCtaButtons = [
+        [{ text: "🚀 MỞ ỨNG DỤNG SWC PASS", web_app: { url: webAppUrl } }],
+        [{ text: "💬 THAM GIA NHÓM KÍN ZALO", url: PRIVATE_ZALO_GROUP }],
+        [{ text: "✈️ THAM GIA NHÓM KÍN TELEGRAM", url: PRIVATE_TG_GROUP }],
+        [{ text: "🔙 Quay lại Menu Chính", callback_data: 'main_menu' }],
+        persistentEventBtn
     ];
 
     if (data === 'main_menu') {
-        sendMainMenu(chatId);
+        sendMainMenu(chatId, messageId);
         return bot.answerCallbackQuery(callbackQuery.id);
     }
     
-    // --- NỘI DUNG CHI TIẾT MỚI ---
+    // --- NỘI DUNG CHI TIẾT SWC PASS ---
     else if (data === 'menu_swcpass') {
-        text = `💎 **SWC PASS - KHÔNG CHỈ LÀ KIẾN THỨC, ĐÂY LÀ HỆ THỐNG KỶ LUẬT**\n\nGói đăng ký SWC Pass là tấm vé thông hành của giới tinh anh, cung cấp giải pháp toàn diện để xây dựng sự giàu có:\n\n1️⃣ **ROAD TO $1M:** Chiến lược xây dựng danh mục cổ phiếu chia cổ tức chuyên nghiệp. Mỗi tháng bạn sẽ nhận được một kế hoạch giải ngân chi tiết (Mua mã nào, tỷ lệ bao nhiêu) để tận dụng sức mạnh Lãi Kép.\n2️⃣ **SWC FIELD:** Đặc quyền tiếp cận các thương vụ mạo hiểm vòng kín (Private Round) với vị thế như một quỹ đầu tư lớn.\n3️⃣ **TIẾN ĐỘ CÁ NHÂN:** Trình theo dõi chuẩn xác giúp bạn biết dòng tiền của mình đang ở đâu.\n4️⃣ **MINH BẠCH SPV:** Cấu trúc pháp lý rõ ràng, không có chi phí ẩn.\n\n👉 Hãy mở ứng dụng SWC Pass để xem chi tiết các gói (Essential, Plus, Ultimate)!`;
-        options.reply_markup.inline_keyboard = ctaButtons;
+        text = `💎 <b>SWC PASS - TẤM VÉ THÔNG HÀNH CỦA GIỚI TINH ANH</b>\n\nĐây không chỉ là kiến thức, đây là <b>Hệ thống Kỷ luật</b> để xây dựng sự giàu có bền vững.\n\n1️⃣ <b>ROAD TO $1M:</b> Chiến lược xây dựng danh mục cổ phiếu chia cổ tức chuyên nghiệp. <b>Mỗi tháng bạn sẽ nhận được một kế hoạch giải ngân chi tiết</b> (Mua mã nào, tỷ lệ bao nhiêu) để tận dụng sức mạnh Lãi Kép.\n\n2️⃣ <b>SWC FIELD:</b> Đặc quyền tiếp cận các thương vụ mạo hiểm vòng kín (Private Round) với <b>vị thế như một quỹ đầu tư lớn</b>.\n\n3️⃣ <b>TIẾN ĐỘ CÁ NHÂN:</b> Trình theo dõi chuẩn xác giúp bạn biết dòng tiền của mình đang ở đâu.\n\n4️⃣ <b>MINH BẠCH 100%:</b> Quản lý tài sản qua cấu trúc SPV, <b>loại bỏ hoàn toàn các loại phí ẩn</b>.\n\n👉 <b>Hãy xem chi tiết Hành trình đến $1M bằng cách bấm vào nút bên dưới:</b>\n🌐 Website tham khảo: <a href="${SWC_PASS_WEB}">${SWC_PASS_WEB}</a>`;
+        
+        // Thêm nút xem chi tiết Road to $1M
+        options.reply_markup.inline_keyboard = [
+            [{ text: "🎯 Chi tiết Hành Trình Đến $1M", callback_data: 'road_to_1m' }],
+            ...commonCtaButtons
+        ];
     } 
-    else if (data === 'menu_atlas') {
-        text = `🏢 **SIÊU DỰ ÁN ATLAS - KHAI MỞ ĐẠI DƯƠNG XANH**\n\nBạn nghĩ sao nếu có thể sở hữu và giao dịch bất động sản tại Dubai chỉ bằng vài cú chạm trên điện thoại? ATLAS mang đến giải pháp **Bất động sản số hóa (RWA)** trên nền tảng Web 2.5.\n\n🌟 **Đặc điểm cốt lõi:**\n- **Thanh khoản 3 giây:** Phá vỡ sự chậm chạp của BĐS truyền thống qua thị trường thứ cấp nội bộ.\n- **Bảo chứng pháp lý:** Hoạt động dưới pháp nhân Atlas Overseas FZE, được cấp phép bởi Cơ quan Trung tâm Thương mại Thế giới Dubai (DWTCA - 4219).\n- **Tiếp cận dễ dàng:** Dân chủ hóa sân chơi vốn dĩ chỉ dành cho giới siêu giàu.\n\n⚠️ *Cánh cửa vòng ưu đãi sẽ đóng lại vào 31/03/2026. Đừng bỏ lỡ vị thế tốt nhất!*`;
-        options.reply_markup.inline_keyboard = ctaButtons;
+    
+    // --- NỘI DUNG CHI TIẾT ROAD TO $1M (FULL KIẾN THỨC) ---
+    else if (data === 'road_to_1m' || data === 'faq_2') {
+        text = `💎 <b>HÀNH TRÌNH ĐẾN $1M (ROAD TO $1M)</b>\n\n<b>Chiến lược do SWC Field phát triển.</b> Đây là một chương trình đầu tư dài hạn: <b>chỉ cần đầu tư 8 đô la mỗi ngày (khoảng 240 đô la mỗi tháng) có kỷ luật</b>, đảm bảo đầu tư đều đặn và với <b>sức mạnh lãi kép</b>, bạn có thể hướng đến mục tiêu đạt số vốn <b>1.000.000 đô la trong 15 năm</b>. Sản phẩm là một hệ thống hoàn chỉnh cho phép bạn bắt đầu đầu tư <b>mà không cần kinh nghiệm hay các khóa đào tạo</b> — và không cần tốn nhiều thời gian (<b>chỉ 10-15 phút mỗi tháng</b>).\n\n🎯 <b>MỤC TIÊU CỦA DỰ ÁN:</b>\n1. <b>Xây dựng vốn tài chính dài hạn:</b> Cung cấp cho người tham gia một chiến lược sẵn có để xây dựng giá trị tài sản ròng từ <b>1.000.000 đô la trở lên trong khoảng thời gian 15-20 năm</b>, bằng cách sử dụng lãi kép.\n2. <b>Đạt sự tự do và độc lập tài chính:</b> Cung cấp phương pháp có hệ thống giúp người tham gia <b>vượt qua áp lực tài chính</b> ("sống dựa vào đồng lương") và xây dựng thu nhập thụ động cao hơn các chi phí của họ.\n3. <b>Xây dựng nền tảng tài chính cho gia đình và thế hệ tương lai:</b> Đảm bảo cho con cháu ăn học tốt hơn, có sự khởi đầu tự tin và một di sản vững chắc.\n\n🔥 <b>LỢI ÍCH CỐT LÕI:</b>\n1. <b>Chiến lược đã được kiểm chứng:</b> Nhận tín hiệu hàng tháng (nên mua gì, bao nhiêu, giá nào). Đã được <b>hơn 7.000 người thực hiện</b>.\n2. <b>Tiết kiệm thời gian:</b> Không cần tốn hơn 10.000 giờ nghiên cứu. Chỉ mất <b>10-15 phút mỗi tháng</b>.\n3. <b>Bảo vệ khỏi sai lầm cảm tính:</b> Chiến lược bình quân giá mua (DCA) và Buy & Hold giúp giảm căng thẳng, <b>ngăn ngừa hoảng loạn</b> trong thời kỳ khủng hoảng và tránh đầu cơ thiếu cân nhắc.\n\n<i>Cập nhật: Tháng 3/2026</i>`;
+        
+        options.reply_markup.inline_keyboard = [
+            [{ text: "🔙 Quay lại", callback_data: data === 'faq_2' ? 'faq_back' : 'menu_swcpass' }],
+            persistentEventBtn
+        ];
     }
-    else if (data === 'menu_webinar') {
-        text = `🎟 **SỰ KIỆN LỊCH SỬ: PHÁT SÓNG TRỰC TIẾP**\n\nKinh nghiệm quá khứ là nền tảng cho chiến lược mới. Chúng tôi sẽ phân tích thẳng thắn những rủi ro đã xảy ra, cách xử lý, và giới thiệu siêu dự án mới trên gian hàng SWC Field với bộ lọc khắt khe nhất.\n\n⏰ **Thời gian:** 20:00 (VN) | Ngày 31/03/2026\n👉 **Link phòng họp kín:** https://launch.swc.capital/broadcast_31_vi\n\n🎁 *Bonus: Thành viên tham gia sẽ nhận được bộ tài liệu mật phân tích dòng vốn của SWC.*`;
-        options.reply_markup.inline_keyboard = ctaButtons;
+
+    else if (data === 'menu_atlas') {
+        text = `🏢 <b>SIÊU DỰ ÁN ATLAS - KHAI MỞ ĐẠI DƯƠNG XANH</b>\n\nBạn nghĩ sao nếu có thể <b>sở hữu và giao dịch bất động sản tại Dubai</b> chỉ bằng vài cú chạm trên điện thoại? ATLAS mang đến giải pháp <b>Bất động sản số hóa (RWA)</b> tiên tiến nhất.\n\n🌟 <b>ĐẶC ĐIỂM CỐT LÕI:</b>\n- <b>Thanh khoản 3 giây:</b> Phá vỡ sự chậm chạp của BĐS truyền thống qua thị trường thứ cấp nội bộ.\n- <b>Bảo chứng pháp lý:</b> Hoạt động dưới pháp nhân Atlas Overseas FZE, được <b>cấp phép bởi Cơ quan Trung tâm Thương mại Thế giới Dubai</b> (DWTCA - 4219).\n- <b>Tiếp cận dễ dàng:</b> Dân chủ hóa sân chơi vốn dĩ chỉ dành cho giới siêu giàu.\n\n⚠️ <b>Cánh cửa vòng ưu đãi sẽ đóng lại vào 31/03/2026. Đừng bỏ lỡ vị thế tốt nhất!</b>\n🌐 Khám phá hệ sinh thái SWC Field: <a href="${SWC_FIELD_WEB}">${SWC_FIELD_WEB}</a>`;
+        options.reply_markup.inline_keyboard = commonCtaButtons;
     }
     
     // --- BỘ FAQ NÂNG CAO ---
     else if (data === 'menu_faq' || data === 'faq_back') {
-        text = `**CHUYÊN MỤC GIẢI ĐÁP THẮC MẮC (FAQ)**\n*Hãy chọn câu hỏi bạn đang quan tâm để xem phân tích chi tiết:*`;
+        text = `<b>CHUYÊN MỤC GIẢI ĐÁP THẮC MẮC (FAQ)</b>\n<i>Hãy chọn câu hỏi bạn đang quan tâm để xem phân tích chi tiết:</i>`;
         options.reply_markup.inline_keyboard = [
             [{ text: "1. Nhận được gì ngay sau khi thanh toán?", callback_data: 'faq_1' }],
             [{ text: "2. Road to $1M và SWC Field là gì?", callback_data: 'faq_2' }],
             [{ text: "3. Khác gì kiến thức Youtube miễn phí?", callback_data: 'faq_3' }],
-            [{ text: "4. Tôi chưa có đủ 600$ lúc này?", callback_data: 'faq_4' }],
+            [{ text: "4. Tôi chưa có đủ $600 lúc này?", callback_data: 'faq_4' }],
             [{ text: "5. Giữ tiền mặt cho an toàn thời điểm này?", callback_data: 'faq_5' }],
-            [{ text: "🔙 Quay lại Menu Chính", callback_data: 'main_menu' }]
+            [{ text: "🔙 Quay lại Menu Chính", callback_data: 'main_menu' }],
+            persistentEventBtn
         ];
     }
     else if (data === 'faq_1') { 
-        text = `✅ **Tôi nhận được gì ngay sau khi thanh toán?**\nQuyền truy cập ĐẦY ĐỦ VÀ NGAY LẬP TỨC vào hệ sinh thái. Chiến lược xây dựng danh mục cổ phiếu cổ tức đầu tiên của Road to $1M sẽ có trong tài khoản của bạn chỉ sau vài phút. Bạn sẽ biết chính xác tháng này nên mua mã nào, tỷ lệ bao nhiêu. Không cần phải chờ đợi!`; 
-        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }]); 
-    }
-    else if (data === 'faq_2') { 
-        text = `✅ **Road to $1M & SWC Field là gì?**\n- **Road to $1M:** Là la bàn tài chính. Không dạy lý thuyết suông, mà đưa ra kế hoạch mua cổ phiếu chuyên nghiệp mỗi tháng được đúc kết từ chuyên môn nhiều năm. Sản phẩm tương tự ngoài thị trường có giá ít nhất $1.000/năm.\n- **SWC Field:** Là gian hàng trưng bày các dự án mạo hiểm đã qua bộ lọc thẩm định khắt khe nhất (Ra mắt tháng 3/2026).`; 
-        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }]); 
+        text = `✅ <b>Tôi nhận được gì ngay sau khi thanh toán?</b>\n\nQuyền truy cập <b>ĐẦY ĐỦ VÀ NGAY LẬP TỨC</b> vào hệ sinh thái.\nChiến lược xây dựng danh mục cổ phiếu cổ tức đầu tiên của Road to $1M sẽ có trong tài khoản của bạn chỉ sau vài phút. <b>Bạn sẽ biết chính xác tháng này nên mua mã nào, tỷ lệ bao nhiêu.</b> Không cần phải chờ đợi!`; 
+        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }], persistentEventBtn); 
     }
     else if (data === 'faq_3') { 
-        text = `✅ **Khác gì kiến thức miễn phí trên Youtube?**\nKiến thức trên mạng là miễn phí, nhưng nếu chỉ 'biết' mà giàu thì ai cũng là triệu phú. Sự khác biệt nằm ở **Hệ thống Kỷ luật**. SWC Pass là công cụ ép bạn thực thi, loại bỏ cảm xúc cá nhân. Sự khác biệt giống hệt như việc đọc một cuốn sách dạy bơi và việc trực tiếp nhảy xuống hồ bơi vậy.`; 
-        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }]); 
+        text = `✅ <b>Khác gì kiến thức miễn phí trên Youtube?</b>\n\nKiến thức trên mạng là miễn phí, nhưng nếu chỉ 'biết' mà giàu thì ai cũng là triệu phú. Sự khác biệt nằm ở <b>Hệ thống Kỷ luật</b>.\n\nSWC Pass là <b>công cụ ép bạn thực thi</b>, loại bỏ cảm xúc cá nhân. Sự khác biệt giống hệt như việc đọc một cuốn sách dạy bơi và việc trực tiếp nhảy xuống hồ bơi vậy.`; 
+        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }], persistentEventBtn); 
     }
     else if (data === 'faq_4') { 
-        text = `✅ **Tôi chưa có đủ $600 lúc này?**\nHãy làm bài toán chia nhỏ: $600 cho 5 năm nghĩa là bạn chỉ tốn vỏn vẹn **$10/tháng (~250.000 VNĐ)**. Sự thật là bạn đang ném số tiền này qua cửa sổ cho những ly cà phê vô bổ. Việc trì hoãn chờ "có đủ tiền" là cái bẫy hoàn hảo, khiến bạn đánh mất hàng thập kỷ sức mạnh của Lãi Kép. Mua SWC Pass là mua lại sự tự do của chính mình!`; 
-        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }]); 
+        text = `✅ <b>Tôi chưa có đủ $600 lúc này?</b>\n\nHãy làm bài toán chia nhỏ: $600 cho 5 năm nghĩa là bạn chỉ tốn vỏn vẹn <b>$10/tháng (~250.000 VNĐ)</b>. Sự thật là bạn đang ném số tiền này qua cửa sổ cho những ly cà phê vô bổ.\n\nViệc trì hoãn chờ "có đủ tiền" là cái bẫy hoàn hảo, khiến bạn <b>vĩnh viễn đánh mất hàng thập kỷ sức mạnh của Lãi Kép</b>. Mua SWC Pass là mua lại sự tự do của chính mình!`; 
+        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }], persistentEventBtn); 
     }
     else if (data === 'faq_5') { 
-        text = `✅ **Thị trường rủi ro, giữ tiền mặt cho an toàn?**\nGiữ tiền mặt trong ngân hàng vì sợ rủi ro chính là ảo giác an toàn nguy hiểm nhất. Các ngân hàng trung ương liên tục in tiền, lạm phát lặng lẽ móc túi bạn mỗi ngày. Quyết định trốn tránh rủi ro biến động chính là quyết định đảm bảo 100% rằng bạn sẽ nghèo đi. Giới tinh anh không bao giờ tích tiền mặt dài hạn!`; 
-        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }]); 
+        text = `✅ <b>Thị trường rủi ro, giữ tiền mặt cho an toàn?</b>\n\nGiữ tiền mặt trong ngân hàng vì sợ rủi ro chính là <b>ảo giác an toàn nguy hiểm nhất</b>. Các ngân hàng trung ương liên tục in tiền, <b>lạm phát lặng lẽ móc túi bạn mỗi ngày</b>.\n\nQuyết định trốn tránh rủi ro biến động chính là quyết định <b>đảm bảo 100% rằng bạn sẽ nghèo đi</b>. Giới tinh anh không bao giờ tích trữ tiền mặt trong dài hạn!`; 
+        options.reply_markup.inline_keyboard.push([{ text: "🔙 Quay lại FAQ", callback_data: 'faq_back' }], persistentEventBtn); 
     }
     
-    // --- KẾT QUẢ KHẢO SÁT ---
+    // --- KẾT QUẢ KHẢO SÁT (Thay thế tin nhắn khảo sát) ---
     else if (data === 'survey_newbie') {
         user.tag = 'newbie'; await user.save();
-        text = `Cảm ơn bạn đã chia sẻ! Lạm phát đang âm thầm ăn mòn tiền mặt của bạn mỗi ngày. Giải pháp duy nhất là một cỗ máy tự động hóa dòng tiền.\n\n👉 Lựa chọn tốt nhất lúc này là chiến lược kỷ luật **Road to $1M**. Bấm nút vào nhóm để nhận định hướng tư duy chuẩn xác nhé!`;
-        options.reply_markup.inline_keyboard = [[{ text: "💬 VÀO NHÓM NHẬN LỘ TRÌNH CHIẾN LƯỢC", url: GROUP_ZALO_LINK }]];
+        text = `✅ Cảm ơn bạn đã chia sẻ!\n\nLà người mới, <b>lạm phát đang âm thầm ăn mòn tiền mặt của bạn mỗi ngày</b>. Giải pháp duy nhất là xây dựng một cỗ máy tự động hóa dòng tiền.\n\n👉 Lựa chọn tốt nhất lúc này là chiến lược kỷ luật <b>Road to $1M</b>. Bấm nút tham gia nhóm bên dưới để Đội ngũ chuyên gia hỗ trợ bạn định hướng tư duy chuẩn xác nhé!`;
+        options.reply_markup.inline_keyboard = [[{ text: "💬 VÀO NHÓM ZALO NHẬN LỘ TRÌNH CHIẾN LƯỢC", url: PRIVATE_ZALO_GROUP }], persistentEventBtn];
     }
     else if (data === 'survey_ust') {
         user.tag = 'ust_investor'; await user.save();
-        text = `Tuyệt vời! Bạn là một nhà đầu tư có tầm nhìn. Nếu bạn đã quen với các dự án mạo hiểm, **ATLAS (Bất động sản số hóa Web3)** chính là sân chơi tiếp theo của bạn.\n\n⚠️ Vòng gọi vốn kín tốt nhất trên SWC Field sẽ đóng vào 31/03. Đừng bỏ lỡ!`;
-        options.reply_markup.inline_keyboard = ctaButtons;
+        text = `✅ Tuyệt vời! Bạn là một nhà đầu tư có tầm nhìn.\n\nNếu bạn đã quen với các dự án mạo hiểm, <b>ATLAS (Bất động sản số hóa Web3)</b> chính là sân chơi tiếp theo của bạn để nhân x lần tài sản.\n\n⚠️ <b>Vòng gọi vốn kín tốt nhất trên SWC Field sẽ khép lại vào 31/03. Đừng bỏ lỡ!</b>`;
+        options.reply_markup.inline_keyboard = commonCtaButtons;
     }
     else if (data === 'survey_vip') {
         user.tag = 'vip_pass'; await user.save();
-        text = `Chào mừng thành viên VIP! Bạn đã có trong tay vũ khí mạnh nhất của cộng đồng Sky World Community Viet Nam.\n\n👉 Hãy chắc chắn rằng bạn đã tham gia Group Nội Bộ bên dưới để nhận tín hiệu cổ tức mỗi tháng và truy cập SWC Field.`;
-        options.reply_markup.inline_keyboard = [[{ text: "💬 VÀO NHÓM VIP NHẬN TÍN HIỆU", url: GROUP_ZALO_LINK }]];
+        text = `✅ <b>Chào mừng thành viên VIP!</b>\nBạn đã có trong tay vũ khí mạnh nhất của cộng đồng Sky World Community Viet Nam.\n\n👉 Hãy chắc chắn rằng bạn đã tham gia các Group Nội Bộ bên dưới để <b>nhận tín hiệu cổ tức mỗi tháng</b> và hướng dẫn truy cập SWC Field.`;
+        options.reply_markup.inline_keyboard = [[{ text: "💬 VÀO NHÓM VIP TELEGRAM NHẬN TÍN HIỆU", url: PRIVATE_TG_GROUP }], persistentEventBtn];
     }
 
     bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
-    if (text !== "") { bot.sendMessage(chatId, text, options).catch(()=>{}); }
+    
+    // Thực thi Edit Message thay vì Send Message mới
+    if (text !== "") { 
+        bot.editMessageText(text, options).catch(()=>{}); 
+    }
 });
 
 // ==========================================
-// XỬ LÝ MESSAGE CỦA ADMIN VÀ KHÁCH HÀNG (SỬA LỖI ẢNH)
+// XỬ LÝ MESSAGE CỦA ADMIN VÀ KHÁCH HÀNG
 // ==========================================
 bot.on('message', async (msg) => {
     // 1. Admin duyệt bill hoặc Reply chat
@@ -392,7 +414,7 @@ bot.on('message', async (msg) => {
                 return;
             }
             // Admin reply chat thủ công
-            if (originalText.includes('TIN NHẮN TỪ KHÁCH HÀNG')) {
+            if (originalText.includes('TỪ KHÁCH HÀNG')) {
                 bot.sendMessage(targetUserId, `👨‍💻 <b>Phản hồi từ Đội ngũ SWC:</b>\n\n${msg.text || msg.caption}`, { parse_mode: 'HTML' }).catch(()=>{});
                 bot.sendMessage(ADMIN_ID, `✅ Đã gửi câu trả lời cho khách.`);
                 return;
@@ -409,43 +431,43 @@ bot.on('message', async (msg) => {
         // Trường hợp khách gửi Bill nạp tiền
         if (msg.photo && user && user.topUpStatus === 'waiting_bill') {
             user.topUpStatus = 'awaiting_admin'; await user.save();
-            bot.sendMessage(userId, `⏳ <b>ĐÃ NHẬN BILL</b>\nBot đã chuyển biên lai tới Admin. Vui lòng chờ 1-3 phút.`, {parse_mode: 'HTML'}).catch(()=>{});
-            bot.sendPhoto(ADMIN_ID, msg.photo[msg.photo.length - 1].file_id, { caption: `🚨 <b>BILL NẠP TIỀN</b>\nKhách: ${user.firstName}\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${user.pendingSWGT} SWGT</b>\n👉 Reply ảnh gõ "xong" để duyệt.`, parse_mode: 'HTML' }).catch(()=>{});
+            bot.sendMessage(userId, `⏳ <b>ĐÃ NHẬN BILL</b>\nBot đã chuyển biên lai tới Đội ngũ. Vui lòng chờ 1-3 phút.`, {parse_mode: 'HTML'}).catch(()=>{});
+            const photoId = msg.photo[msg.photo.length - 1].file_id;
+            bot.sendPhoto(ADMIN_ID, photoId, { caption: `🚨 <b>BILL NẠP TIỀN</b>\nKhách: ${user.firstName}\n🆔 ID: <code>${user.userId}</code>\n💰 Số lượng: <b>${user.pendingSWGT} SWGT</b>\n👉 Reply ảnh gõ "xong" để duyệt.`, parse_mode: 'HTML' }).catch(()=>{});
             return; 
         }
 
         // Trường hợp khách nhắn tin thường hoặc gửi ảnh/file hỏi đáp
         const name = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
         const username = msg.from.username ? `@${msg.from.username}` : 'Không có';
-        
-        let alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n\n`;
-        const replyMarkupAdmin = { inline_keyboard: [[{ text: "💬 Chat trực tiếp", url: `tg://user?id=${userId}` }]] };
+        const replyMarkupAdmin = { inline_keyboard: [[{ text: "💬 Chat trực tiếp với khách", url: `tg://user?id=${userId}` }]] };
 
-        if (msg.photo || msg.video || msg.document) {
-            // Forward nguyên bản cái ảnh/video đó sang cho Admin
-            await bot.forwardMessage(ADMIN_ID, chatId, msg.message_id).catch(()=>{});
-            alertMsg += `<i>(Khách hàng vừa gửi Tệp/Ảnh/Video ngay bên trên)</i>\n`;
-            if (msg.caption) alertMsg += `💬 <b>Ghi chú của khách:</b>\n${msg.caption}\n\n`;
-        } else {
-            alertMsg += `💬 <b>Nội dung:</b>\n${msg.text}\n\n`;
+        if (msg.photo) {
+            // Lấy id của bức ảnh có độ phân giải cao nhất
+            const photoId = msg.photo[msg.photo.length - 1].file_id;
+            let alertMsg = `📩 <b>ẢNH TỪ KHÁCH HÀNG</b>\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n`;
+            if (msg.caption) alertMsg += `\n💬 <b>Nội dung:</b> ${msg.caption}\n`;
+            alertMsg += `\n👉 <i>Admin hãy Reply trực tiếp lên bức ảnh này để chat lại với khách!</i>`;
+            
+            // Gửi trực tiếp ảnh cho admin kèm caption chứa ID
+            bot.sendPhoto(ADMIN_ID, photoId, { caption: alertMsg, parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{});
+        } 
+        else if (msg.video || msg.document) {
+            // Forward tệp/video
+            bot.forwardMessage(ADMIN_ID, chatId, msg.message_id).catch(()=>{});
+            let alertMsg = `📩 <b>TỆP/VIDEO TỪ KHÁCH HÀNG</b>\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n`;
+            if (msg.caption) alertMsg += `\n💬 <b>Nội dung:</b> ${msg.caption}\n`;
+            alertMsg += `\n👉 <i>Admin hãy Reply tin nhắn này để chat lại với khách!</i>`;
+            bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{});
+        }
+        else {
+            // Khách gửi chữ bình thường
+            let alertMsg = `📩 <b>TIN NHẮN TỪ KHÁCH HÀNG</b>\n👤 Khách: <b>${name}</b>\n🔗 Username: ${username}\n🆔 ID: <code>${userId}</code>\n\n💬 <b>Nội dung:</b>\n${msg.text}\n\n👉 <i>Admin hãy Reply tin nhắn này để chat lại với khách!</i>`;
+            bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{});
         }
         
-        alertMsg += `👉 <i>Admin hãy Reply tin nhắn này để chat lại với khách!</i>`;
-        bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML', reply_markup: replyMarkupAdmin }).catch(()=>{});
-        
-        bot.sendMessage(userId, `👋 Yêu cầu của bạn đã được chuyển đến Đội ngũ chuyên gia. Vui lòng chờ phản hồi nhé!`, { parse_mode: 'HTML' }).catch(()=>{});
-    }
-
-    // Đếm tin nhắn Group
-    if (msg.chat.type !== 'private' && !msg.from.is_bot && msg.chat.username && msg.chat.username.toLowerCase() === GROUP_USERNAME.replace('@', '').toLowerCase()) {
-        try {
-            const member = await bot.getChatMember(msg.chat.id, msg.from.id);
-            if (['administrator', 'creator'].includes(member.status)) return;
-        } catch(e) {}
-        if (!msg.text) return;
-        let user = await User.findOne({ userId: msg.from.id.toString() });
-        if (user) { user.groupMessageCount += 1; await user.save(); }
+        bot.sendMessage(userId, `👋 Yêu cầu của bạn đã được chuyển đến <b>Đội ngũ chuyên gia</b>. Vui lòng chờ phản hồi nhé!`, { parse_mode: 'HTML' }).catch(()=>{});
     }
 });
 
-console.log("🚀 Bot Telegram Sky World Community Viet Nam đã khởi động hoàn tất (Bản Mới Nhất)!");
+console.log("🚀 Bot Telegram SWC Pass đã khởi động (Bản Mới Nhất - Bổ sung thông tin)! ");
