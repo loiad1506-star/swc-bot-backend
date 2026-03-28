@@ -1,6 +1,3 @@
-VPS viết
-
-
 const TelegramBot = require('node-telegram-bot-api');
 const http = require('http');
 const url = require('url');
