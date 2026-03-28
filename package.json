@@ -1,13 +1,14 @@
 {
   "name": "swc-bot-backend",
   "version": "1.0.0",
-  "description": "Backend cho Bot SWC",
+  "description": "Bot Telegram SWC Viet Nam",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.65.0",
-    "mongoose": "^8.1.1"
+    "dotenv": "^16.4.5",
+    "mongodb": "^6.5.0",
+    "node-telegram-bot-api": "^0.65.0"
   }
 }
