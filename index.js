@@ -1041,7 +1041,9 @@ bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
 bot.onText(/\/addnote (\d+) ([\s\S]+)/i, async (msg, match) => {
 if (msg.from.id.toString() !== ADMIN_ID) return;
 await User.updateOne({ userId: match[1] }, { $set: { notes: match[2] } });
-bot.sendMessage(ADMIN_ID, `✅ Đã lưu ghi chú cho ID: <code>${match[1]}
+bot.sendMessage(ADMIN_ID, `✅ Đã lưu ghi chú cho ID: <code>${match[1]}</code> — Nội dung: ${match[2]}`, { parse_mode: 'HTML' });
+});
+
 // /setpass [userId] [tier]
 bot.onText(/\/setpass (\d+) (\w+)/i, async (msg, match) => {
 if (msg.from.id.toString() !== ADMIN_ID) return;
