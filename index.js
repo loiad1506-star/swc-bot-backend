@@ -66,9 +66,8 @@ const userSchema = new mongoose.Schema({
     email: { type: String, default: '' },
     joinDate: { type: Date, default: Date.now },
 
-    tag: { type: String, default: 'new', enum: ['new', 'newbie', 'experienced', 'vip_pass', 'ust_holder'] },
+    tag: { type: String, default: 'new', enum: ['new', 'newbie', 'experienced', 'vip_pass', 'atlas_investor'] },
     swcPassTier: { type: String, default: 'none', enum: ['none', 'essential', 'plus', 'ultimate'] },
-    ustHolder: { type: Boolean, default: false },
     
     funnelStage: { type: String, default: 'new', enum: ['new', 'interested', 'hot_lead', 'converted'] },
     funnelDay: { type: Number, default: 0 },
@@ -96,7 +95,7 @@ TÍNH CÁCH: Chuyên nghiệp, thông tuệ, tự nhiên, dí dỏm — tuyệt 
 
 NHIỆM VỤ CỐT LÕI:
 - Tư vấn tài chính, đầu tư, trading theo triết lý SWC
-- Chốt sale thẻ SWC Pass trước deadline ${DEADLINE} (CÒN ${daysLeft} NGÀY)
+- Chốt sale thẻ SWC Pass và giới thiệu Siêu dự án ATLAS trước deadline ${DEADLINE} (CÒN ${daysLeft} NGÀY)
 - Phân loại khách và dẫn dắt vào đúng gói phù hợp
 
 THÔNG TIN KHÁCH HÀNG HIỆN TẠI:
@@ -111,7 +110,7 @@ SẢN PHẨM SWC PASS (3 GÓI):
 3. Ultimate (Vĩnh viễn): $2,600 — chỉ 1.000 suất toàn cầu, đóng cửa ${DEADLINE}
 
 LINK QUAN TRỌNG:
-- Đăng ký sự kiện/Kích hoạt: ${ACTIVATE_URL}
+- Đăng ký sự kiện/Kích hoạt ATLAS: ${ACTIVATE_URL}
 - Website SWC Pass: ${SWC_PASS_WEB}
 - SWC Field: ${SWC_FIELD_WEB}
 
@@ -126,7 +125,7 @@ QUY TẮC GIAO TIẾP:
 - Luôn kết thúc bằng câu hỏi mở để dẫn dắt
 - LIÊN TỤC nhắc deadline ${DEADLINE} — còn ${daysLeft} ngày
 - Khi khách do dự: dùng FUD (nỗi đau tự trade) + FOMO (khan hiếm)
-- KHÔNG giải thích dài dòng kỹ thuật.`;
+- KHÔNG giải thích dài dòng kỹ thuật. KHÔNG nhắc tới SWGT hay uTerra.`;
 }
 
 async function callClaude(user, userMessage) {
@@ -159,15 +158,14 @@ async function callClaude(user, userMessage) {
 }
 
 // ==========================================
-// HÀM GỬI MAIN MENU (EDIT MESSAGE)
+// HÀM GỬI MAIN MENU
 // ==========================================
 async function sendMainMenu(chatId, messageId = null) {
     const daysLeft = getDaysLeft();
-    const text = `✅ <b>Hồ sơ của bạn đã được lưu trữ an toàn.</b> Chào mừng bạn gia nhập <b>Club SWC Pass</b>.\n\n⏳ <b>CÒN KHOẢNG ${daysLeft} NGÀY</b> — Sự kiện ra mắt siêu dự án ATLAS sẽ đóng cửa vào lúc 23:59 ngày <b>${DEADLINE}</b>!\n\nChọn nội dung bạn muốn khám phá tiếp theo:`;
+    const text = `✅ <b>Hồ sơ của bạn đã được lưu trữ an toàn.</b> Chào mừng bạn gia nhập <b>Cộng Đồng Đầu Tư SWC</b>.\n\n⏳ <b>CÒN KHOẢNG ${daysLeft} NGÀY</b> — Sự kiện ra mắt siêu dự án ATLAS sẽ đóng cửa vào lúc 23:59 ngày <b>${DEADLINE}</b>!\n\nChọn nội dung bạn muốn khám phá tiếp theo:`;
 
     const keyboard = {
         inline_keyboard: [
-            [{ text: "🚀 MỞ ỨNG DỤNG SWC PASS", web_app: { url: webAppUrl } }],
             [{ text: "💎 Đặc quyền & Tính năng SWC Pass", callback_data: 'menu_swcpass' }],
             [{ text: "🏢 Khám phá Siêu dự án ATLAS", callback_data: 'menu_atlas' }],
             [{ text: "❓ Giải đáp thắc mắc (FAQ)", callback_data: 'menu_faq' }],
@@ -225,7 +223,7 @@ bot.on('contact', async (msg) => {
                     [{ text: "🙋 Tôi là nhà đầu tư mới", callback_data: 'survey_newbie' }],
                     [{ text: "💼 Tôi đã có kinh nghiệm", callback_data: 'survey_experienced' }],
                     [{ text: "🔥 Tôi đã có thẻ SWC Pass", callback_data: 'survey_vip' }],
-                    [{ text: "💎 Tôi đang giữ uST", callback_data: 'survey_ust' }]
+                    [{ text: "💎 Tôi quan tâm Siêu dự án ATLAS", callback_data: 'survey_atlas' }]
                 ]
             }
         }).catch(() => {});
@@ -248,7 +246,6 @@ bot.on('callback_query', async (callbackQuery) => {
     let text = '';
     let keyboard = [];
     const ctaButtons = [
-        [{ text: "🚀 MỞ ỨNG DỤNG SWC PASS", web_app: { url: webAppUrl } }],
         [{ text: "💬 THAM GIA NHÓM KÍN ZALO", url: PRIVATE_ZALO_GROUP }],
         [{ text: "🔙 Quay lại Menu Chính", callback_data: 'main_menu' }],
         NÚT_ĐĂNG_KÝ_SỰ_KIỆN
@@ -264,13 +261,13 @@ bot.on('callback_query', async (callbackQuery) => {
 
     // --- HÀNH TRÌNH ĐẾN $1M FULL ---
     else if (data === 'road_to_1m' || data === 'faq_2') {
-        text = `🗺️ <b>Hành trình đến $1M (Road to $1M)</b>\n\n<b>Chiến lược do SWC Field phát triển.</b> Đây là một chương trình đầu tư dài hạn: <b>chỉ cần đầu tư 8 đô la mỗi ngày (khoảng 240 đô la mỗi tháng) có kỷ luật</b>, đảm bảo đầu tư đều đặn và với <b>sức mạnh lãi kép</b>, bạn có thể hướng đến mục tiêu đạt số vốn <b>1.000.000 đô la trong 15 năm</b>. Sản phẩm là một hệ thống hoàn chỉnh cho phép bạn bắt đầu đầu tư <b>mà không cần kinh nghiệm hay các khóa đào tạo</b> — và không cần tốn nhiều thời gian (chỉ 10-15 phút mỗi tháng).\n\n<i>Cập nhật: thg 3, 2026</i>\n\n🎯 <b>Mục tiêu</b>\nDự án "Hành trình đến $1M" nhằm mục đích giúp người tham gia:\n1. <b>Xây dựng vốn tài chính dài hạn:</b> Tích lũy tài sản ròng từ 1.000.000 đô la trở lên trong 15-20 năm.\n2. <b>Đạt sự tự do tài chính:</b> Xây dựng thu nhập thụ động cao hơn chi phí.\n3. <b>Xây dựng nền tảng tài chính thế hệ sau:</b> Đảm bảo di sản vững chắc.\n\n🔥 <b>Lợi ích</b>\n1. <b>Chiến lược kiểm chứng:</b> Nhận tín hiệu hàng tháng.\n2. <b>Tiết kiệm thời gian:</b> Quản lý danh mục đầu tư chỉ mất 10-15 phút/tháng.\n3. <b>Bảo vệ khỏi sai lầm:</b> Phương pháp DCA và Buy & Hold chuyên nghiệp.`;
+        text = `🗺️ <b>Hành trình đến $1M (Road to $1M)</b>\n\n<b>Chiến lược do SWC Field phát triển.</b> Đây là một chương trình đầu tư dài hạn: <b>chỉ cần đầu tư 8 đô la mỗi ngày (khoảng 240 đô la mỗi tháng) có kỷ luật</b>, đảm bảo đầu tư đều đặn và với <b>sức mạnh lãi kép</b>, bạn có thể hướng đến mục tiêu đạt số vốn <b>1.000.000 đô la trong 15 năm</b>. Sản phẩm là một hệ thống hoàn chỉnh cho phép bạn bắt đầu đầu tư <b>mà không cần kinh nghiệm hay các khóa đào tạo</b> — và không cần tốn nhiều thời gian (chỉ 10-15 phút mỗi tháng).\n\n<i>Cập nhật: thg 3, 2026</i>\n\n🎯 <b>Mục tiêu</b>\nDự án "Hành trình đến $1M" nhằm mục đích giúp người tham gia:\n1. <b>Xây dựng vốn tài chính dài hạn:</b> Tích lũy tài sản ròng từ 1.000.000 đô la trở lên trong 15-20 năm.\n2. <b>Đạt sự tự do tài chính:</b> Xây dựng thu nhập thụ động cao hơn chi phí.\n3. <b>Xây dựng nền tảng tài chính thế hệ sau:</b> Đảm bảo di sản vững chắc.\n\n🔥 <b>Lợi ích</b>\n1. <b>Chiến lược kiểm chứng:</b> Nhận tín hiệu hàng tháng.\n2. <b>Tiết kiệm thời gian:</b> Quản lý mục đầu tư chỉ mất 10-15 phút/tháng.\n3. <b>Bảo vệ khỏi sai lầm:</b> Phương pháp DCA và Buy & Hold chuyên nghiệp.`;
         keyboard = [[{ text: "🔙 Quay lại", callback_data: data === 'faq_2' ? 'faq_back' : 'menu_swcpass' }], NÚT_ĐĂNG_KÝ_SỰ_KIỆN];
     }
 
     // --- SIÊU DỰ ÁN ATLAS ---
     else if (data === 'menu_atlas') {
-        text = `🏢 <b>SIÊU DỰ ÁN ATLAS — BĐS SỐ HÓA DUBAI</b>\n\nSở hữu và giao dịch <b>bất động sản Dubai</b> chỉ bằng vài cú chạm trên điện thoại.\n\n🌟 <b>Điểm nổi bật:</b>\n• <b>Thanh khoản 3 giây</b> — phá vỡ sự chậm chạp BĐS truyền thống\n• <b>Pháp nhân Atlas Overseas FZE</b> — cấp phép bởi Trung tâm Thương mại Dubai\n• <b>Đầu tư từ $50</b> — dân chủ hóa sân chơi giới siêu giàu\n• <b>RWA (Real World Assets)</b> — tài sản thật, thanh khoản thật\n\n⚠️ Vòng ưu đãi <b>đóng lại ${DEADLINE}</b>. Đừng bỏ lỡ vị thế tốt nhất!`;
+        text = `🏢 <b>SIÊU DỰ ÁN ATLAS — BĐS SỐ HÓA DUBAI</b>\n\nSở hữu và giao dịch <b>bất động sản Dubai</b> chỉ bằng vài cú chạm trên điện thoại.\n\n🌟 <b>Điểm nổi bật:</b>\n• <b>Thanh khoản 3 giây</b> — phá vỡ sự chậm chạp BĐS truyền thống\n• <b>Pháp nhân Atlas Overseas FZE</b> — cấp phép bởi Trung tâm Thương mại Dubai\n• <b>Đầu tư từ $50</b> — dân chủ hóa sân chơi giới siêu giàu\n• <b>RWA (Real World Assets)</b> — tài sản thật, không phải meme coin\n\n⚠️ Vòng ưu đãi <b>đóng lại ${DEADLINE}</b>. Đừng bỏ lỡ vị thế tốt nhất!`;
         keyboard = [[{ text: "🌐 Khám phá SWC Field", url: SWC_FIELD_WEB }], ...ctaButtons];
     }
 
@@ -320,9 +317,9 @@ bot.on('callback_query', async (callbackQuery) => {
         text = `✅ <b>Chào mừng thành viên VIP!</b>\n\nAnh/chị đã có vũ khí mạnh nhất của hệ sinh thái SWC rồi 💪\nHãy chắc chắn đã tham gia Group nội bộ để <b>nhận tín hiệu cổ tức hàng tháng</b>.`;
         keyboard = [[{ text: "💬 Vào Group VIP Telegram", url: PRIVATE_TG_GROUP }], [{ text: "🔙 Menu Chính", callback_data: 'main_menu' }]];
     }
-    else if (data === 'survey_ust') {
-        user.tag = 'ust_holder'; user.ustHolder = true; user.funnelStage = 'hot_lead'; await user.save();
-        text = `✅ <b>Tầm nhìn của anh/chị hoàn toàn đúng!</b>\n\nGiữ uST là quyết định vĩ mô dài hạn sáng suốt. Trong lúc chờ IPO bứt phá, <b>SWC Pass là cỗ máy tạo dòng tiền ngay hôm nay</b>.\n\nGói <b>Ultimate ($2,600 — Vĩnh viễn)</b> được thiết kế đặc biệt cho những người như anh/chị.\n⏳ Chỉ còn <b>${daysLeft} ngày</b> — Không mở lại!`;
+    else if (data === 'survey_atlas') {
+        user.tag = 'atlas_investor'; user.funnelStage = 'hot_lead'; await user.save();
+        text = `✅ <b>Tầm nhìn của anh/chị hoàn toàn đúng!</b>\n\nATLAS chính là xu hướng RWA của tương lai. Trong lúc chờ bứt phá, <b>SWC Pass là cỗ máy tạo dòng tiền ngay hôm nay</b>.\n\nGói <b>Ultimate ($2,600 — Vĩnh viễn)</b> được thiết kế đặc biệt cho những người như anh/chị.\n⏳ Chỉ còn <b>${daysLeft} ngày</b> — Không mở lại!`;
         keyboard = ctaButtons;
     }
 
@@ -421,7 +418,7 @@ setInterval(async () => {
 
     // 08:00 — Bài sáng
     if (h === 8 && m === 0) {
-        const msg = `🌅 <b>CHÀO BUỔI SÁNG — THỊ TRƯỜNG HÔM NAY NÓI GÌ?</b>\n\nTrong khi đa số nhà đầu tư F0 đang lo lắng không biết hôm nay thị trường đi đâu...\nThành viên SWC đã có kế hoạch từ đầu tháng. Không cần đoán mò.\n\n💡 <b>Sự thật:</b> 95% người tự trade thua lỗ không phải vì thiếu thông tin — mà vì <b>thiếu hệ thống kỷ luật</b>.\n\n⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống tốt nhất trước khi cửa đóng.\n\n👉 ${ACTIVATE_URL}`;
+        const msg = `🌅 <b>CHÀO BUỔI SÁNG — THỊ TRƯỜNG HÔM NAY NÓI GÌ?</b>\n\nTrong khi đa số nhà đầu tư F0 đang lo lắng không biết hôm nay thị trường đi đâu...\nThành viên SWC đã có kế hoạch từ đầu tháng. Không cần đoán mò.\n\n💡 <b>Sự thật:</b> 95% người tự trade thua lỗ không phải vì thiếu thông tin — mà vì <b>thiếu hệ thống kỷ luật</b>.\n\n⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống tốt nhất trước khi cửa đóng.`;
         await broadcastToAll(msg, { reply_markup: { inline_keyboard: [NÚT_ĐĂNG_KÝ_SỰ_KIỆN] } });
     }
 
@@ -433,12 +430,6 @@ setInterval(async () => {
         ];
         const tip = tips[Math.floor(Math.random() * tips.length)];
         await broadcastToAll(tip, { reply_markup: { inline_keyboard: [[{ text: `💎 Xem Gói SWC Pass`, callback_data: 'menu_swcpass' }]] } });
-    }
-
-    // 19:30 — Kéo vào group (tất cả)
-    if (h === 19 && m === 30) {
-        const msg = `📚 <b>THỜI GIAN CẬP NHẬT TIN TỨC & KIẾN THỨC TÀI CHÍNH!</b>\n\nVào Group cộng đồng ngay để:\n✅ Cập nhật tin tức mới nhất về SWC Field\n✅ Thảo luận chiến lược đầu tư\n✅ Kết nối với hơn 1.000+ nhà đầu tư tinh anh\n\n⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ sinh thái với giá tốt nhất!`;
-        await broadcastToAll(msg, { reply_markup: { inline_keyboard: [[{ text: "💬 Vào Group Thảo Luận Ngay", url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }], [{ text: `🚀 Kích Hoạt SWC Pass`, url: ACTIVATE_URL }]] } });
     }
 
     // 20:30 — FOMO chốt sale (hot leads)
@@ -493,122 +484,4 @@ setInterval(async () => {
 // ==========================================
 bot.onText(/\/(admin|menu)/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    bot.sendMessage(msg.chat.id, `👨‍💻 <b>ADMIN PANEL — SWC BOT v3.0 (CÓ AI)</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📊 Thống kê hệ thống", callback_data: 'admin_stats' }], [{ text: "🔍 Hướng Dẫn Tra Cứu User", callback_data: 'admin_help_tracuu' }]] } });
-});
-
-bot.onText(/\/stats/i, async (msg) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const total = await User.countDocuments();
-    const hotLead = await User.countDocuments({ funnelStage: 'hot_lead' });
-    const interested = await User.countDocuments({ funnelStage: 'interested' });
-    bot.sendMessage(ADMIN_ID, `📊 <b>THỐNG KÊ HỆ THỐNG</b>\n👥 Tổng users: ${total}\n🔥 Hot Lead: ${hotLead}\n🌱 Interested: ${interested}\n⏳ Còn lại: ${getDaysLeft()} ngày đến ${DEADLINE}`, { parse_mode: 'HTML' });
-});
-
-bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const user = await User.findOne({ userId: match[1] });
-    if (!user) return bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy ID: <code>${match[1]}</code>`, { parse_mode: 'HTML' });
-    bot.sendMessage(ADMIN_ID, `🔎 <b>HỒ SƠ KHÁCH HÀNG</b>\n🆔 ID: <code>${match[1]}</code>\n👤 Tên: ${user.firstName}\n📞 SĐT: ${user.phone || 'Chưa có'}\n🎯 Funnel: ${user.funnelStage} (Ngày ${user.funnelDay})\n\n👉 <a href="tg://user?id=${match[1]}">Nhắn tin trực tiếp</a>`, { parse_mode: 'HTML' });
-});
-
-// ==========================================
-// VÁ LỖI CÚ PHÁP ĐÃ GÂY SẬP RENDER Ở ĐÂY
-// ==========================================
-// /addnote [id] [ghi chú]
-bot.onText(/\/addnote (\d+) ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    await User.updateOne({ userId: match[1] }, { $set: { notes: match[2] } });
-    bot.sendMessage(ADMIN_ID, `✅ Đã lưu ghi chú cho ID: <code>${match[1]}</code>\nChi tiết: ${match[2]}`, { parse_mode: 'HTML' });
-});
-
-// /setpass [userId] [tier]
-bot.onText(/\/setpass (\d+) (\w+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const validTiers = ['none', 'essential', 'plus', 'ultimate'];
-    const tier = match[2].toLowerCase();
-    if (!validTiers.includes(tier)) {
-        return bot.sendMessage(ADMIN_ID, `❌ Tier không hợp lệ. Dùng: none / essential / plus / ultimate`);
-    }
-    await User.updateOne({ userId: match[1] }, {
-        $set: {
-            swcPassTier: tier,
-            funnelStage: tier !== 'none' ? 'converted' : 'hot_lead',
-            swcPassActivatedAt: tier !== 'none' ? new Date() : null
-        }
-    });
-    bot.sendMessage(ADMIN_ID, `✅ Đã cập nhật SWC Pass cho ID <code>${match[1]}</code> → <b>${tier}</b>`, { parse_mode: 'HTML' });
-});
-
-bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const users = await User.find({});
-    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu gửi tin nhắn hàng loạt cho ${users.length} người...`);
-    let successCount = 0;
-    for (let i = 0; i < users.length; i++) {
-        try { await bot.sendMessage(users[i].userId, match[1], { parse_mode: 'HTML', reply_markup: { inline_keyboard: [NÚT_ĐĂNG_KÝ_SỰ_KIỆN] } }); successCount++; } catch (e) {}
-        await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    bot.sendMessage(ADMIN_ID, `✅ Đã gửi tin nhắn thành công cho ${successCount} khách hàng.`);
-});
-
-bot.onText(/\/sendtag (\w+) ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const tag = match[1];
-    const content = match[2];
-    const users = await User.find({ tag });
-    bot.sendMessage(ADMIN_ID, `⏳ Đang gửi cho ${users.length} users tag [${tag}]...`);
-    let success = 0;
-    for (const u of users) {
-        try {
-            await bot.sendMessage(u.userId, content, { parse_mode: 'HTML' });
-            success++;
-        } catch (e) {}
-        await new Promise(r => setTimeout(r, 50));
-    }
-    bot.sendMessage(ADMIN_ID, `✅ Đã gửi: ${success}/${users.length}`);
-});
-
-bot.onText(/\/sendto (\d+) ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    try {
-        await bot.sendMessage(match[1], `👨‍💻 <b>THÔNG BÁO TỪ ĐỘI NGŨ CHUYÊN GIA SWC:</b>\n\n${match[2]}`, { parse_mode: 'HTML' });
-        bot.sendMessage(ADMIN_ID, `✅ Đã gửi tới ID: <code>${match[1]}</code>`, { parse_mode: 'HTML' });
-    } catch (e) {
-        bot.sendMessage(ADMIN_ID, `❌ Không gửi được — khách đã block bot.`);
-    }
-});
-
-bot.onText(/\/sendgroup ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    try {
-        await bot.sendMessage(GROUP_USERNAME, `📢 <b>THÔNG BÁO TỪ ĐỘI NGŨ SWC:</b>\n\n${match[1]}`, { parse_mode: 'HTML' });
-        bot.sendMessage(ADMIN_ID, `✅ Đã gửi lên Group!`);
-    } catch (e) {
-        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
-    }
-});
-
-bot.onText(/\/export/i, async (msg) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const hotLeads = await User.find({ funnelStage: { $in: ['hot_lead', 'interested'] } }).limit(50);
-    if (hotLeads.length === 0) return bot.sendMessage(ADMIN_ID, `📭 Chưa có hot lead nào.`);
-
-    let report = `🔥 <b>DANH SÁCH HOT LEADS (${hotLeads.length} người)</b>\n\n`;
-    hotLeads.forEach((u, i) => {
-        report += `${i + 1}. <b>${u.firstName} ${u.lastName}</b> | <code>${u.userId}</code> | ${u.tag} | ${u.phone || 'Chưa có SĐT'}\n`;
-    });
-    bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
-});
-
-// ==========================================
-// HTTP SERVER (BẮT BUỘC CÓ ĐỂ RENDER KHÔNG BÁO LỖI TIMED OUT)
-// ==========================================
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('SWC Bot v2.0 — Running OK\n');
-});
-
-server.listen(process.env.PORT || 3000, () => {
-    console.log(`🌐 HTTP server running on port ${process.env.PORT || 3000}`);
-    console.log("🚀 Bot Telegram SWC Pass đã khởi động ĐẦY ĐỦ 100% CÁC TÍNH NĂNG (AI + FUNNEL + ADMIN)!");
-});
+    bot.sendMessage(msg.chat.id, `👨‍💻 <b>ADMIN PANEL — SWC BOT v3.0 (CÓ AI)</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📊 Thống kê hệ thống", callback_data: 'admin_stats' }],
