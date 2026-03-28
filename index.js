@@ -61,7 +61,7 @@ function getDaysLeft() {
 // KHỐI NÚT BẤM TOÀN CỤC (LUÔN BÁM THEO KHÁCH HÀNG)
 function getGlobalButtons() {
     return [
-        [{ text: `🚨 ĐĂNG KÝ KÍCH HOẠT SỰ KIỆN (CÒN ${getDaysLeft()} NGÀY)`, url: ACTIVATE_URL }],
+        [{ text: `🚨 NHẬN THƯỞNG TỪ SỰ KIỆN (CÒN ${getDaysLeft()} NGÀY)`, url: ACTIVATE_URL }],
         [{ text: "💎 KÍCH HOẠT SWC PASS", url: SWC_PASS_WEB }],
         [{ text: "📱 Hướng dẫn Kích hoạt SWC Field (MOBILE)", url: VIDEO_MOBILE }],
         [{ text: "💻 Hướng dẫn Kích hoạt SWC Field (PC)", url: VIDEO_PC }],
