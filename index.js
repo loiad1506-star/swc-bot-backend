@@ -1042,3 +1042,116 @@ bot.onText(/\/addnote (\d+) ([\s\S]+)/i, async (msg, match) => {
 if (msg.from.id.toString() !== ADMIN_ID) return;
 await User.updateOne({ userId: match[1] }, { $set: { notes: match[2] } });
 bot.sendMessage(ADMIN_ID, `✅ Đã lưu ghi chú cho ID: <code>${match[1]}
+// /setpass [userId] [tier]
+bot.onText(/\/setpass (\d+) (\w+)/i, async (msg, match) => {
+if (msg.from.id.toString() !== ADMIN_ID) return;
+const validTiers = ['none', 'essential', 'plus', 'ultimate'];
+const tier = match[2].toLowerCase();
+if (!validTiers.includes(tier)) {
+return bot.sendMessage(ADMIN_ID, `❌ Tier không hợp lệ. Dùng: none / essential / plus / ultimate`);
+}
+await User.updateOne({ userId: match[1] }, {
+$set: {
+swcPassTier: tier,
+funnelStage: tier !== 'none' ? 'converted' : 'hot_lead',
+swcPassActivatedAt: tier !== 'none' ? new Date() : null
+}
+});
+bot.sendMessage(ADMIN_ID, `✅ Đã cập nhật SWC Pass cho ID <code>${match[1]}</code> → <b>${tier}</b>`, { parse_mode: 'HTML' });
+});
+
+// /sendall [nội dung]
+bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
+if (msg.from.id.toString() !== ADMIN_ID) return;
+const content = match[1];
+const users = await User.find({});
+bot.sendMessage(ADMIN_ID, `⏳ Đang gửi cho ${users.length} users...`);
+let success = 0;
+for (const u of users) {
+try {
+await bot.sendMessage(u.userId, content, { parse_mode: 'HTML' });
+success++;
+} catch (e) {}
+await new Promise(r => setTimeout(r, 50));
+}
+bot.sendMessage(ADMIN_ID, `✅ Đã gửi thành công: ${success}/${users.length}`);
+});
+
+// /sendtag [tag] [nội dung]
+bot.onText(/\/sendtag (\w+) ([\s\S]+)/i, async (msg, match) => {
+if (msg.from.id.toString() !== ADMIN_ID) return;
+const tag = match[1];
+const content = match[2];
+const users = await User.find({ tag });
+bot.sendMessage(ADMIN_ID, `⏳ Đang gửi cho ${users.length} users tag [${tag}]...`);
+let success = 0;
+for (const u of users) {
+try {
+await bot.sendMessage(u.userId, content, { parse_mode: 'HTML' });
+success++;
+} catch (e) {}
+await new Promise(r => setTimeout(r, 50));
+}
+bot.sendMessage(ADMIN_ID, `✅ Đã gửi: ${success}/${users.length}`);
+});
+
+// /sendto [userId] [nội dung]
+bot.onText(/\/sendto (\d+) ([\s\S]+)/i, async (msg, match) => {
+if (msg.from.id.toString() !== ADMIN_ID) return;
+try {
+await bot.sendMessage(match[1],
+`👨‍💻 <b>THÔNG BÁO TỪ ĐỘI NGŨ CHUYÊN GIA SWC:</b>\n\n${match[2]}`,
+{ parse_mode: 'HTML' }
+);
+bot.sendMessage(ADMIN_ID, `✅ Đã gửi tới ID: <code>${match[1]}</code>`, { parse_mode: 'HTML' });
+} catch (e) {
+bot.sendMessage(ADMIN_ID, `❌ Không gửi được — khách đã block bot.`);
+}
+});
+
+// /sendgroup [nội dung]
+bot.onText(/\/sendgroup ([\s\S]+)/i, async (msg, match) => {
+if (msg.from.id.toString() !== ADMIN_ID) return;
+try {
+await bot.sendMessage(GROUP_USERNAME,
+`📢 <b>THÔNG BÁO TỪ ĐỘI NGŨ SWC:</b>\n\n${match[1]}`,
+{ parse_mode: 'HTML' }
+);
+bot.sendMessage(ADMIN_ID, `✅ Đã gửi lên Group!`);
+} catch (e) {
+bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
+}
+});
+
+// /export — xuất danh sách hot leads
+bot.onText(/\/export/i, async (msg) => {
+if (msg.from.id.toString() !== ADMIN_ID) return;
+const hotLeads = await User.find({
+funnelStage: { $in: ['hot_lead', 'interested'] }
+}).limit(50);
+
+if (hotLeads.length === 0) {
+return bot.sendMessage(ADMIN_ID, `📭 Chưa có hot lead nào.`);
+}
+
+let report = `🔥 <b>DANH SÁCH HOT LEADS (${hotLeads.length} người)</b>\n\n`;
+hotLeads.forEach((u, i) => {
+report += `${i + 1}. <b>${u.firstName} ${u.lastName}</b> | <code>${u.userId}</code> | ${u.tag} | ${u.phone || 'Chưa có SĐT'}\n`;
+});
+
+bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
+});
+
+// ==========================================
+// HTTP SERVER (giữ Render không sleep)
+// ==========================================
+const server = http.createServer((req, res) => {
+res.writeHead(200, { 'Content-Type': 'text/plain' });
+res.end('SWC Bot v2.0 — Running OK');
+});
+
+server.listen(process.env.PORT || 3000, () => {
+console.log(`🌐 HTTP server running on port ${process.env.PORT || 3000}`);
+});
+
+console.log('🚀 SWC Capital Bot v2.0 — AI Powered by Claude Haiku — Đã khởi động!');
