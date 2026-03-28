@@ -5,25 +5,27 @@ const url = require('url');
 const mongoose = require('mongoose');
 const Anthropic = require('@anthropic-ai/sdk');
 
+// BẮT LỖI TOÀN CỤC - NGĂN CHẶN BOT SẬP NGẦM
+process.on('uncaughtException', (err) => console.error('❌ Lỗi Uncaught Exception:', err.message));
+process.on('unhandledRejection', (err) => console.error('❌ Lỗi Unhandled Rejection:', err.message));
+
 // ==========================================
 // CẤU HÌNH BIẾN MÔI TRƯỜNG & KHỞI TẠO
 // ==========================================
-const token = process.env.BOT_TOKEN;
-const mongoURI = process.env.MONGODB_URI;
-const claudeApiKey = process.env.CLAUDE_API_KEY;
+const token = process.env.BOT_TOKEN || 'MISSING_TOKEN';
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swc';
+const claudeApiKey = process.env.CLAUDE_API_KEY || 'MISSING_KEY';
 
 const bot = new TelegramBot(token, {
-    polling: { 
-        params: { 
-            allowed_updates: JSON.stringify(["message", "callback_query", "chat_member", "my_chat_member"]) 
-        } 
-    }
+    polling: token !== 'MISSING_TOKEN' ? { 
+        params: { allowed_updates: JSON.stringify(["message", "callback_query", "chat_member", "my_chat_member"]) } 
+    } : false
 });
 
 const claude = new Anthropic({ apiKey: claudeApiKey });
 
-bot.on("polling_error", (msg) => console.log("⚠️ LỖI POLLING:", msg));
-bot.on("error", (msg) => console.log("⚠️ LỖI CHUNG:", msg));
+bot.on("polling_error", (msg) => console.log("⚠️ LỖI POLLING:", msg.message));
+bot.on("error", (msg) => console.log("⚠️ LỖI CHUNG:", msg.message));
 
 // ==========================================
 // HẰNG SỐ CẤU HÌNH & LINK
@@ -55,7 +57,7 @@ const NÚT_ĐĂNG_KÝ_SỰ_KIỆN = [{ text: `🚨 ĐĂNG KÝ SỰ KIỆN ATLAS 
 // ==========================================
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('✅ Đã kết nối MongoDB!'))
-    .catch(err => console.error('❌ Lỗi MongoDB:', err));
+    .catch(err => console.error('❌ Lỗi MongoDB:', err.message));
 
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
@@ -66,8 +68,9 @@ const userSchema = new mongoose.Schema({
     email: { type: String, default: '' },
     joinDate: { type: Date, default: Date.now },
 
-    tag: { type: String, default: 'new', enum: ['new', 'newbie', 'experienced', 'vip_pass', 'atlas_investor'] },
+    tag: { type: String, default: 'new', enum: ['new', 'newbie', 'experienced', 'vip_pass', 'ust_holder'] },
     swcPassTier: { type: String, default: 'none', enum: ['none', 'essential', 'plus', 'ultimate'] },
+    ustHolder: { type: Boolean, default: false },
     
     funnelStage: { type: String, default: 'new', enum: ['new', 'interested', 'hot_lead', 'converted'] },
     funnelDay: { type: Number, default: 0 },
@@ -125,7 +128,7 @@ QUY TẮC GIAO TIẾP:
 - Luôn kết thúc bằng câu hỏi mở để dẫn dắt
 - LIÊN TỤC nhắc deadline ${DEADLINE} — còn ${daysLeft} ngày
 - Khi khách do dự: dùng FUD (nỗi đau tự trade) + FOMO (khan hiếm)
-- KHÔNG giải thích dài dòng kỹ thuật. KHÔNG nhắc tới SWGT hay uTerra.`;
+- KHÔNG giải thích dài dòng kỹ thuật.`;
 }
 
 async function callClaude(user, userMessage) {
@@ -153,12 +156,12 @@ async function callClaude(user, userMessage) {
         return reply;
     } catch (err) {
         console.error('❌ Claude API error:', err.message);
-        return `Xin lỗi anh/chị, hệ thống đang bận. Vui lòng chờ giây lát để Đội ngũ chuyên gia trực tiếp phản hồi nhé! 🙏`;
+        return `Xin lỗi anh/chị, hệ thống AI đang bận. Vui lòng chờ giây lát để Đội ngũ chuyên gia SWC trực tiếp phản hồi nhé! 🙏`;
     }
 }
 
 // ==========================================
-// HÀM GỬI MAIN MENU
+// HÀM GỬI MAIN MENU (EDIT MESSAGE)
 // ==========================================
 async function sendMainMenu(chatId, messageId = null) {
     const daysLeft = getDaysLeft();
@@ -223,7 +226,7 @@ bot.on('contact', async (msg) => {
                     [{ text: "🙋 Tôi là nhà đầu tư mới", callback_data: 'survey_newbie' }],
                     [{ text: "💼 Tôi đã có kinh nghiệm", callback_data: 'survey_experienced' }],
                     [{ text: "🔥 Tôi đã có thẻ SWC Pass", callback_data: 'survey_vip' }],
-                    [{ text: "💎 Tôi quan tâm Siêu dự án ATLAS", callback_data: 'survey_atlas' }]
+                    [{ text: "💎 Tôi quan tâm Siêu dự án ATLAS", callback_data: 'survey_ust' }]
                 ]
             }
         }).catch(() => {});
@@ -267,7 +270,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
     // --- SIÊU DỰ ÁN ATLAS ---
     else if (data === 'menu_atlas') {
-        text = `🏢 <b>SIÊU DỰ ÁN ATLAS — BĐS SỐ HÓA DUBAI</b>\n\nSở hữu và giao dịch <b>bất động sản Dubai</b> chỉ bằng vài cú chạm trên điện thoại.\n\n🌟 <b>Điểm nổi bật:</b>\n• <b>Thanh khoản 3 giây</b> — phá vỡ sự chậm chạp BĐS truyền thống\n• <b>Pháp nhân Atlas Overseas FZE</b> — cấp phép bởi Trung tâm Thương mại Dubai\n• <b>Đầu tư từ $50</b> — dân chủ hóa sân chơi giới siêu giàu\n• <b>RWA (Real World Assets)</b> — tài sản thật, không phải meme coin\n\n⚠️ Vòng ưu đãi <b>đóng lại ${DEADLINE}</b>. Đừng bỏ lỡ vị thế tốt nhất!`;
+        text = `🏢 <b>SIÊU DỰ ÁN ATLAS — BĐS SỐ HÓA DUBAI</b>\n\nSở hữu và giao dịch <b>bất động sản Dubai</b> chỉ bằng vài cú chạm trên điện thoại.\n\n🌟 <b>Điểm nổi bật:</b>\n• <b>Thanh khoản 3 giây</b> — phá vỡ sự chậm chạp BĐS truyền thống\n• <b>Pháp nhân Atlas Overseas FZE</b> — cấp phép bởi Trung tâm Thương mại Dubai\n• <b>Đầu tư từ $50</b> — dân chủ hóa sân chơi giới siêu giàu\n• <b>RWA (Real World Assets)</b> — tài sản thật, thanh khoản thật\n\n⚠️ Vòng ưu đãi <b>đóng lại ${DEADLINE}</b>. Đừng bỏ lỡ vị thế tốt nhất!`;
         keyboard = [[{ text: "🌐 Khám phá SWC Field", url: SWC_FIELD_WEB }], ...ctaButtons];
     }
 
@@ -317,8 +320,8 @@ bot.on('callback_query', async (callbackQuery) => {
         text = `✅ <b>Chào mừng thành viên VIP!</b>\n\nAnh/chị đã có vũ khí mạnh nhất của hệ sinh thái SWC rồi 💪\nHãy chắc chắn đã tham gia Group nội bộ để <b>nhận tín hiệu cổ tức hàng tháng</b>.`;
         keyboard = [[{ text: "💬 Vào Group VIP Telegram", url: PRIVATE_TG_GROUP }], [{ text: "🔙 Menu Chính", callback_data: 'main_menu' }]];
     }
-    else if (data === 'survey_atlas') {
-        user.tag = 'atlas_investor'; user.funnelStage = 'hot_lead'; await user.save();
+    else if (data === 'survey_ust') {
+        user.tag = 'ust_holder'; user.ustHolder = true; user.funnelStage = 'hot_lead'; await user.save();
         text = `✅ <b>Tầm nhìn của anh/chị hoàn toàn đúng!</b>\n\nATLAS chính là xu hướng RWA của tương lai. Trong lúc chờ bứt phá, <b>SWC Pass là cỗ máy tạo dòng tiền ngay hôm nay</b>.\n\nGói <b>Ultimate ($2,600 — Vĩnh viễn)</b> được thiết kế đặc biệt cho những người như anh/chị.\n⏳ Chỉ còn <b>${daysLeft} ngày</b> — Không mở lại!`;
         keyboard = ctaButtons;
     }
@@ -484,4 +487,117 @@ setInterval(async () => {
 // ==========================================
 bot.onText(/\/(admin|menu)/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    bot.sendMessage(msg.chat.id, `👨‍💻 <b>ADMIN PANEL — SWC BOT v3.0 (CÓ AI)</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📊 Thống kê hệ thống", callback_data: 'admin_stats' }],
+    bot.sendMessage(msg.chat.id, `👨‍💻 <b>ADMIN PANEL — SWC BOT v3.0 (CÓ AI)</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📊 Thống kê hệ thống", callback_data: 'admin_stats' }], [{ text: "🔍 Hướng Dẫn Tra Cứu User", callback_data: 'admin_help_tracuu' }]] } });
+});
+
+bot.onText(/\/stats/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const total = await User.countDocuments();
+    const hotLead = await User.countDocuments({ funnelStage: 'hot_lead' });
+    const interested = await User.countDocuments({ funnelStage: 'interested' });
+    bot.sendMessage(ADMIN_ID, `📊 <b>THỐNG KÊ HỆ THỐNG</b>\n👥 Tổng users: ${total}\n🔥 Hot Lead: ${hotLead}\n🌱 Interested: ${interested}\n⏳ Còn lại: ${getDaysLeft()} ngày đến ${DEADLINE}`, { parse_mode: 'HTML' });
+});
+
+bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const user = await User.findOne({ userId: match[1] });
+    if (!user) return bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy ID: <code>${match[1]}</code>`, { parse_mode: 'HTML' });
+    bot.sendMessage(ADMIN_ID, `🔎 <b>HỒ SƠ KHÁCH HÀNG</b>\n🆔 ID: <code>${match[1]}</code>\n👤 Tên: ${user.firstName}\n📞 SĐT: ${user.phone || 'Chưa có'}\n🎯 Funnel: ${user.funnelStage} (Ngày ${user.funnelDay})\n\n👉 <a href="tg://user?id=${match[1]}">Nhắn tin trực tiếp</a>`, { parse_mode: 'HTML' });
+});
+
+bot.onText(/\/addnote (\d+) ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    await User.updateOne({ userId: match[1] }, { $set: { notes: match[2] } });
+    bot.sendMessage(ADMIN_ID, `✅ Đã lưu ghi chú cho ID: <code>${match[1]}</code>\nChi tiết: ${match[2]}`, { parse_mode: 'HTML' });
+});
+
+bot.onText(/\/setpass (\d+) (\w+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const validTiers = ['none', 'essential', 'plus', 'ultimate'];
+    const tier = match[2].toLowerCase();
+    if (!validTiers.includes(tier)) {
+        return bot.sendMessage(ADMIN_ID, `❌ Tier không hợp lệ. Dùng: none / essential / plus / ultimate`);
+    }
+    await User.updateOne({ userId: match[1] }, {
+        $set: {
+            swcPassTier: tier,
+            funnelStage: tier !== 'none' ? 'converted' : 'hot_lead'
+        }
+    });
+    bot.sendMessage(ADMIN_ID, `✅ Đã cập nhật SWC Pass cho ID <code>${match[1]}</code> → <b>${tier}</b>`, { parse_mode: 'HTML' });
+});
+
+bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const users = await User.find({});
+    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu gửi tin nhắn hàng loạt cho ${users.length} người...`);
+    let successCount = 0;
+    for (let i = 0; i < users.length; i++) {
+        try { await bot.sendMessage(users[i].userId, match[1], { parse_mode: 'HTML', reply_markup: { inline_keyboard: [NÚT_ĐĂNG_KÝ_SỰ_KIỆN] } }); successCount++; } catch (e) {}
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    bot.sendMessage(ADMIN_ID, `✅ Đã gửi tin nhắn thành công cho ${successCount} khách hàng.`);
+});
+
+bot.onText(/\/sendtag (\w+) ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const tag = match[1];
+    const content = match[2];
+    const users = await User.find({ tag });
+    bot.sendMessage(ADMIN_ID, `⏳ Đang gửi cho ${users.length} users tag [${tag}]...`);
+    let success = 0;
+    for (const u of users) {
+        try {
+            await bot.sendMessage(u.userId, content, { parse_mode: 'HTML' });
+            success++;
+        } catch (e) {}
+        await new Promise(r => setTimeout(r, 50));
+    }
+    bot.sendMessage(ADMIN_ID, `✅ Đã gửi: ${success}/${users.length}`);
+});
+
+bot.onText(/\/sendto (\d+) ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        await bot.sendMessage(match[1], `👨‍💻 <b>THÔNG BÁO TỪ ĐỘI NGŨ CHUYÊN GIA SWC:</b>\n\n${match[2]}`, { parse_mode: 'HTML' });
+        bot.sendMessage(ADMIN_ID, `✅ Đã gửi tới ID: <code>${match[1]}</code>`, { parse_mode: 'HTML' });
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Không gửi được — khách đã block bot.`);
+    }
+});
+
+bot.onText(/\/sendgroup ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        await bot.sendMessage(GROUP_USERNAME, `📢 <b>THÔNG BÁO TỪ ĐỘI NGŨ SWC:</b>\n\n${match[1]}`, { parse_mode: 'HTML' });
+        bot.sendMessage(ADMIN_ID, `✅ Đã gửi lên Group!`);
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
+    }
+});
+
+bot.onText(/\/export/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const hotLeads = await User.find({ funnelStage: { $in: ['hot_lead', 'interested'] } }).limit(50);
+    if (hotLeads.length === 0) return bot.sendMessage(ADMIN_ID, `📭 Chưa có hot lead nào.`);
+
+    let report = `🔥 <b>DANH SÁCH HOT LEADS (${hotLeads.length} người)</b>\n\n`;
+    hotLeads.forEach((u, i) => {
+        report += `${i + 1}. <b>${u.firstName} ${u.lastName}</b> | <code>${u.userId}</code> | ${u.tag} | ${u.phone || 'Chưa có SĐT'}\n`;
+    });
+    bot.sendMessage(ADMIN_ID, report, { parse_mode: 'HTML' });
+});
+
+// ==========================================
+// HTTP SERVER (BẮT BUỘC CÓ ĐỂ RENDER KHÔNG BÁO LỖI TIMED OUT)
+// ==========================================
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('SWC Bot v2.0 — Running OK\n');
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 HTTP server đang chạy trên port ${PORT}`);
+    console.log("🚀 Bot Telegram SWC Pass đã khởi động ĐẦY ĐỦ 100% CÁC TÍNH NĂNG (AI + FUNNEL + ADMIN)!");
+});
