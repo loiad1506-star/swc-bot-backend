@@ -1,15 +1,15 @@
 {
-"name": "swc-bot-backend",
-"version": "2.0.0",
-"description": "SWC Capital Bot - AI Powered",
-"main": "index.js",
-"scripts": {
-"start": "node index.js"
-},
-"dependencies": {
-"node-telegram-bot-api": "^0.65.0",
-"mongoose": "^8.1.1",
-"@anthropic-ai/sdk": "^0.20.0",
-"axios": "^1.6.0"
-}
+  "name": "swc-bot-backend",
+  "version": "2.0.0",
+  "description": "Backend cho Bot SWC Tích hợp AI",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.33.1",
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.1.1",
+    "node-telegram-bot-api": "^0.65.0"
+  }
 }
