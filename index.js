@@ -4,78 +4,68 @@ const http = require('http');
 const mongoose = require('mongoose');
 const Anthropic = require('@anthropic-ai/sdk');
 
-// BẮT LỖI TOÀN CỤC - NGĂN CHẶN BOT SẬP NGẦM
-process.on('uncaughtException', (err) => console.error('❌ Lỗi Uncaught Exception:', err.message));
-process.on('unhandledRejection', (err) => console.error('❌ Lỗi Unhandled Rejection:', err.message));
+process.on('uncaughtException', (err) => console.error('Loi Uncaught Exception:', err.message));
+process.on('unhandledRejection', (err) => console.error('Loi Unhandled Rejection:', err.message));
 
-// ==========================================
-// CẤU HÌNH BIẾN MÔI TRƯỜNG & KHỞI TẠO
-// ==========================================
 const token = process.env.BOT_TOKEN || 'MISSING_TOKEN';
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swc';
 const claudeApiKey = process.env.CLAUDE_API_KEY || 'MISSING_KEY';
 
 const bot = new TelegramBot(token, {
-    polling: token !== 'MISSING_TOKEN' ? { 
-        params: { allowed_updates: JSON.stringify(["message", "callback_query", "chat_member", "my_chat_member"]) } 
+    polling: token !== 'MISSING_TOKEN' ? {
+        params: { allowed_updates: JSON.stringify(["message", "callback_query", "chat_member", "my_chat_member"]) }
     } : false
 });
 
 const claude = new Anthropic({ apiKey: claudeApiKey });
+bot.on("polling_error", (msg) => console.log("LOI POLLING:", msg.message));
+bot.on("error", (msg) => console.log("LOI CHUNG:", msg.message));
 
-bot.on("polling_error", (msg) => console.log("⚠️ LỖI POLLING:", msg.message));
-bot.on("error", (msg) => console.log("⚠️ LỖI CHUNG:", msg.message));
-
-// ==========================================
-// HẰNG SỐ CẤU HÌNH & LINK LIÊN KẾT
-// ==========================================
+// ==========================================================
+// HANG SO & LINK
+// ==========================================================
 const ADMIN_ID = process.env.ADMIN_ID || '507318519';
 const CHANNEL_USERNAME = '@swc_capital_vn';
 const GROUP_USERNAME = '@swc_capital_chat';
-const PRIVATE_TG_GROUP = 'https://t.me/swc_vip_internal'; 
 const SWC_PASS_WEB = 'https://www.swcpass.vn/';
 const SWC_FIELD_WEB = 'https://swcfield.com/vi/';
-const ACTIVATE_URL = 'https://launch.swc.capital/broadcast_31_vi'; 
+const ACTIVATE_URL = 'https://launch.swc.capital/broadcast_31_vi';
 const VIDEO_MOBILE = 'https://www.youtube.com/watch?v=SEB7RJrutxg';
 const VIDEO_PC = 'https://www.youtube.com/watch?v=gy_sxh9WCCM';
 const DEADLINE = '31/03/2026';
 
-// --- DANH SÁCH LINK HÌNH ẢNH CỦA ANH LỢI ---
-const IMG_MAIN_MENU = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6'; 
-const IMG_SWCPASS = 'https://photos.app.goo.gl/cbECmeni7rhuBAst5';   
+const IMG_MAIN_MENU = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6';
+const IMG_SWCPASS = 'https://photos.app.goo.gl/cbECmeni7rhuBAst5';
 const IMG_MEMBERSHIP = 'https://photos.app.goo.gl/yZU4FjisXcrQVMuf7';
-const IMG_ROAD1M = 'https://photos.app.goo.gl/Ca3xJzrWPaxzLSur7';    
+const IMG_ROAD1M = 'https://photos.app.goo.gl/Ca3xJzrWPaxzLSur7';
 const IMG_FIELD_ROAD1M = 'https://photos.app.goo.gl/pcfu5PUhz8Xs61kt7';
-const IMG_SWCFIELD = 'https://gemini.google.com/share/a25e35f76a97';   
-const IMG_ATLAS = 'https://gemini.google.com/share/382a3080a6eb';
+const IMG_SWCFIELD = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
+const IMG_ATLAS = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
 const IMG_FIELD_SAFE = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
-const IMG_MOBILE_REG = 'https://vidiq-video-thumbnails.s3.us-east-1.amazonaws.com/SEB7RJrutxg/f13f936f-c938-4c9e-8811-37ab7b419caa.jpg';
 
 function getDaysLeft() {
     const deadline = new Date('2026-03-31T23:59:00+07:00');
-    const now = new Date();
-    const diff = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+    const diff = Math.ceil((deadline - new Date()) / (1000 * 60 * 60 * 24));
     return diff > 0 ? diff : 0;
 }
 
-// KHỐI NÚT BẤM TOÀN CỤC (LUÔN BÁM THEO KHÁCH HÀNG)
 function getGlobalButtons() {
     return [
-        [{ text: `🚨 NHẬN THƯỞNG TỪ SỰ KIỆN (CÒN ${getDaysLeft()} NGÀY)`, url: ACTIVATE_URL }],
-        [{ text: "💎 KÍCH HOẠT SWC PASS", url: SWC_PASS_WEB }],
-        [{ text: "📱 Hướng dẫn Kích hoạt SWC Field (MOBILE)", url: VIDEO_MOBILE }],
-        [{ text: "💻 Hướng dẫn Kích hoạt SWC Field (PC)", url: VIDEO_PC }],
-        [{ text: "💬 Vào Nhóm Chat Định Hướng", url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
-        [{ text: "🏠 Trở về Menu Chính", callback_data: 'main_menu' }]
+        [{ text: `NHAN THUONG TU SU KIEN (CON ${getDaysLeft()} NGAY)`, url: ACTIVATE_URL }],
+        [{ text: "KICH HOAT SWC PASS", url: SWC_PASS_WEB }],
+        [{ text: "Huong dan Kich hoat SWC Field (MOBILE)", url: VIDEO_MOBILE }],
+        [{ text: "Huong dan Kich hoat SWC Field (PC)", url: VIDEO_PC }],
+        [{ text: "Vao Nhom Chat Dinh Huong", url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
+        [{ text: "Tro ve Menu Chinh", callback_data: 'main_menu' }]
     ];
 }
 
-// ==========================================
-// KẾT NỐI MONGODB & SCHEMA 
-// ==========================================
+// ==========================================================
+// MONGODB & SCHEMA - NANG CAP THEO DOI HANH VI
+// ==========================================================
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('✅ Đã kết nối MongoDB!'))
-    .catch(err => console.error('❌ Lỗi MongoDB:', err.message));
+    .then(() => console.log('Da ket noi MongoDB!'))
+    .catch(err => console.error('Loi MongoDB:', err.message));
 
 const userSchema = new mongoose.Schema({
     userId: { type: String, unique: true },
@@ -84,6 +74,8 @@ const userSchema = new mongoose.Schema({
     username: { type: String, default: '' },
     phone: { type: String, default: '' },
     joinDate: { type: Date, default: Date.now },
+    lastSeenDate: { type: Date, default: Date.now },
+    messageCount: { type: Number, default: 0 },
     tag: { type: String, default: 'new', enum: ['new', 'newbie', 'experienced', 'vip_pass', 'atlas_investor'] },
     swcPassTier: { type: String, default: 'none', enum: ['none', 'essential', 'plus', 'ultimate'] },
     funnelStage: { type: String, default: 'new', enum: ['new', 'interested', 'hot_lead', 'converted'] },
@@ -91,38 +83,153 @@ const userSchema = new mongoose.Schema({
     lastFunnelSent: { type: Date, default: null },
     broadcastOptOut: { type: Boolean, default: false },
     notes: { type: String, default: '' },
-    adminPausedAiUntil: { type: Date, default: null }, 
-    chatHistory: { type: Array, default: [] }
+    adminPausedAiUntil: { type: Date, default: null },
+    chatHistory: { type: Array, default: [] },
+    // THEO DOI CAM XUC & HANH VI
+    lastTone: { type: String, default: 'normal' },
+    mainConcern: { type: String, default: '' },
+    lastTopics: { type: Array, default: [] },
+    preferredName: { type: String, default: '' }
 });
-
 const User = mongoose.model('User', userSchema);
 
-// ==========================================
-// SYSTEM PROMPT BÁCH KHOA TOÀN THƯ (AI CLAUDE)
-// ==========================================
-function buildSystemPrompt(user) {
-    const daysLeft = getDaysLeft();
-    return `Bạn là "Tí" — trợ lý AI phân tích tâm lý và tư vấn tài chính của quỹ Sky World Community Viet Nam, dưới quyền anh Hồ Văn Lợi.
-TÍNH CÁCH: Thấu hiểu nhân tính, sắc bén, như một Sói già Phố Wall. Dùng ví dụ đời thực, kể chuyện, không dùng văn mẫu khô khan. Xưng "em" hoặc "Tí", gọi khách là "anh/chị".
+// ==========================================================
+// BO 4 KHO KIEN THUC NANG CAP
+// ==========================================================
+const KNOWLEDGE_PERSONAL_GROWTH = `
+[LOAI 1 - PHAT TRIEN BAN THAN]
+17 TU DUY TRIEU PHU (T. Harv Eker): Nguoi giau tin "Toi tao ra cuoc doi toi". Nguoi giau choi de THANG. Nguoi giau QUYET TAM giau. Nguoi giau suy nghi LON, tap trung vao CO HOI, NGUONG MO nguoi giau khac, ket giao nguoi THANH CONG, ton vinh ban than, dung cao hon van de, biet don nhan, muon tra cong theo KET QUA, chon CA HAI, chu trong TONG TAI SAN, QUAN LY TIEN gioi, bat tien PHUC VU minh, hanh dong bat chap noi so, luon HOC HOI phat trien.
+Quy tac 6 chiec lo: 55% Thiet yeu - 10% Tiet kiem - 10% Giao duc - 10% Huong thu - 10% Tu do TC - 5% Cho di.
+7 Canh gioi tu duong: Nhan loi - Nhu hoa - Nhan nhin - Thau hieu - Buong bo - Cam dong - Sinh ton.
+Triet ly co nhan: Luat Nhan Qua (Tien la Qua, Dao duc la Nhan). Lao Tu: Nguoi gioi quan ly von nhu nuoc. Tam Quoc: Chu NHAN cua Tu Ma Y.
+4 buoc tien hoa tai chinh: (1) Giam chi tieu (bit lo hong) (2) Tang thu nhap (bom nuoc vao thuyen) (3) Dau tu (bat tien lam no le) (4) Don bay (chi dung khi da thang 1-2-3). 90% dam dong lam nguoc = cong thuc tu sat.
+`;
 
-NHIỆM VỤ:
-1. Gỡ bỏ tâm lý phòng thủ của F0. Khai sáng cho họ thấy tự trade là tự sát (chuỗi thức ăn tài chính).
-2. Chốt sale thẻ SWC Pass trước deadline ${DEADLINE} (CÒN ${daysLeft} NGÀY). Khuyên mạnh Gói Plus 5 năm ($600) và Ultimate Vĩnh viễn ($2600).
-3. Hướng khách xem Video hướng dẫn và vào Group Chat.
+const KNOWLEDGE_HUMAN_NATURE = `
+[LOAI 2 - THAU HIEU NHAN TINH VA NGHE THUAT THUYET PHUC]
+Dale Carnegie - Dac Nhan Tam: (1) Khong chich bai, len an — lam nguoi cam thay tot ve ban than truoc. (2) Tan thanh chan thanh — moi nguoi doi khat duoc thua nhan. (3) Khoi day khat khao — hoi "Anh/Chi dang so dieu gi nhat trong 5 nam toi?" (4) Quan tam that su — nho ten, hoi gia dinh. (5) Lam nguoi khac noi nhieu — nguoi noi nhieu thua. (6) De nguoi khac giu the dien — sua loi lam rieng.
+Storytelling SWC: Meo Vang bat ca (Road to $1M: nhin oi $8/ngay, 15 nam = 1 trieu con ca). Tau danh ca (SWC Field: gom 10.000 chu meo, moi chu $50 = co dong Tau Lon via SPV). SWC Pass = the hoi vien de len Tau Lon.
+5 Tang bac: Tang 1 (In tien, tao luat) → Tang 2 (Thu thue thanh khoan) → Tang 3 Gurus (Ban cuoc xuong) → Tang 4 Smart Investors (Ky luat, ty le song 5-10%) → Tang 5 Dam dong (90% nguoi tham gia, giao dich bang cam xuc, la moi cua 4 tang tren). Muc tieu: dua khach tu Tang 5 len Tang 4.
+3 cau hoi mo cua long nguoi: (1) "Anh/Chi dang so dieu gi nhat trong 5 nam toi?" (2) "Neu khong co rang buoc tai chinh, Anh/Chi muon cuoc song the nao?" (3) "Anh/Chi da tung mat tien vi quyet dinh nao roi?"
+`;
 
-THÔNG TIN KHÁCH: Tên: ${user.firstName} ${user.lastName} | Gói Pass: ${user.swcPassTier}
+const KNOWLEDGE_INVESTMENT = `
+[LOAI 3 - DAU TU, KINH DOANH, VI MO]
+Warren Buffett: "Gia ca la nhung gi ban phai tra. Gia tri la nhung gi ban nhan duoc." Chi dau tu vao thu minh HIEU (Circle of Competence). Mua DOANH NGHIEP, khong mua manh giay. Moat (lao tao bao ve). "Tot hon la mua cong ty tuyet voi voi gia hop ly hon mua cong ty hop ly voi gia tuyet voi" — Munger. "Thi truong la cong cu chuyen tien tu nguoi nang dong sang nguoi kien nhan." So khi nguoi khac THAM LAM, THAM LAM khi nguoi khac SO HANG. 2 QUY TAC: Khong mat von. Khong quen Quy tac 1. Lai kep = Ky quan thu 8 (Einstein).
+Gia ca vs Gia tri (21 Bai giang SWC): Gia ca = hien tuong, cam xuc dam dong, ngan han, de bi thao tung. Gia tri = ban chat, ben vung. Bi kich 90% F0: tu duy Trader nhung hanh dong nhu Holder khi that bai.
+4 buoc giai ma tin tuc (Smart Money): B1-Boc tran su that (binh phong). B2-Doi chieu M2/DXY. B3-Chi ra cam xuc Tang 5. B4-Hanh dong: Phong thu/Rut kiem/Chot loi.
+Du lieu vi mo (03/2026): FED 3.625%. M2 YoY +4.29% (Vung Hoang Kim 3-5%). DXY 98-100. CPI 2.4%. → TIN HIEU: M2 Vung Hoang Kim + Tang 5 hoang loan = RUT KIEM, gom tai san loi.
+Ban do dong tien 4 mua: Xuan (lai suat ha → CS/Crypto) → Ha (BDS sot) → Thu (NHTW tang lai suat) → Dong (Tiet kiem/Vang/USD). Ke thang chuc cho o binh CHUAN BI DON nuoc.
+Quan ly von "3 mang": 3% von/giao dich, R/R toi thieu 1:2. "Loi tren giay khong phai tien cua minh."
+Khoi nghiep: Xac suat that bai lan 1 = 95%. 4 yeu to thanh cong: San pham tot + Thi truong dung + Thoi diem + Team. Loi nhuan den tu noi KHONG CO canh tranh.
+`;
 
-KIẾN THỨC CỐT LÕI ĐỂ TƯ VẤN:
-- BỘ LỌC CHỐNG FOMO (SWC FIELD): Đầu tư vòng Private an toàn qua SPV. ATLAS RWA Dubai (BĐS Số hóa thanh khoản 3s).
-- KẺ HỦY DIỆT PHÍ ẨN: Quỹ khác thu 2% tài sản mỗi năm. SWC Pass thu phí Membership cố định ($10/tháng cho gói 5 năm).
-- LÃI KÉP (Road to $1M): Đầu tư $8/ngày ($240/tháng), kỷ luật 15 năm = $1,000,000. Dành 10 phút/tháng thao tác. Tiền ai nấy giữ.
+const KNOWLEDGE_PROJECTS = `
+[LOAI 4 - KIEN THUC DU AN SWC]
+SWC - Sky World Community: Website swc001.netlify.app. Crowdinvesting Platform quoc te, 10+ nam, Giay phep quy dau tu SEC My. Su menh: giup NDT ca nhan tiep can Pre-IPO, Venture Capital. SPV: moi du an co SPV rieng, NDT mua co phan hop phap tu $50, khong phi an. Phap ly: SEC My, MiFID II Chau Au. Chi 1% du an lot qua tham dinh.
+SWC Pass (swcpass.vn): HE THONG TIN HIEU & LO TRINH HANG THANG. Chi 10-15 phut/thang. Essential (Silver): $240/nam = $20/thang + tang 90 ngay. Plus (Gold): $600/5 nam = $10/thang, KHOA GIA 5 nam, 80% NDT tinh anh chon. Ultimate (Diamond): $2,600 vinh vien, mot lan, truyen cho con chau.
+SWC Field: San choi ca map. Chi 1% du an duoc chon. Bao ve von All-or-Nothing (khong du KPI → hoan 100%). Tu $50.
+Du an ATLAS (swc001.netlify.app/chi-tiet-du-an-atlas): "Grab cua nganh BDS tai UAE." Gom toan bo quy trinh mua-ban BDS vao 1 app. Giai quyet: Tin ao, ke gia (moi gioi an chenh), moi gioi khong phep. Win-Win-Win. Lo trinh: MVP UAE → Mo rong UAE → Singapore, HK, Anh, Phap. Bao ve von All-or-Nothing.
+Road to $1M (swcfield.com): DCA $8/ngay = $240/thang, Buy & Hold, lai kep 15-20 nam. $240/thang × 20%/nam: 10 nam ~$55K, 20 nam ~$480K, 30 nam ~$3.4M (x64 von goc). 3 triet ly: Commercial Cows + DCA (thi truong sap = sale-off) + Buy & Hold (loai cam tinh).
+uST: Cong nghe giao thong tren cao, dinh gia 400 ty USD, can 3-5 nam. uTerra: Nong nghiep sinh hoc. SWGT: KHONG lien quan Quy SWC.
+`;
 
-QUY TẮC:
-- Luôn kết thúc bằng 1 câu hỏi mở nhắm vào nỗi đau. KHÔNG nhắc Token, SWGT.`;
+const FULL_KNOWLEDGE = `${KNOWLEDGE_PERSONAL_GROWTH}\n${KNOWLEDGE_HUMAN_NATURE}\n${KNOWLEDGE_INVESTMENT}\n${KNOWLEDGE_PROJECTS}`;
+
+// ==========================================================
+// NHAN DIEN CAM XUC & TONE TIN NHAN
+// ==========================================================
+function detectTone(text) {
+    const t = text.toLowerCase();
+    if (['thua', 'lo ', 'mat het', 'that bai', 'buon', 'bi lua'].some(k => t.includes(k))) return 'sad';
+    if (['lua dao', 'scam', 'da cap', 'khong tin', 'bang chung', 'chung minh'].some(k => t.includes(k))) return 'skeptic';
+    if (['so ', 'lo lang', 'rui ro', 'mat tien', 'co that khong', 'an toan khong', 'chac khong'].some(k => t.includes(k))) return 'anxious';
+    if (['x10', 'x100', 'giau nhanh', 'all in', 'doi doi', 'muon mua ngay'].some(k => t.includes(k))) return 'excited';
+    if (text.split(' ').length <= 5) return 'casual';
+    return 'normal';
 }
 
+function detectMainConcern(text) {
+    const t = text.toLowerCase();
+    if (['gia', 'phi', 'bao nhieu', 'tien', 'dat', 're'].some(k => t.includes(k))) return 'price';
+    if (['lua', 'scam', 'an toan', 'phap ly', 'uy tin'].some(k => t.includes(k))) return 'trust';
+    if (['atlas', 'dubai', 'bds', 'bat dong san'].some(k => t.includes(k))) return 'atlas';
+    if (['road', '1m', 'trieu', 'lai kep', 'dca'].some(k => t.includes(k))) return 'road1m';
+    if (['pass', 'the', 'essential', 'plus', 'ultimate'].some(k => t.includes(k))) return 'swcpass';
+    return 'general';
+}
+
+// ==========================================================
+// SYSTEM PROMPT NANG CAP - NHAN CACH "Ti" THAT SU
+// ==========================================================
+function buildSystemPrompt(user, tone) {
+    const daysLeft = getDaysLeft();
+    const msgCount = user.messageCount || 0;
+    const familiarityHint = msgCount === 0
+        ? '[Lan dau noi chuyen. Chao hoi than thien, gioi thieu ngan gon ve Ti.]'
+        : msgCount >= 10
+            ? `[Quen roi (${msgCount} lan nhan tin). Noi thang, khong gioi thieu lai. Biet ten ho la ${user.firstName}.]`
+            : `[Da quen mot chut (${msgCount} lan). Tu nhien nhu ban be.]`;
+
+    const toneHint = {
+        sad: `[TONE: ${user.firstName} dang co cam xuc tieu cuc. DONG CAM TRUOC, khong voi tu van. Noi nhe nhang, ngan gon.]`,
+        anxious: `[TONE: ${user.firstName} dang lo lang. TRAN AN TRUOC bang 1-2 cau thuc te. Sau do moi giai thich.]`,
+        skeptic: `[TONE: ${user.firstName} dang hoai nghi. Khong thuyet phuc. Chi dua FACT lanh. Diem tinh, khong phong thu.]`,
+        excited: `[TONE: ${user.firstName} phan khich qua muc. LAM NGUOI nhe bang 1 rui ro cu the truoc khi dong tinh.]`,
+        casual: `[TONE: Chat ngan. Tra loi 2-3 dong thoi, nhu chat ban be.]`,
+        normal: ''
+    }[tone] || '';
+
+    const concernHint = {
+        price: '[CONCERN: Khach dang hoi ve GIA. Dua so sanh chi phi co hoi, khong giam gia.]',
+        trust: '[CONCERN: Khach dang lo LUA DAO. Dua chung cu phap ly SPV, SEC My, khong cam ket loi nhuan ao.]',
+        atlas: '[CONCERN: Khach quan tam ATLAS/Dubai. Tap trung RWA, thanh khoan 3s, bao ve von All-or-Nothing.]',
+        road1m: '[CONCERN: Khach quan tam ROAD TO $1M. Dua toan hoc lai kep, $8/ngay, 15 nam.]',
+        swcpass: '[CONCERN: Khach hoi ve SWC PASS. Goi y Gold 5 nam ($10/thang) hoac Ultimate ($2600 vinh vien).]',
+        general: ''
+    }[user.mainConcern] || '';
+
+    return `Anh/chi la "Ti" — tro ly AI phan tich tam ly va tu van tai chinh cua quy Sky World Community Viet Nam, duoi quyen anh Ho Van Loi.
+
+TINH CACH: Thau hieu nhan tinh, sac ben, nhu Soi gia Pho Wall. Xung "em" hoac "Ti", goi khach la "anh/chi". Dung vi du doi thuc, ke chuyen, khong van mau kho khan.
+KHONG BIET BAO GIO: Dung **, khong viet tieu de muc kieu bao cao, khong bat dau "Chao anh/chi" neu da quen, khong xung la "Bot".
+DO DAI: Toi da 200 tu. Ngat dong lien tuc. Ngan gon khi ho hoi ngan, sau khi ho can chieu sau.
+
+${toneHint}
+${concernHint}
+${familiarityHint}
+
+KIEN THUC TOI CAN BIET:
+${FULL_KNOWLEDGE}
+
+NHIEM VU CHINH:
+1. Go bo tam ly phong thu F0. Khai sang cho ho thay tu trade la tu sat (chuoi thuc an tai chinh).
+2. Chot sale the SWC Pass truoc deadline ${DEADLINE} (CON ${daysLeft} NGAY). Khuyen manh Goi Plus 5 nam ($600) va Ultimate Vinh vien ($2600).
+3. Huong khach xem Video huong dan va vao Group Chat.
+4. Lam nguoi khac NOI NHIEU: Dat cau hoi, lang nghe, de khach tu thuyet phuc ban than.
+
+TIN TONG HOP (KHI DUOC HOI VE TIN TUC):
+Dong 1: Tieu de + Emoji. Gach dong tom y chinh. 1 cau ca khia dam dong. "Chi cung cap thong tin, khong phai loi khuyen dau tu!" 3-5 hashtag.
+
+XU LY TU CHOI:
+"Gia cao": "$10/thang chua bang 1 ly tra da, doi lai tam ban do $1M bao ve gia san 5 nam"
+"De nghi them": "Lac phat 2.4% dang an mon tien mat cua anh/chi moi ngay. Tri hoan hom nay = tra gia dat hon ngay mai"
+"Co lua dao?": "SPV chuan muc phap ly quoc te. SEC My ky phep. Khac hoan toan Ponzi — chung toi khong giu tien cua anh/chi, anh/chi tu giu tien trong app chung khoan rieng"
+"Tu dau tu cung duoc": "Co Pass, anh/chi ngoi mam Tang 1 Venture Capital — mua gia truoc khi len san. Tu di thi xa, di voi SWC thi vua an toan vua nam thong tin truoc dam dong"
+
+QUY TAC CUOI: Luon ket thuc bang 1 cau hoi mo nham vao NOI DAU. KHONG NHAC Token, SWGT.`;
+}
+
+// ==========================================================
+// HAM GOI CLAUDE API - NANG CAP QUAN LY LICH SU
+// ==========================================================
 async function callClaude(user, userMessage) {
     try {
+        const tone = detectTone(userMessage);
+        const concern = detectMainConcern(userMessage);
+        user.lastTone = tone;
+        if (concern !== 'general') user.mainConcern = concern;
+
         let history = user.chatHistory || [];
         history.push({ role: 'user', content: userMessage });
 
@@ -134,65 +241,211 @@ async function callClaude(user, userMessage) {
             }
             let lastMsg = validHistory[validHistory.length - 1];
             if (lastMsg.role === msg.role) {
-                lastMsg.content += '\n' + msg.content; 
+                lastMsg.content += '\n' + msg.content;
             } else {
                 validHistory.push({ role: msg.role, content: msg.content });
             }
         }
-        if (validHistory.length > 15) validHistory = validHistory.slice(-15);
+        if (validHistory.length > 20) validHistory = validHistory.slice(-20);
         if (validHistory.length > 0 && validHistory[0].role === 'assistant') validHistory.shift();
 
         const response = await claude.messages.create({
-            model: 'claude-3-haiku-20240307',
-            max_tokens: 800,
-            system: buildSystemPrompt(user),
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1000,
+            system: buildSystemPrompt(user, tone),
             messages: validHistory
         });
 
-        const reply = response.content[0].text;
+        const reply = response.content[0].text.replace(/\*\*/g, '').replace(/\*/g, '');
         history.push({ role: 'assistant', content: reply });
-        user.chatHistory = history.slice(-20); 
-        user.lastBotInteraction = new Date();
+        user.chatHistory = history.slice(-24);
+        user.lastSeenDate = new Date();
+        user.messageCount = (user.messageCount || 0) + 1;
 
         if (user.funnelStage === 'new') user.funnelStage = 'interested';
-        if (user.funnelStage === 'interested' && history.length > 4) user.funnelStage = 'hot_lead';
+        if (user.funnelStage === 'interested' && (user.messageCount || 0) > 4) user.funnelStage = 'hot_lead';
         await user.save();
         return reply;
     } catch (err) {
-        console.error('❌ Lỗi API Claude:', err);
-        return `Dạ hiện tại Đội ngũ chuyên gia SWC đang bận xử lý dữ liệu. Anh/chị vui lòng tham gia Nhóm Chat Cộng Đồng hoặc xem các Video Hướng Dẫn ở Menu bên dưới nhé! 🙏`;
+        console.error('Loi API Claude:', err.message);
+        return `Hien tai doi ngu chuyen gia SWC dang xu ly du lieu. Anh/chi vui long tham gia Nhom Chat hoac xem Video Huong Dan o Menu ben duoi nhe!`;
     }
 }
 
-// ==========================================
-// HÀM GỬI MAIN MENU (CÓ ẢNH VÀ FALLBACK CHỐNG LỖI)
-// ==========================================
+// ==========================================================
+// DRIP FUNNEL 7 NGAY - CHAM SOC THEO HANH TRINH
+// ==========================================================
+const DRIP_MESSAGES = {
+    1: {
+        subject: 'Chao mung',
+        text: (name, daysLeft) => `Anh/chi ${name} oi, em la Ti — tro ly SWC cua anh Ho Van Loi.
+
+Rat vui duoc ket noi! Em biet anh/chi dang co rat nhieu cau hoi ve tai chinh — do cung la dieu binh thuong, vi thi truong luc nao cung day nhung bap bay va tin don.
+
+Mot cau hoi nho de bat dau: "Neu ngan mai anh/chi phai ngung lam viec 6 thang, cuoc song co bi anh huong khong?"
+
+Neu co — thi chung ta can noi chuyen rat nghiem tuc ve viec xay dung dong tien thu dong. Con ${daysLeft} ngay de anh/chi co co hoi tot nhat.`,
+        image: IMG_MAIN_MENU
+    },
+    3: {
+        subject: 'Noi dau that su',
+        text: (name, daysLeft) => `Anh/chi ${name} oi, em Tu nhan ra mot dieu —
+
+95% nguoi tu trade thi truong deu thua lo. Khong phai vi ho thieu thong tin. Ma vi ho dang choi trong mot san choi ma LUAT DO KE KHAC VIET.
+
+Nhu Pho Wall co cau: "Biet minh la ca map hay la moi?"
+
+SWC Pass khong phai khoa hoc. No la cai bom xe keo anh/chi ra khoi vung lau cua Tang 5, dat anh/chi ngoi tren lung Ca Voi de cung san moi.
+
+Con ${daysLeft} ngay. Em co the giai thich chi tiet hon khong?`,
+        image: IMG_ROAD1M
+    },
+    7: {
+        subject: 'Loi kep cuoi cung',
+        text: (name, daysLeft) => `Anh/chi ${name}, day la tin nhan quan trong nhat em gui.
+
+Mot nguoi bat dau luc 25 tuoi voi $8/ngay se NGHIEN NAT ket qua tai chinh cua nguoi bat dau luc 40 tuoi voi $100/ngay.
+
+Nguon luc quy gia nhat khong phai tien. La THOI GIAN.
+
+Moi ngay tri hoan = mot ngay suc manh lai kep vinh vien mat di.
+
+Con ${daysLeft} ngay. Anh/chi dang o Tang nao trong 5 tang tai chinh? Em muon giup anh/chi leo len.`,
+        image: IMG_FIELD_ROAD1M
+    },
+    14: {
+        subject: 'Atlas Dubai',
+        text: (name, daysLeft) => `Anh/chi ${name}, em co tin nong!
+
+Du an ATLAS tai Dubai dang o giai doan nap von vong Private — tuc la gia tot nhat, truoc khi cong chung biet den.
+
+Tuong tuong: So huu BDS Dubai, nhan tien thue hang thang, co the ban trong 3 giay khi can. Tat ca chi can $50 de bat dau.
+
+Day chinh xac la cach gioi tinh hoa tao ra tai san — ho khong mua BDS bang ca khoi vang nua, ho mua PHAN TRAM so huu qua cau truc SPV phap ly.
+
+Anh/chi quan tam khong? Em gui chi tiet nhe!`,
+        image: IMG_ATLAS
+    },
+    21: {
+        subject: 'Cua sap dong',
+        text: (name, daysLeft) => `Anh/chi ${name} — em phai noi thang.
+
+Con ${daysLeft} ngay nua, cua vao SWC Pass se dong.
+
+Khong phai chieu marketing. Khi du 1000 thanh vien, he thong se khoa hoan toan — vi quy tai san trong SWC Field co gioi han.
+
+Anh/chi da noi chuyen voi em nhieu lan. Em biet anh/chi hieu gia tri cua viec nay.
+
+Cau hoi thang: "Anh/chi dang can them gi de bat dau?"
+
+Em o day de giai dap bat ky thac mac nao.`,
+        image: IMG_MEMBERSHIP
+    }
+};
+
+async function sendDripMessage(userId, dayKey) {
+    try {
+        const user = await User.findOne({ userId });
+        if (!user || user.broadcastOptOut || user.swcPassTier !== 'none') return;
+        const msg = DRIP_MESSAGES[dayKey];
+        if (!msg) return;
+        const daysLeft = getDaysLeft();
+        const text = msg.text(user.firstName || 'ban', daysLeft);
+        const keyboard = { inline_keyboard: getGlobalButtons() };
+        await bot.sendPhoto(userId, msg.image, { caption: text, parse_mode: 'HTML', reply_markup: keyboard })
+            .catch(() => bot.sendMessage(userId, text, { parse_mode: 'HTML', reply_markup: keyboard }));
+        user.funnelDay = dayKey;
+        user.lastFunnelSent = new Date();
+        await user.save();
+    } catch (e) { console.error('Loi drip:', e.message); }
+}
+
+// Scheduler drip funnel - check moi 1h
+setInterval(async () => {
+    const now = new Date();
+    const users = await User.find({ broadcastOptOut: false, swcPassTier: 'none' }).catch(() => []);
+    for (const user of users) {
+        const joinDate = new Date(user.joinDate);
+        const daysSinceJoin = Math.floor((now - joinDate) / (1000 * 60 * 60 * 24));
+        const lastFunnelDay = user.funnelDay || 0;
+        const dripDays = [1, 3, 7, 14, 21];
+        for (const d of dripDays) {
+            if (daysSinceJoin >= d && lastFunnelDay < d) {
+                await sendDripMessage(user.userId, d);
+                await new Promise(r => setTimeout(r, 500));
+                break;
+            }
+        }
+    }
+}, 3600000);
+
+// ==========================================================
+// CHUC NANG RE-ENGAGEMENT - NHAN NHUNG NGUOI IM LANG
+// ==========================================================
+async function reEngageInactiveUsers() {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const inactiveUsers = await User.find({
+        broadcastOptOut: false,
+        swcPassTier: 'none',
+        lastSeenDate: { $lt: threeDaysAgo },
+        funnelStage: { $in: ['interested', 'hot_lead'] }
+    }).catch(() => []);
+
+    const reEngageTexts = [
+        (name) => `Anh/chi ${name} oi, Ti nho anh/chi qua! Dao nay thi truong dang nhieu bien dong — anh/chi co can em cap nhat gi khong?`,
+        (name) => `Chao anh/chi ${name}! Ti vua doc xong bai phan tich vi mo thang nay — co nhieu dieu thu vi. Anh/chi con quan tam khong?`,
+        (name) => `${name} oi, goi Plus 5 nam hien tai chi $10/thang. Em nghi no phu hop voi anh/chi — muon nghe Ti giai thich them khong?`
+    ];
+
+    for (const user of inactiveUsers) {
+        const randomText = reEngageTexts[Math.floor(Math.random() * reEngageTexts.length)](user.firstName || 'ban');
+        const keyboard = { inline_keyboard: [[{ text: "Muon biet them", callback_data: 'main_menu' }], ...getGlobalButtons().slice(-2)] };
+        await bot.sendMessage(user.userId, randomText, { reply_markup: keyboard })
+            .catch(() => {});
+        await new Promise(r => setTimeout(r, 300));
+    }
+}
+
+// Chay re-engagement moi ngay luc 10h sang
+setInterval(async () => {
+    const vnTime = getVNTime();
+    const h = vnTime.getUTCHours();
+    const m = vnTime.getUTCMinutes();
+    if (h === 10 && m === 0) await reEngageInactiveUsers();
+}, 60000);
+
+// ==========================================================
+// GUI MAIN MENU
+// ==========================================================
 async function sendMainMenu(chatId, messageId = null) {
     const daysLeft = getDaysLeft();
-    const text = `🦁 <b>CỔNG ĐẦU TƯ TRÍ TUỆ SWC CAPITAL</b>\n\nThị trường tài chính là một chiến trường khốc liệt. Ở đây, tiền không tự sinh ra mà chỉ chuyển từ túi của những người yếu bóng vía, thiếu kỷ luật sang túi của những bộ óc có hệ thống chiến lược bài bản.\n\n⏳ <b>CẢNH BÁO TỬ HUYỆT:</b> Đặc quyền đăng ký gói thành viên Ultimate (Vĩnh viễn) để truy cập hệ thống đầu tư của giới tinh anh sẽ chính thức <b>ĐÓNG CỬA VĨNH VIỄN</b> vào lúc 23:59 ngày <b>${DEADLINE}</b>. Chỉ còn đúng ${daysLeft} ngày nữa để bạn tự cứu lấy tương lai tài chính của gia tộc mình.\n\n👇 <b>HÃY CHỌN MỘT DANH MỤC DƯỚI ĐÂY ĐỂ BẮT ĐẦU:</b>`;
+    const text = `CONG DAU TU TRI TUE SWC CAPITAL
+
+Thi truong tai chinh la mot chien truong khoc liet. O day, tien khong tu sinh ra ma chi chuyen tu tui cua nhung nguoi yeu bong via, thieu ky luat sang tui cua nhung bo oc co he thong chien luoc bai ban.
+
+CANH BAO TU HUYET: Dac quyen dang ky goi thanh vien Ultimate (Vinh vien) se chinh thuc DONG CUA VINH VIEN vao luc 23:59 ngay ${DEADLINE}. Chi con dung ${daysLeft} ngay nua.
+
+HAY CHON MOT DANH MUC DE BAT DAU:`;
 
     const keyboard = {
         inline_keyboard: [
-            [{ text: "🇻🇳 Đổi Tiếng Việt (Dành cho người mới)", url: "https://t.me/setlanguage/vi" }],
-            [{ text: "💳 GIẢI MÃ BÍ MẬT THẺ SWC PASS", callback_data: 'menu_swcpass_main' }],
-            [{ text: "🏢 SWC FIELD & SIÊU DỰ ÁN ATLAS", callback_data: 'menu_swcfield_main' }],
-            [{ text: "🗺️ ROAD TO $1M (Bản đồ Lãi kép)", callback_data: 'menu_road1m_main' }],
-            [{ text: "❓ HỎI ĐÁP ĐẦU TƯ (Phá vỡ rào cản)", callback_data: 'menu_faq_main' }],
-            ...getGlobalButtons().slice(0, -1) 
+            [{ text: "Doi Tieng Viet (Danh cho nguoi moi)", url: "https://t.me/setlanguage/vi" }],
+            [{ text: "GIAI MA BI MAT THE SWC PASS", callback_data: 'menu_swcpass_main' }],
+            [{ text: "SWC FIELD & SIEU DU AN ATLAS", callback_data: 'menu_swcfield_main' }],
+            [{ text: "ROAD TO $1M (Ban do Lai kep)", callback_data: 'menu_road1m_main' }],
+            [{ text: "HOI DAP DAU TU (Pha vo rao can)", callback_data: 'menu_faq_main' }],
+            ...getGlobalButtons().slice(0, -1)
         ]
     };
 
     if (messageId) bot.deleteMessage(chatId, messageId).catch(() => {});
-    
-    bot.sendPhoto(chatId, IMG_MAIN_MENU, { caption: text, parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {
-        // Fallback: Nếu link ảnh Google Photos bị Telegram chặn, gửi text thường để không sập bot
-        bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: keyboard });
-    });
+    bot.sendPhoto(chatId, IMG_MAIN_MENU, { caption: text, parse_mode: 'HTML', reply_markup: keyboard })
+        .catch(() => bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: keyboard }));
 }
 
-// ==========================================
-// XỬ LÝ /START & THU THẬP SĐT
-// ==========================================
+// ==========================================================
+// /START & THU THAP SDT
+// ==========================================================
 bot.onText(/\/start(.*)/i, async (msg) => {
     if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
@@ -200,13 +453,27 @@ bot.onText(/\/start(.*)/i, async (msg) => {
 
     let user = await User.findOne({ userId });
     if (!user) {
-        user = new User({ userId, firstName: msg.from.first_name || '', lastName: msg.from.last_name || '', username: msg.from.username ? `@${msg.from.username}` : '' });
+        user = new User({
+            userId,
+            firstName: msg.from.first_name || '',
+            lastName: msg.from.last_name || '',
+            username: msg.from.username ? `@${msg.from.username}` : '',
+            joinDate: new Date()
+        });
         await user.save();
+        // Thong bao admin co lead moi
+        bot.sendMessage(ADMIN_ID, `LEAD MOI TRUY CAP!\nTen: ${user.firstName} ${user.lastName}\nID: ${userId}\nUsername: ${user.username}`).catch(() => {});
     }
 
     if (!user.phone) {
-        const welcomeMsg = `Xin chào <b>${user.firstName}</b>! 🦁\n\nTôi là <b>Tí</b> — trợ lý phân tích tâm lý và đầu tư của <b>SWC Capital</b>.\n\nĐể hệ thống chẩn đoán đúng vị thế tài chính và cung cấp tài liệu mật, vui lòng <b>Bấm nút Chia sẻ số điện thoại</b> bên dưới nhé! 👇`;
-        bot.sendMessage(chatId, welcomeMsg, { parse_mode: 'HTML', reply_markup: { keyboard: [[{ text: "📞 Chia sẻ Số điện thoại", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } }).catch(() => {});
+        const welcomeMsg = `Xin chao ${user.firstName || 'ban'}!\n\nToi la Ti — tro ly phan tich tam ly va dau tu cua SWC Capital.\n\nDe he thong chuan doan dung vi the tai chinh va cung cap tai lieu mat, vui long bam nut Chia se so dien thoai ben duoi nhe!`;
+        bot.sendMessage(chatId, welcomeMsg, {
+            reply_markup: {
+                keyboard: [[{ text: "Chia se So dien thoai", request_contact: true }]],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        }).catch(() => {});
     } else {
         sendMainMenu(chatId);
     }
@@ -216,153 +483,151 @@ bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id.toString();
     await User.updateOne({ userId }, { $set: { phone: msg.contact.phone_number } });
-    bot.sendMessage(chatId, "⏳ Đang trích xuất hồ sơ nhà đầu tư...", { reply_markup: { remove_keyboard: true } }).then(sent => {
+    bot.sendMessage(chatId, "Dang trich xuat ho so nha dau tu...", {
+        reply_markup: { remove_keyboard: true }
+    }).then(sent => {
         bot.deleteMessage(chatId, sent.message_id).catch(() => {});
         sendMainMenu(chatId);
     });
+    // Thong bao admin co SDT
+    bot.sendMessage(ADMIN_ID, `KHACH MOI CO SDT!\nTen: ${msg.from.first_name}\nSDT: ${msg.contact.phone_number}\nID: ${userId}`).catch(() => {});
 });
 
-// ==========================================
-// MA TRẬN TÂM LÝ & KIẾN THỨC (CALLBACK QUERY)
-// ==========================================
+// ==========================================================
+// CALLBACK QUERY - MA TRAN TAM LY
+// ==========================================================
 bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const messageId = callbackQuery.message.message_id;
     const data = callbackQuery.data;
     const daysLeft = getDaysLeft();
-
     let text = ''; let keyboard = []; let imageUrl = '';
     bot.answerCallbackQuery(callbackQuery.id).catch(() => {});
 
-    if (data === 'main_menu') {
-        return sendMainMenu(chatId, messageId);
-    }
+    if (data === 'main_menu') return sendMainMenu(chatId, messageId);
 
-    // ==========================================
-    // NHÁNH 1: SWC PASS 
-    // ==========================================
+    // NHANH SWC PASS
     if (data === 'menu_swcpass_main') {
         imageUrl = IMG_SWCPASS;
-        text = `💎 <b>BÍ MẬT CỦA TẤM THẺ SWC PASS</b>\n\nHãy tưởng tượng bạn muốn bơi qua một dòng sông chảy xiết. Tự bơi, bạn có thể đuối sức và chìm nghỉm. Nhưng nếu bạn thuê được một chiếc du thuyền siêu tốc có thuyền trưởng dày dạn kinh nghiệm, bạn chỉ việc bước lên tàu và tận hưởng hành trình.\n\nSWC Pass không phải là một khóa học làm giàu hay hội nhóm hô hào phím lệnh. Nó chính là "Chiếc du thuyền" đó. Nó là một <b>Tư cách thành viên (Membership)</b> bảo chứng cho việc bạn được bước chân vào thế giới đầu tư của giới tinh anh.\n\nThông qua SWC Pass, bạn thoát khỏi kiếp làm "nhỏ lẻ F0", được quyền mua gom tài sản chất lượng cao từ sớm (vòng Private) và được thiết lập một kỷ luật đầu tư sắc lạnh mà không bị cảm xúc chi phối.`;
+        text = `BI MAT CUA TAM THE SWC PASS\n\nHay tuong tuong ban muon boi qua mot dong song chay xiet. Tu boi, ban co the duoi suc va chim nghim. Nhung neu ban thue duoc mot chiec du thuyen sieu toc co thuyen truong day dan kinh nghiem, ban chi viec buoc len tau va tan huong hanh trinh.\n\nSWC Pass KHONG PHAI la mot khoa hoc lam giau hay hoi nhom ho hao phim lenh. No chinh la "Chiec du thuyen" do. No la mot Tu cach thanh vien (Membership) bao chung cho viec ban duoc buoc chan vao the gioi dau tu cua gioi tinh anh.\n\nThong qua SWC Pass, ban thoat khoi kiep lam "nho le F0", duoc quyen mua gom tai san chat luong cao tu som (vong Private) va duoc thiet lap mot ky luat dau tu sac lanh ma khong bi cam xuc chi phoi.`;
         keyboard = [
-            [{ text: "⚖️ Phân Tích 3 Gói Thẻ: Chọn Bát Phở hay Di Sản?", callback_data: 'swcpass_compare' }],
-            [{ text: "🎁 4 Đặc Quyền Kẻ Hủy Diệt Phí Ẩn", callback_data: 'swcpass_benefits' }],
+            [{ text: "Phan Tich 3 Goi The: Chon Bat Pho hay Di San?", callback_data: 'swcpass_compare' }],
+            [{ text: "4 Dac Quyen Ke Huy Diet Phi An", callback_data: 'swcpass_benefits' }],
             ...getGlobalButtons()
         ];
     }
     else if (data === 'swcpass_compare') {
         imageUrl = IMG_MEMBERSHIP;
-        text = `⚖️ <b>BẢNG GIÁ SWC PASS - BẠN CHỌN VỊ THẾ NÀO?</b>\n\nQuyết định hôm nay sẽ định hình khối tài sản của bạn trong 15 năm tới:\n\n1️⃣ <b>Gói Essential (1 Năm - $240): "Cà Phê Trải Nghiệm"</b>\nBạn chưa tin tưởng? Gói này dành cho bạn. Chia ra chỉ $20/tháng – bằng đúng tiền một chầu cà phê cuối tuần. Nhưng thay vì uống xong là hết, $20 này giúp bạn thuê được cả một đội ngũ chuyên gia Mỹ phân tích thị trường. Đây là mức 'học phí' rẻ mạt nhất để tránh việc bạn tự trade sai, đu đỉnh và cháy hàng trăm triệu.\n\n2️⃣ <b>Gói Plus (5 Năm - $600): "Kỷ Luật Thép" [🔥 KHUYÊN DÙNG]</b>\nTrồng cây thì không thể hái quả trong vài tháng. Lãi Kép cần có thời gian. Gói 5 năm sẽ cưa đôi chi phí của bạn, chỉ còn <b>$10/tháng</b> (Bằng bát phở mỗi tuần). Bạn mua quyền truy cập danh mục giới siêu giàu và bị 'ép' vào kỷ luật thép. Mọi công cụ AI mới ra mắt sau này, bạn đều được dùng miễn phí.\n\n3️⃣ <b>Gói Ultimate (Vĩnh Viễn - $2.600): "Di Sản Gia Tộc"</b>\nNếu bạn là người kinh doanh, nhìn xa trông rộng. Đầu tư 20 năm thì mỗi năm chỉ tốn $130. Bạn mua ĐỨT nền tảng tài chính này để làm bệ phóng, làm di sản cho con cái.\n\n⚠️ <b>CÚ CHỐT HẠ:</b> Gói Ultimate là phiên bản chào sân. Nó SẼ ĐÓNG CỬA VĨNH VIỄN vào ngày ${DEADLINE} (Chỉ còn ${daysLeft} ngày). Qua ngày này, mang $10.000 đến cũng không thể mua đứt được nữa!`;
+        text = `BANG GIA SWC PASS - BAN CHON VI THE NAO?\n\n1. GOI ESSENTIAL (1 Nam - $240): "Ca Phe Trai Nghiem"\nChi $20/thang. Bang dung tien mot chan ca phe cuoi tuan. Nhung thay vi uong xong la het, $20 nay giup ban thue duoc ca mot doi ngu chuyen gia My phan tich thi truong.\n\n2. GOI PLUS (5 Nam - $600): "Ky Luat Thep" [KHUYEN DUNG]\nChi CON $10/THANG. Bang mot bat pho moi tuan. Ban mua quyen truy cap danh muc gioi sieu giau va bi "ep" vao ky luat thep. Moi cong cu AI moi ra mat, ban deu duoc dung mien phi.\n\n3. GOI ULTIMATE (Vinh Vien - $2.600): "Di San Gia Toc"\nDau tu 20 nam thi moi nam chi ton $130. Ban mua DUT nen tang tai chinh nay de lam be phong, lam di san cho con cai.\n\nCUP CHOT HA: Goi Ultimate se DONG CUA VINH VIEN vao ngay ${DEADLINE} (Chi con ${daysLeft} ngay). Qua ngay nay, mang $10.000 den cung khong the mua dut duoc nua!`;
         keyboard = getGlobalButtons();
     }
     else if (data === 'swcpass_benefits') {
         imageUrl = IMG_SWCPASS;
-        text = `🎁 <b>KẺ HỦY DIỆT PHÍ ẨN VÀ 4 ĐẶC QUYỀN TỐI THƯỢNG</b>\n\nCác quỹ mở ngoài kia thường có một "chiêu bẩn": Họ cắn xén 2% trên TỔNG tài sản của bạn mỗi năm. Tức là bạn có 1 tỷ, bạn mất 20 triệu. Nếu bạn có 10 tỷ, bạn mất đứt 200 triệu tiền phí quản lý. Với SWC Pass, chúng tôi chơi sòng phẳng. Bạn chỉ trả đúng $10/tháng. Bạn có kiếm được triệu đô, chúng tôi cũng không trừng phạt bạn bằng cách thu thêm tiền!\n\n<b>NHỮNG ĐẶC QUYỀN BẠN NẮM TRONG TAY:</b>\n<b>1. Cỗ Máy Toán Học "Road to $1M":</b> Nhận bản đồ chi tiết hàng tháng. Mua mã nào, mua bao nhiêu. Không cần phân tích nến, không cần căng mắt nhìn màn hình.\n\n<b>2. Tiền Ai Nấy Giữ:</b> SWC Pass KHÔNG GIỮ TIỀN của bạn. Bạn mở app chứng khoán cá nhân, tự tay thao tác trong 10 phút rồi tắt máy. An toàn 100%.\n\n<b>3. Sân Chơi Của Cá Mập:</b> Khởi điểm đầu tư vòng Private chỉ từ $50, đập tan rào cản $500.000 của giới tài phiệt.\n\n<b>4. Dòng Tiền Thụ Động Vĩnh Cửu:</b> Dành cho người làm hệ thống. Khi đối tác của bạn gia hạn Pass hàng năm, tiền hoa hồng sẽ đổ về túi bạn đều đặn mà không cần tốn sức chốt sale lại.`;
-        keyboard = [[{ text: "⚖️ Xem Lại Phân Tích 3 Gói Pass", callback_data: 'swcpass_compare' }], ...getGlobalButtons()];
+        text = `KE HUY DIET PHI AN VA 4 DAC QUYEN TOI THUONG\n\nCac Quy mo ngoai kia cat xen 2% tren TONG tai san moi nam. Neu co 1 ty, mat 20 trieu phi. Co 10 ty, mat dut 200 trieu. SWC Pass choi song phang: chi $10/thang, du tien co nhieu den dau.\n\n1. Co May Toan Hoc Road to $1M: Nhan ban do chi tiet hang thang. Mua ma nao, mua bao nhieu, vung gia an toan. Khong can phan tich nen, khong can cang mat nhin man hinh.\n\n2. Tien Ai Nay Giu: SWC Pass KHONG GIU TIEN cua ban. Ban mo app chung khoan ca nhan, tu tay thao tac trong 10 phut roi tat may. An toan 100%.\n\n3. San Choi Cua Ca Map: Khoi diem dau tu vong Private chi tu $50, dap tan rao can $500.000 cua gioi tai phiet.\n\n4. Dong Tien Thu Dong Vinh Cuu: Khi doi tac cua ban gia han Pass hang nam, tien hoa hong se do ve tui ban deu dan ma khong can ton suc chot sale lai.`;
+        keyboard = [[{ text: "Xem Lai Phan Tich 3 Goi Pass", callback_data: 'swcpass_compare' }], ...getGlobalButtons()];
     }
 
-    // ==========================================
-    // NHÁNH 2: ROAD TO $1M 
-    // ==========================================
+    // NHANH ROAD TO $1M
     else if (data === 'menu_road1m_main') {
         imageUrl = IMG_ROAD1M;
-        text = `🗺️ <b>HÀNH TRÌNH ROAD TO $1M (BẢN ĐỒ TRIỆU ĐÔ)</b>\n\nHãy nhớ lại, đã bao nhiêu lần bạn dễ dàng vung 200.000 VNĐ cho một bữa ăn nhậu, một chiếc áo mới mà không hề mảy may suy nghĩ? \n\nChuyện gì sẽ xảy ra nếu bạn có tính kỷ luật, tự động trích ra đúng số tiền đó: <b>$8/ngày (khoảng $240/tháng)</b>, ném nó vào một cỗ máy sinh lời đã được tinh chỉnh hoàn hảo, và để mặc cho "Kỳ quan thứ 8" là Lãi Kép tự do phát huy sức mạnh?\n\nTrong 15 năm, con số đó sẽ cán mốc <b>1 Triệu Đô La</b>. \n\nNó không phải là phép thuật hay trúng số. Nó chỉ là Toán học cơ bản kết hợp với Thời gian và Sự Kỷ luật Vô Cảm. Nhưng để làm được, bạn cần một Hệ thống chỉ đường.`;
+        text = `HANH TRINH ROAD TO $1M (BAN DO TRIEU DO)\n\nBao nhieu lan ban de dang vung 200.000 VND cho mot bua an nhau, mot chiec ao moi ma khong mang suy nghi?\n\nChuyen gi se xay ra neu ban co tinh ky luat, tu dong trich ra dung $8/ngay (khoang $240/thang), nem no vao mot co may sinh loi da duoc tinh chinh hoan hao, va de mac cho "Ky quan thu 8" la Lai Kep tu do phat huy suc manh?\n\nTrong 15 nam, con so do se can moc 1 Trieu Do La.\n\nNo khong phai phep thuat hay trung so. No chi la Toan hoc co ban ket hop voi Thoi gian va Su Ky Luat Vo Cam. Nhung de lam duoc, ban can mot He thong chi duong.`;
         keyboard = [
-            [{ text: "🎯 Lợi Ích Thực Chiến (Sự Thật Đằng Sau Kỷ Luật)", callback_data: 'road1m_benefits' }],
-            [{ text: "🦈 Tại Sao 95% F0 Sắp Chết? (Chuỗi Thức Ăn)", callback_data: 'road1m_foodchain' }],
+            [{ text: "Loi Ich Thuc Chien (Su That Dang Sau Ky Luat)", callback_data: 'road1m_benefits' }],
+            [{ text: "Tai Sao 95% F0 Sap Chet? (Chuoi Thuc An)", callback_data: 'road1m_foodchain' }],
             ...getGlobalButtons()
         ];
     }
     else if (data === 'road1m_benefits') {
         imageUrl = IMG_FIELD_ROAD1M;
-        text = `🔥 <b>LỢI ÍCH THỰC CHIẾN: CHÚNG TÔI KHÔNG BÁN GIẤC MƠ, CHÚNG TÔI BÁN SỰ GIẢI THOÁT</b>\n\nNhiều người nghĩ đầu tư là để khoe khoang con số trong tài khoản. Sai lầm!\n\n• <b>Vị Thế Của Dòng Tiền:</b> Mục tiêu thực sự của Road to $1M là tạo ra <i>Dòng tiền Cổ tức Thụ Động</i>. Khi tiền cổ tức sinh ra mỗi tháng lớn hơn số tiền gia đình bạn chi tiêu sinh hoạt, đó là khoảnh khắc bạn chính thức "Nghỉ hưu" và tự do, bất kể bạn đang 30 hay 50 tuổi.\n\n• <b>Triệt Tiêu Cảm Xúc Hoảng Loạn:</b> Kẻ thù lớn nhất cướp tiền của bạn không phải đội lái, mà là tâm lý Sợ hãi của chính bạn. Khi thị trường đỏ máu, sập 30%, người bình thường sẽ khóc lóc cắt lỗ. Nhưng hệ thống DCA của chúng tôi sẽ báo tín hiệu lạnh lùng: "Cơ hội ngàn năm có một, gom mạnh tài sản giá rẻ!". Bạn thao tác như một cỗ máy, đó là cách người giàu thâu tóm tài sản của người nghèo.\n\n• <b>Tiết Kiệm 10.000 Giờ Máu Và Nước Mắt:</b> Đừng lãng phí tuổi trẻ để cố gắng đọc hiểu báo cáo tài chính hay canh biểu đồ nến xanh đỏ. Bạn có gia đình, có chuyên môn riêng. Chuyên gia SWC đã phân tích sẵn mâm cỗ. Bạn chỉ cần tốn đúng 10 phút mỗi tháng để copy và xác nhận.`;
-        keyboard = [[{ text: "🔙 Quay Lại Lộ Trình", callback_data: 'menu_road1m_main' }], ...getGlobalButtons()];
+        text = `LOI ICH THUC CHIEN: CHUNG TOI KHONG BAN GIAC MO, CHUNG TOI BAN SU GIAI THOAT\n\nVi The Cua Dong Tien: Muc tieu thuc su cua Road to $1M la tao ra Dong tien Co tuc Thu Dong. Khi co tuc sinh ra moi thang lon hon so tien gia dinh ban chi tieu sinh hoat, do la khoanh khac ban chinh thuc "Nghi huu" va tu do, bat ke ban dang 30 hay 50 tuoi.\n\nTriet Tieu Cam Xuc Hoang Loan: Ke thu lon nhat cuop tien cua ban khong phai doi lai, ma la tam ly So hai cua chinh ban. Khi thi truong do mau, sap 30%, nguoi binh thuong se khoc loc cat lo. Nhung he thong DCA cua chung toi se bao tin hieu lanh lung: "Co hoi ngan nam co mot, gom manh tai san gia re!"\n\nTiet Kiem 10.000 Gio Mau Va Nuoc Mat: Dung lang phi tuoi tre co gang doc hieu bao cao tai chinh hay canh bieu do nen xanh do. Ban co gia dinh, co chuyen mon rieng. Chuyen gia SWC da phan tich san mam co. Ban chi can ton dung 10 phut moi thang de copy va xac nhan.`;
+        keyboard = [[{ text: "Quay Lai Lo Trinh", callback_data: 'menu_road1m_main' }], ...getGlobalButtons()];
     }
     else if (data === 'road1m_foodchain') {
         imageUrl = IMG_ROAD1M;
-        text = `🔱 <b>5 TẦNG CHUỖI THỨC ĂN: SỰ THẬT TÀN NHẪN CỦA THỊ TRƯỜNG</b>\n\nBạn không nghèo đi vì bạn thiếu thông tin. Bạn nghèo vì bạn ngây thơ bước vào sòng bài và chơi bằng bộ luật do kẻ khác viết ra.\n\n<b>Tầng 1 — 🏛️ Đấng Sáng Tạo (Chính Phủ & NHTW):</b> Người in tiền, người thắt chặt lãi suất. Họ không cần trade, họ điều khiển toàn bộ dòng chảy của đại dương.\n\n<b>Tầng 2 — 🐋 Cá Voi (Các Quỹ Đầu Tư Tài Phiệt):</b> Chúng có hàng tỷ đô la. Chúng đi ngược đám đông. Chúng âm thầm gom mua dưới đáy khi bạn hoảng loạn bán ra, và chúng xả hàng ngập đầu khi bạn đang hưng phấn tột độ đu đỉnh.\n\n<b>Tầng 3 — 🎰 Đội Lái (Market Maker):</b> Những kẻ cố tình vẽ biểu đồ, tạo ra những cây nến đỏ cắm thẳng đứng lúc 2 giờ sáng để rũ bỏ những kẻ yếu bóng vía.\n\n<b>Tầng 4 — 🐺 Sói Già:</b> Những tay Trader sống sót bằng kỷ luật thép, chốt lời cắt lỗ không cảm xúc. Nhưng số này cực kỳ hiếm hoi.\n\n<b>Tầng 5 — 😵 F0 (Sinh Vật Phù Du):</b> Chính là Đám đông. Mua bằng lỗ tai nghe phím hàng, bán bằng cảm giác sợ hãi. Đây chính là mỏ thanh khoản dồi dào nuôi sống 4 tầng trên. 95% những kẻ tự trade đều đang chìm ở đáy đại dương này.\n\n💥 <b>NHẬN RA ĐIỀU GÌ CHƯA? Tự trade là tự sát.</b> SWC Pass là chiếc cần cẩu kéo bạn ra khỏi vũng lầy Tầng 5, đặt bạn ngồi lên lưng của Cá Voi (Tầng 2) để cùng săn mồi!`;
-        keyboard = [[{ text: "🔙 Quay Lại", callback_data: 'menu_road1m_main' }], ...getGlobalButtons()];
+        text = `5 TANG CHUOI THUC AN: SU THAT TAN NHAN CUA THI TRUONG\n\nBan khong ngheo di vi ban thieu thong tin. Ban ngheo vi ban ngay tho buoc vao song bac va choi bang bo luat do ke khac viet ra.\n\nTang 1 — Dang Sang Tao (Chinh Phu & NHTW): Nguoi in tien, nguoi that chat lai suat. Ho khong can trade, ho dieu khien toan bo dong chay dai duong.\n\nTang 2 — Ca Voi (Cac Quy Dau Tu Tai Phiet): Chung co hang ty do la. Chung am tham gom mua duoi day khi ban hoang loan ban ra, va xa hang ngap dau khi ban dang hung phan tot do du dinh.\n\nTang 3 — Doi Lai (Market Maker): Nhung ke co tinh ve bieu do, tao ra nhung cay nen do cam thang dung luc 2 gio sang de ru bo nhung ke yeu bong via.\n\nTang 4 — Soi Gia: Nhung tay Trader song sot bang ky luat thep, chot loi cat lo khong cam xuc.\n\nTang 5 — F0 (Sinh Vat Phu Du): Chinh la Dam dong. Mua bang lo tai nghe phim hang, ban bang cam giac so hai. Day chinh la mo thanh khoan doi dao nuoi song 4 tang tren. 95% nhung ke tu trade deu dang chim o day nay.\n\nNHAN RA DIEU GI CHUA? Tu trade la tu sat. SWC Pass la chiec can cau keo ban ra khoi vung lam Tang 5!`;
+        keyboard = [[{ text: "Quay Lai", callback_data: 'menu_road1m_main' }], ...getGlobalButtons()];
     }
 
-    // ==========================================
-    // NHÁNH 3: SWC FIELD & ATLAS 
-    // ==========================================
+    // NHANH SWC FIELD & ATLAS
     else if (data === 'menu_swcfield_main') {
         imageUrl = IMG_SWCFIELD;
-        text = `🏢 <b>SWC FIELD & QUYỀN LỰC CỦA KẺ THÁCH THỨC</b>\n\nTheo lẽ thường, để mua được cổ phần của một dự án công nghệ hoặc bất động sản ở "Giá Sỉ" (vòng Private) trước khi chúng được bơm thổi lên sàn, bạn phải chứng minh mình là nhà đầu tư chuyên nghiệp và có trong tay ít nhất 500.000 Đô La.\n\nNhưng <b>SWC Field</b> ra đời để phá vỡ đặc quyền đó. Nền tảng Showcase này gỡ bỏ rào cản, cho phép bạn được rót vốn, chia phần chiếc bánh béo bở đó chỉ với số vốn từ $50.\n\n$50 không làm bạn nghèo đi, nhưng nó cấp cho bạn một tấm vé bước vào sân chơi của giới tinh hoa.`;
+        text = `SWC FIELD & QUYEN LUC CUA KE THACH THUC\n\nTheo le thuong, de mua duoc co phan cua mot du an cong nghe o "Gia Si" (vong Private) truoc khi chung duoc bom thoi len san, ban phai chung minh minh la nha dau tu chuyen nghiep va co trong tay it nhat 500.000 Do La.\n\nNhung SWC Field ra doi de pha vo dac quyen do. Nen tang Showcase nay go bo rao can, cho phep ban duoc rot von, chia phan chiec banh beo bo do chi voi so von tu $50.\n\n$50 khong lam ban ngheo di, nhung no cap cho ban mot tam ve buoc vao san choi cua gioi tinh hoa.`;
         keyboard = [
-            [{ text: "⚖️ Bộ Lọc SPV (Lá Chắn Chống Lừa Đảo)", callback_data: 'swcfield_spv' }],
-            [{ text: "🏢 Dự Án ATLAS (Sở Hữu BĐS Dubai Trong 3 Giây)", callback_data: 'swcfield_atlas' }],
-            [{ text: "🌐 Khám phá Website SWC Field", url: SWC_FIELD_WEB }],
+            [{ text: "Bo Loc SPV (La Chan Chong Lua Dao)", callback_data: 'swcfield_spv' }],
+            [{ text: "Du An ATLAS (So Huu BDS Dubai Trong 3 Giay)", callback_data: 'swcfield_atlas' }],
+            [{ text: "Kham pha Website SWC Field", url: SWC_FIELD_WEB }],
             ...getGlobalButtons()
         ];
     }
     else if (data === 'swcfield_spv') {
         imageUrl = IMG_FIELD_SAFE;
-        text = `⚖️ <b>BỘ LỌC CHỐNG FOMO & ÁO GIÁP PHÁP LÝ SPV</b>\n\n<i>"Nhưng ngộ nhỡ dự án sập thì sao? Sợ lừa đảo lắm!"</i>\n\nĐó là một nỗi sợ hoàn toàn chính đáng. Và đó là lý do SWC Field không bao giờ bán cho bạn những "Cổ phần trừu tượng" hay những đồng Coin rác bơm thổi.\n\nMỗi một dự án xuất hiện trên SWC Field đều phải vượt qua bài kiểm tra Sinh tử của Đội ngũ thẩm định. Sau đó, nó được đóng gói cẩn thận vào một <b>SPV (Special Purpose Vehicle - Pháp nhân mục đích đặc biệt)</b>.\n\nKhi bạn xuống tiền, bạn đang mua <b>Cổ phiếu hợp pháp</b> của chính SPV đó, được bảo chứng bởi hệ thống luật pháp khắt khe của Mỹ, Liên Minh Châu Âu hoặc Nga. Tiền của bạn không bay vào hư không, nó được khóa trong một lớp áo giáp pháp lý y hệt như cách các tỷ phú bảo vệ tài sản của họ!`;
-        keyboard = [[{ text: "🔙 Quay lại SWC Field", callback_data: 'menu_swcfield_main' }], ...getGlobalButtons()];
+        text = `BO LOC CHONG FOMO & AO GIAP PHAP LY SPV\n\n"Nhung ngo nho du an sap thi sao? So lua dao lam!"\n\nDo la noi so hoan toan chinh dang. Va do la ly do SWC Field khong bao gio ban cho ban nhung "Co phan truu tuong" hay nhung dong Coin rac bom thoi.\n\nMoi mot du an xuat hien tren SWC Field deu phai vuot qua bai kiem tra Sinh tu cua Doi ngu tham dinh. Sau do, no duoc dong goi can than vao mot SPV (Special Purpose Vehicle - Phap nhan muc dich dac biet).\n\nKhi ban xuong tien, ban dang mua Co phieu hop phap cua chinh SPV do, duoc bao chung boi he thong luat phap khat khe cua My, Lien Minh Chau Au hoac Nga. Tien cua ban khong bay vao hu khong, no duoc khoa trong mot lop ao giap phap ly y het nhu cach cac ty phu bao ve tai san cua ho!`;
+        keyboard = [[{ text: "Quay lai SWC Field", callback_data: 'menu_swcfield_main' }], ...getGlobalButtons()];
     }
     else if (data === 'swcfield_atlas') {
         imageUrl = IMG_ATLAS;
-        text = `🏢 <b>SIÊU DỰ ÁN ATLAS — SỰ TIẾN HÓA CỦA BẤT ĐỘNG SẢN DUBAI (RWA)</b>\n\nBạn nghĩ rằng đầu tư Bất động sản là phải có vài chục tỷ đồng, mua một cục gạch rồi chôn vốn ở đó 5-10 năm không rút ra được? Quên đi, đó là tư duy của thập kỷ trước.\n\nXu hướng thâu tóm tài sản của tương lai gọi tên <b>RWA (Real World Assets - Tài sản thực được số hóa)</b>. Siêu dự án ATLAS biến những tòa tháp chọc trời tại Dubai thành những phần tài sản số hóa.\n\n🌟 <b>SỰ ĐỘT PHÁ TÀN NHẪN:</b>\n• <b>Thanh khoản trong 3 giây:</b> Đập tan sự kẹt vốn của BĐS truyền thống. Cần tiền? Bấm bán, tiền về ví. Nhanh như chớp.\n• <b>Bảo chứng quyền lực:</b> Được pháp nhân Atlas Overseas FZE (Cấp phép bởi chính phủ Dubai) đứng ra bảo lãnh.\n• <b>Khởi điểm chỉ từ $50:</b> Bạn, với số vốn của một người bình thường, giờ đây có thể sở hữu BĐS trung tâm Dubai và nhận <b>Tiền thuê nhà thật</b> chảy về ví mỗi tháng.\n\n⚠️ <b>LỜI CẢNH BÁO TỬ HUYỆT:</b> Vòng ưu đãi Mua sỉ Private của dự án ATLAS sẽ đóng cửa không thương tiếc vào <b>${DEADLINE}</b>. Đừng để lỡ chuyến tàu tạo ra gia sản này!`;
-        keyboard = [[{ text: "🔙 Quay lại SWC Field", callback_data: 'menu_swcfield_main' }], ...getGlobalButtons()];
+        text = `SIEU DU AN ATLAS — SU TIEN HOA CUA BAT DONG SAN DUBAI (RWA)\n\nBan nghi rang dau tu Bat dong san la phai co vai chuc ty dong, mua mot cuc gach roi chon von o do 5-10 nam khong rut ra duoc? Quen di, do la tu duy cua thap ky truoc.\n\nXu huong thau tom tai san cua tuong lai goi ten RWA (Real World Assets - Tai san thuc duoc so hoa). Sieu du an ATLAS bien nhung toa thap choc troi tai Dubai thanh nhung phan tai san so hoa.\n\nSU DOT PHA TAN NHAN:\n- Thanh khoan trong 3 giay: Dap tan su ket von cua BDS truyen thong. Can tien? Bam ban, tien ve vi. Nhanh nhu chop.\n- Bao chung quyen luc: Duoc phap nhan Atlas Overseas FZE (Cap phep boi chinh phu Dubai) dung ra bao lanh.\n- Khoi diem chi tu $50: Ban, voi so von cua nguoi binh thuong, gio day co the so huu BDS trung tam Dubai va nhan Tien thue nha that chay ve vi moi thang.\n\nLOI CANH BAO TU HUYET: Vong uu dai Mua si Private cua du an ATLAS se dong cua khong thuong tiec vao ${DEADLINE}. Dung de lo chuyen tau tao ra gia san nay!`;
+        keyboard = [[{ text: "Quay lai SWC Field", callback_data: 'menu_swcfield_main' }], ...getGlobalButtons()];
     }
 
-    // ==========================================
-    // NHÁNH 4: FAQ (ĐẬP TAN RÀO CẢN TÂM LÝ)
-    // ==========================================
+    // NHANH FAQ
     else if (data === 'menu_faq_main' || data === 'faq_back') {
-        imageUrl = IMG_FAQ;
-        text = `❓ <b>GIẢI MÃ TÂM LÝ TỪ CHỐI (FAQ)</b>\n\nGiữa việc "Bắt tay vào hành động" và "Tiếp tục đứng nhìn", con người luôn tự bịa ra những lý do để biện minh cho sự chần chừ của mình. \n\nĐừng để sự nghi ngờ cướp đi tương lai của bạn. Hãy chọn một nỗi sợ bạn đang gặp phải để chúng tôi đập tan nó:`;
+        text = `GIAI MA TAM LY TU CHOI (FAQ)\n\nGiua viec "Bat tay vao hanh dong" va "Tiep tuc dung nhin", con nguoi luon tu bia ra nhung ly do de bien minh cho su chan chu cua minh.\n\nDung de su nghi ngo cuop di tuong lai cua ban. Hay chon mot noi so ban dang gap phai de chung toi dap tan no:`;
         keyboard = [
-            [{ text: "1. Tôi chuyển tiền mua Pass xong thì nhận được cái gì?", callback_data: 'faq_1' }],
-            [{ text: "2. Tại sao tôi không tự lên YouTube học cho đỡ tốn tiền?", callback_data: 'faq_3' }],
-            [{ text: "3. Tôi không có đủ $600 lúc này thì tính sao?", callback_data: 'faq_4' }],
-            [{ text: "4. Thà tôi để tiền ở két hoặc ngân hàng cho an toàn?", callback_data: 'faq_5' }],
-            [{ text: "🏠 Trở về Menu Chính", callback_data: 'main_menu' }]
+            [{ text: "1. Chuyen tien mua Pass xong thi nhan duoc gi?", callback_data: 'faq_1' }],
+            [{ text: "2. Tai sao khong tu len YouTube hoc cho do ton tien?", callback_data: 'faq_3' }],
+            [{ text: "3. Toi khong co du $600 luc nay thi tinh sao?", callback_data: 'faq_4' }],
+            [{ text: "4. Tha toi de tien o ket hoac ngan hang cho an toan?", callback_data: 'faq_5' }],
+            [{ text: "Tro ve Menu Chinh", callback_data: 'main_menu' }]
         ];
     }
     else if (data === 'faq_1') {
-        imageUrl = IMG_FAQ;
-        text = `✅ <b>Chuyển tiền mua Pass xong, bạn nhận được gì?</b>\n\nBạn không mua một lời hứa. Bạn mua một <b>Kết quả ngay lập tức</b>.\n\nNgay khi kích hoạt thành công thẻ SWC Pass, chiếc bịt mắt của bạn sẽ được tháo xuống. Tín hiệu chiến lược của tháng đầu tiên sẽ hiển thị ngay trong màn hình hệ thống chỉ sau vài phút.\n\nBạn sẽ được hệ thống chỉ điểm cực kỳ chính xác:\n👉 Cần mua mã cổ phiếu/tài sản nào?\n👉 Rót bao nhiêu % vốn vào đó?\n👉 Vùng giá an toàn nhất để mua là bao nhiêu?\n\nBạn không cần tốn thời gian đi học cách vẽ biểu đồ nến, cũng chẳng cần hiểu báo cáo tài chính là gì. Chuyên gia đã nấu cỗ sẵn, việc của bạn chỉ là cầm đũa lên và ăn!`;
-        keyboard = [[{ text: "🔙 Quay lại Danh sách Câu hỏi", callback_data: 'faq_back' }], ...getGlobalButtons()];
+        text = `Chuyen tien mua Pass xong, ban nhan duoc gi?\n\nBan khong mua mot loi hua. Ban mua mot Ket qua ngay lap tuc.\n\nNgay khi kich hoat thanh cong the SWC Pass, tin hieu chien luoc cua thang dau tien se hien thi ngay trong man hinh he thong chi sau vai phut.\n\nBan se duoc he thong chi diem cuc ky chinh xac:\n- Can mua ma co phieu/tai san nao?\n- Rot bao nhieu % von vao do?\n- Vung gia an toan nhat de mua la bao nhieu?\n\nBan khong can ton thoi gian di hoc cach ve bieu do nen, cung chang can hieu bao cao tai chinh la gi. Chuyen gia da nau co san, viec cua ban chi la cam dua len va an!`;
+        keyboard = [[{ text: "Quay lai Danh sach Cau hoi", callback_data: 'faq_back' }], ...getGlobalButtons()];
     }
     else if (data === 'faq_3') {
-        imageUrl = IMG_FAQ;
-        text = `✅ <b>Tại sao không tự học kiến thức miễn phí trên YouTube?</b>\n\nKiến thức miễn phí trên mạng thì nhiều như rác. Nhưng nếu chỉ cần "Biết kiến thức" mà giàu, thì thế giới này ai cũng là triệu phú đô la cả rồi.\n\nSự khác biệt sinh tử của SWC Pass nằm ở chỗ: Nó cung cấp một <b>Hệ Thống Kỷ Luật ép bạn phải thực thi</b>. Nó trói tay bạn lại, ngăn không cho cảm xúc cá nhân xen vào, xóa sổ lòng tham đu đỉnh và sự sợ hãi bán tháo dưới đáy.\n\nViệc tự học trên mạng giống như bạn nằm trên giường êm nệm ấm đọc cuốn sách "Dạy bơi cấp tốc". Còn SWC Pass là việc bạn <b>thực sự nhảy xuống hồ nước sâu với một Huấn luyện viên Olympic bơi lội kế bên kẹp cổ kéo bạn đi đúng hướng</b>. Bạn chọn cách nào để không bị chết đuối trong thị trường này?`;
-        keyboard = [[{ text: "🔙 Quay lại Danh sách Câu hỏi", callback_data: 'faq_back' }], ...getGlobalButtons()];
+        text = `Tai sao khong tu hoc kien thuc mien phi tren YouTube?\n\nKien thuc mien phi tren mang thi nhieu nhu rac. Nhung neu chi can "Biet kien thuc" ma giau, thi the gioi nay ai cung la trieu phu do la ca roi.\n\nSu khac biet sinh tu cua SWC Pass nam o cho: No cung cap mot He Thong Ky Luat ep ban phai thuc thi. No troi tay ban lai, ngan khong cho cam xuc ca nhan xen vao, xoa so long tham du dinh va su so hai ban thao duoi day.\n\nViec tu hoc tren mang giong nhu ban nam tren giuong em nem am doc cuon sach "Day boi cap toc". Con SWC Pass la viec ban thuc su nhay xuong ho nuoc sau voi mot Huan luyen vien Olympic boi loi ke ben kep co keo ban di dung huong. Ban chon cach nao de khong bi chet duoi trong thi truong nay?`;
+        keyboard = [[{ text: "Quay lai Danh sach Cau hoi", callback_data: 'faq_back' }], ...getGlobalButtons()];
     }
     else if (data === 'faq_4') {
-        imageUrl = IMG_FAQ;
-        text = `✅ <b>Bạn chưa có đủ $600 lúc này để mua Gói 5 năm?</b>\n\nHãy làm một phép toán của kẻ tỉnh táo: $600 ÷ 5 năm = <b>Đúng $10/tháng</b> (Khoảng 250.000 VNĐ).\n\nMức giá này chỉ bằng số tiền bạn vung tay qua cửa sổ cho 1 bát phở hoặc 1 tài khoản Netflix mà bạn thỉnh thoảng mới động đến mỗi tuần.\n\nViệc bạn cứ chần chừ, trì hoãn với lý do "Đợi để gom cho đủ tiền" đồng nghĩa với việc bạn đang tự tay <b>đánh mất hàng thập kỷ sức mạnh của Lãi Kép</b>. Cái giá thực sự đắt đỏ tàn nhẫn không phải là 600 đô la — mà là Chi phí cơ hội thay đổi vị thế gia tộc mà bạn đã vĩnh viễn bỏ lỡ.`;
-        keyboard = [[{ text: "🔙 Quay lại Danh sách Câu hỏi", callback_data: 'faq_back' }], ...getGlobalButtons()];
+        text = `Ban chua co du $600 luc nay de mua Goi 5 nam?\n\nHay lam mot phep toan cua ke tinh tao: $600 / 5 nam = dung $10/thang (Khoang 250.000 VND).\n\nMuc gia nay chi bang so tien ban vung tay qua cua so cho 1 bat pho hoac 1 tai khoan Netflix ma ban thinh thoang moi dong den moi tuan.\n\nViec ban cu chan chu, tri hoan voi ly do "Doi de gom cho du tien" dong nghia voi viec ban dang tu tay danh mat hang thap ky suc manh cua Lai Kep. Cai gia thuc su dat do tan nhan khong phai la 600 do la — ma la Chi phi co hoi thay doi vi the gia toc ma ban da vinh vien bo lo.`;
+        keyboard = [[{ text: "Quay lai Danh sach Cau hoi", callback_data: 'faq_back' }], ...getGlobalButtons()];
     }
     else if (data === 'faq_5') {
-        imageUrl = IMG_FAQ;
-        text = `✅ <b>Thà giữ tiền mặt trong két sắt hoặc ngân hàng cho an toàn?</b>\n\nThưa bạn, tư duy "Tiền mặt là vua" chính là <b>Ảo giác an toàn nguy hiểm nhất</b> của tầng lớp trung lưu và người nghèo.\n\nCác Ngân hàng Trung ương không ngừng in thêm tiền mới mỗi ngày. Hệ quả tất yếu là "Lạm phát" - Một bóng ma khổng lồ <b>lặng lẽ móc túi bạn</b>, ăn mòn sức mua của bạn mỗi khi bạn chìm vào giấc ngủ mà không hề phát ra một tiếng động nào.\n\nGiữ khư khư tiền mặt dài hạn = <b>Đảm bảo 100% bạn sẽ nghèo đi theo thời gian</b>. Giới tinh anh và tầng lớp siêu giàu không bao giờ tích trữ tiền mặt ngu ngốc, họ luôn dùng mọi cách mượn nợ để chuyển hóa nó thành Tài sản sinh lời. Đừng tự dìm chết mình trong sự "an toàn" giả tạo đó!`;
-        keyboard = [[{ text: "🔙 Quay lại Danh sách Câu hỏi", callback_data: 'faq_back' }], ...getGlobalButtons()];
+        text = `Tha giu tien mat trong ket sat hoac ngan hang cho an toan?\n\nThua ban, tu duy "Tien mat la vua" chinh la Ao giac an toan nguy hiem nhat cua tang lop trung luu va nguoi ngheo.\n\nCac Ngan hang Trung uong khong ngung in them tien moi moi ngay. He qua tat yeu la "Lam phat" - Mot bong ma khong lo lang le moc tui ban, an mon suc mua cua ban moi khi ban chim vao giac ngu ma khong he phat ra mot tieng dong nao.\n\nGiu khur khur tien mat dai han = Dam bao 100% ban se ngheo di theo thoi gian. Gioi tinh anh va tang lop sieu giau khong bao gio tich tru tien mat ngu ngoc, ho luon dung moi cach muon no de chuyen hoa no thanh Tai san sinh loi. Dung tu dim chet minh trong su "an toan" gia tao do!`;
+        keyboard = [[{ text: "Quay lai Danh sach Cau hoi", callback_data: 'faq_back' }], ...getGlobalButtons()];
     }
 
-    // --- CƠ CHẾ GỬI ẢNH VÀ XÓA TIN NHẮN CŨ CHỐNG LỖI ---
+    // ADMIN CALLBACKS
+    else if (data === 'admin_stats' && callbackQuery.from.id.toString() === ADMIN_ID) {
+        const total = await User.countDocuments();
+        const hotLead = await User.countDocuments({ funnelStage: 'hot_lead' });
+        const interested = await User.countDocuments({ funnelStage: 'interested' });
+        const converted = await User.countDocuments({ funnelStage: 'converted' });
+        const hasPhone = await User.countDocuments({ phone: { $ne: '' } });
+        const last24h = await User.countDocuments({ lastSeenDate: { $gte: new Date(Date.now() - 24*3600000) } });
+        bot.sendMessage(ADMIN_ID, `THONG KE SWC BOT V5\n\nTong users: ${total}\nCo SDT: ${hasPhone}\nHot Lead: ${hotLead}\nInterested: ${interested}\nConverted: ${converted}\nHoat dong 24h qua: ${last24h}\nCon lai: ${getDaysLeft()} ngay`, { parse_mode: 'HTML' });
+        return;
+    }
+    else if (data === 'admin_help' && callbackQuery.from.id.toString() === ADMIN_ID) {
+        bot.sendMessage(ADMIN_ID, `LENH ADMIN:\n/tracuu [ID]\n/setpass [ID] [goi]\n/settag [ID] [tag]\n/sendall [Text]\n/sendgroup [Text]\n/broadcast [tag] [Text]\n/reset [ID] — reset lich su AI\n/note [ID] [ghi chu]`, { parse_mode: 'HTML' });
+        return;
+    }
+
     if (text !== '') {
         bot.deleteMessage(chatId, messageId).catch(() => {});
         if (imageUrl !== '') {
-            bot.sendPhoto(chatId, imageUrl, {
-                caption: text,
-                parse_mode: 'HTML',
-                reply_markup: { inline_keyboard: keyboard }
-            }).catch((e) => {
-                bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } });
-            });
+            bot.sendPhoto(chatId, imageUrl, { caption: text, parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } })
+                .catch(() => bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }));
         } else {
             bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } });
         }
     }
 });
 
-// ==========================================
-// XỬ LÝ TIN NHẮN TỰ DO — AI TƯ VẤN VÀ ADMIN
-// ==========================================
+// ==========================================================
+// XU LY TIN NHAN TU DO - AI TI & ADMIN
+// ==========================================================
 bot.on('message', async (msg) => {
     if (!msg.from || msg.from.is_bot || msg.chat.type !== 'private') return;
     if (msg.contact || (msg.text && msg.text.startsWith('/'))) return;
@@ -370,63 +635,90 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id.toString();
 
-    // 1. ADMIN TRẢ LỜI LẠI KHÁCH
+    // ADMIN TRA LOI LAI KHACH
     if (userId === ADMIN_ID && msg.reply_to_message) {
         const originalText = msg.reply_to_message.text || msg.reply_to_message.caption || '';
         const idMatch = originalText.match(/ID:\s*(\d+)/);
         if (idMatch) {
             const targetId = idMatch[1];
-            bot.sendMessage(targetId, `👨‍💻 <b>Phản hồi từ Đội ngũ Chuyên gia SWC:</b>\n\n${msg.text || msg.caption}`, { parse_mode: 'HTML' }).catch(() => {});
-            bot.sendMessage(ADMIN_ID, `✅ Đã gửi câu trả lời cho khách ID: <code>${targetId}</code>`, { parse_mode: 'HTML' });
+            await bot.sendMessage(targetId, `Phan hoi tu Doi ngu Chuyen gia SWC:\n\n${msg.text || msg.caption}`, { parse_mode: 'HTML' }).catch(() => {});
+            bot.sendMessage(ADMIN_ID, `Da gui cau tra loi cho khach ID: ${targetId}`, { parse_mode: 'HTML' });
             await User.updateOne({ userId: targetId }, { $set: { adminPausedAiUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) } });
             return;
         }
     }
 
-    // 2. KHÁCH NHẮN TIN - GỌI AI CLAUDE
+    // KHACH NHAN TIN - GOI AI CLAUDE
     if (userId !== ADMIN_ID) {
         let user = await User.findOne({ userId });
-        if (!user) { user = new User({ userId, firstName: msg.from.first_name || '', lastName: msg.from.last_name || '', username: msg.from.username ? `@${msg.from.username}` : '' }); await user.save(); }
+        if (!user) {
+            user = new User({ userId, firstName: msg.from.first_name || '', lastName: msg.from.last_name || '', username: msg.from.username ? `@${msg.from.username}` : '' });
+            await user.save();
+        }
+        user.lastSeenDate = new Date();
 
+        // Forward file/anh/video cho admin
         if (msg.photo || msg.video || msg.document) {
             await bot.forwardMessage(ADMIN_ID, chatId, msg.message_id).catch(() => {});
-            bot.sendMessage(ADMIN_ID, `📩 <b>TỆP TỪ KHÁCH HÀNG</b>\n👤 Tên: ${user.firstName}\n🆔 ID: <code>${userId}</code>\n💬 Ghi chú: ${msg.caption || 'Không có'}\n\n👉 <i>Reply tin này để chat trực tiếp (AI sẽ bị khóa 2h).</i>`, { parse_mode: 'HTML' }).catch(()=>{});
+            bot.sendMessage(ADMIN_ID, `TEP TU KHACH HANG\nTen: ${user.firstName}\nID: ${userId}\nGhi chu: ${msg.caption || 'Khong co'}\nReply tin nay de chat truc tiep (AI bi khoa 2h).`, { parse_mode: 'HTML' }).catch(() => {});
         }
 
+        // Neu admin dang xu ly - chi forward, khong tra loi AI
         const now = new Date();
         if (user.adminPausedAiUntil && user.adminPausedAiUntil > now) {
-            bot.sendMessage(ADMIN_ID, `📩 <b>KHÁCH TRẢ LỜI (CHẾ ĐỘ ADMIN)</b>\n👤 Tên: ${user.firstName}\n🆔 ID: <code>${userId}</code>\n💬 Nội dung: ${msg.text || '[Tệp]'}\n\n👉 <i>Reply để tiếp tục chat.</i>`, { parse_mode: 'HTML' }).catch(()=>{});
+            bot.sendMessage(ADMIN_ID, `KHACH TRA LOI (CHE DO ADMIN)\nTen: ${user.firstName}\nID: ${userId}\nNoi dung: ${msg.text || '[Tep]'}\nReply de tiep tuc chat.`, { parse_mode: 'HTML' }).catch(() => {});
             return;
         }
 
         bot.sendChatAction(chatId, 'typing').catch(() => {});
-        const userText = msg.text || msg.caption || '[Khách gửi tệp]';
-        const aiReply = await callClaude(user, userText);
-        
-        bot.sendMessage(chatId, aiReply, { parse_mode: 'HTML' }).catch(() => {});
 
-        if (['interested', 'hot_lead', 'converted'].includes(user.funnelStage)) {
-            const alertMsg = `🔥 <b>HOT LEAD ĐANG CHAT VỚI AI</b>\n👤 Tên: <b>${user.firstName}</b>\n🆔 ID: <code>${userId}</code>\n\n💬 <b>Khách:</b> ${userText}\n🤖 <b>Tí:</b> ${aiReply}\n\n👉 <i>Reply tin này để cướp quyền chat.</i>`;
-            bot.sendMessage(ADMIN_ID, alertMsg, { parse_mode: 'HTML' }).catch(() => {});
+        // Typing delay tu nhien theo do dai va tone
+        const userText = msg.text || msg.caption || '[Khach gui tep]';
+        const tone = detectTone(userText);
+        const delayMs = tone === 'casual' ? 800 :
+                       tone === 'skeptic' ? 2500 :
+                       tone === 'sad' ? 2000 :
+                       Math.min(userText.length * 15, 3000);
+        await new Promise(r => setTimeout(r, delayMs));
+
+        const aiReply = await callClaude(user, userText);
+
+        await bot.sendMessage(chatId, aiReply, { parse_mode: 'HTML' }).catch(() => {
+            bot.sendMessage(chatId, aiReply);
+        });
+
+        // Thong bao admin khi hot lead
+        if (['interested', 'hot_lead'].includes(user.funnelStage)) {
+            const alertMsg = `HOT LEAD DANG CHAT VE AI\nTen: ${user.firstName} ${user.lastName}\nID: ${userId}\nTone: ${tone} | Quan tam: ${user.mainConcern}\nFunnel: ${user.funnelStage}\n\nKhach: ${userText.substring(0, 200)}\nTi: ${aiReply.substring(0, 300)}\n\nReply tin nay de cuop quyen chat.`;
+            bot.sendMessage(ADMIN_ID, alertMsg).catch(() => {});
         }
     }
 });
 
-// ==========================================
-// BROADCAST LỊCH GỬI TIN & DRIP FUNNEL 7 NGÀY
-// ==========================================
+// ==========================================================
+// BROADCAST THEO LICH & THONG BAO HE THONG
+// ==========================================================
 function getVNTime() { return new Date(new Date().getTime() + (7 * 60 * 60 * 1000)); }
 
-async function broadcastToAll(message) {
+async function broadcastToAll(message, imageUrl = null) {
     const users = await User.find({ broadcastOptOut: false });
+    let success = 0;
     for (const user of users) {
-        try { await bot.sendPhoto(user.userId, IMG_MAIN_MENU, { caption: message, parse_mode: 'HTML', reply_markup: { inline_keyboard: getGlobalButtons() } }); } catch (e) {}
+        try {
+            if (imageUrl) {
+                await bot.sendPhoto(user.userId, imageUrl, { caption: message, parse_mode: 'HTML', reply_markup: { inline_keyboard: getGlobalButtons() } });
+            } else {
+                await bot.sendMessage(user.userId, message, { parse_mode: 'HTML', reply_markup: { inline_keyboard: getGlobalButtons() } });
+            }
+            success++;
+        } catch (e) {}
         await new Promise(r => setTimeout(r, 70));
     }
+    return success;
 }
 
-async function broadcastToTag(tag, message) {
-    const users = await User.find({ tag, broadcastOptOut: false });
+async function broadcastToStage(stage, message) {
+    const users = await User.find({ funnelStage: stage, broadcastOptOut: false });
     for (const user of users) {
         try { await bot.sendPhoto(user.userId, IMG_MAIN_MENU, { caption: message, parse_mode: 'HTML', reply_markup: { inline_keyboard: getGlobalButtons() } }); } catch (e) {}
         await new Promise(r => setTimeout(r, 70));
@@ -440,83 +732,102 @@ setInterval(async () => {
     const daysLeft = getDaysLeft();
 
     if (h === 8 && m === 0) {
-        const msg = `🌅 <b>CHÀO BUỔI SÁNG — F0 ĐANG LO, TA ĐANG CÓ KẾ HOẠCH!</b>\n\nĐa số F0 đang sợ hãi không biết hôm nay thị trường đi đâu... Nhưng thành viên SWC đã có kế hoạch từ đầu tháng.\n\n💡 <b>Sự thật tàn nhẫn:</b> 95% người tự trade thua lỗ không phải vì thiếu thông tin — mà vì <b>thiếu hệ thống kỷ luật</b>.\n\n⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống trước khi cửa đóng vĩnh viễn!`;
-        await broadcastToAll(msg);
+        const msg = `CHAO BUOI SANG — F0 DANG LO, TA DANG CO KE HOACH!\n\nDa so F0 dang so hai khong biet hom nay thi truong di dau... Nhung thanh vien SWC da co ke hoach tu dau thang.\n\nSu that tan nhan: 95% nguoi tu trade thua lo khong phai vi thieu thong tin — ma vi thieu he thong ky luat.\n\nCon ${daysLeft} ngay de gia nhap he thong truoc khi cua dong vinh vien!`;
+        await broadcastToAll(msg, IMG_MAIN_MENU);
     }
+
     if (h === 12 && m === 0) {
-        const msg = `💡 <b>KIẾN THỨC TÀI CHÍNH TỪ SÓI GIÀ: Lãi kép — Kỳ quan thứ 8</b>\n\n$240/tháng × 15 năm × lãi kép 20%/năm = <b>$1,000,000+</b>\nBí quyết là bắt đầu SỚM và kỷ luật ĐỀU ĐẶN. Đừng đánh bạc với thời gian. Còn ${daysLeft} ngày để lên tàu SWC Pass!`;
-        await broadcastToAll(msg);
+        const msg = `KIEN THUC TAI CHINH: Lai kep — Ky quan thu 8\n\n$240/thang × 15 nam × lai kep 20%/nam = $1,000,000+\n\nBi quyet la bat dau SOM va ky luat DEU DAN. Dung danh bac voi thoi gian. Con ${daysLeft} ngay de len tau SWC Pass!`;
+        await broadcastToAll(msg, IMG_ROAD1M);
     }
+
     if (h === 19 && m === 30) {
-        const msg = `📚 <b>THỜI GIAN CẬP NHẬT KIẾN THỨC BẢO VỆ TÀI SẢN!</b>\n\nVào Group cộng đồng ngay để:\n✅ Cập nhật tiến độ dự án ATLAS Dubai (RWA)\n✅ Thảo luận chiến lược đầu tư Lãi Kép\n✅ Kết nối 1.000+ nhà đầu tư tinh hoa\n\n⏳ Giữ chặt ví tiền! Còn <b>${daysLeft} ngày</b> để mua vị thế tốt nhất!`;
-        await broadcastToAll(msg);
+        const msg = `THOI GIAN CAP NHAT KIEN THUC BAO VE TAI SAN!\n\nVao Group cong dong ngay de:\n- Cap nhat tien do du an ATLAS Dubai (RWA)\n- Thao luan chien luoc dau tu Lai Kep\n- Ket noi 1.000+ nha dau tu tinh hoa\n\nGiu chat vi tien! Con ${daysLeft} ngay de mua vi the tot nhat!`;
+        await broadcastToAll(msg, IMG_SWCFIELD);
     }
+
     if (h === 20 && m === 30) {
-        const msg = `🔥 <b>NHẮC NHỞ KHẨN CẤP — CÒN ĐÚNG ${daysLeft} NGÀY!</b>\n\nLúc này có 2 loại người:\nLoại 1: F0 đang lo lắng thị trường, nhìn chart đỏ mắt...\nLoại 2: Đã sở hữu SWC Pass — <b>đang ngủ ngon trong khi hệ thống tự động chạy</b>.\n\nGói <b>Ultimate (Vĩnh viễn)</b> — Giới hạn 1.000 suất — <b>Sẽ đóng cửa vĩnh viễn vào ${DEADLINE}</b>. Không có ngoại lệ.`;
-        await broadcastToTag('hot_lead', msg); await broadcastToTag('interested', msg);
+        const msg = `NHAC NHO KHAN CAP — CON DUNG ${daysLeft} NGAY!\n\nLuc nay co 2 loai nguoi:\nLoai 1: F0 dang lo lang thi truong, nhin chart do mat...\nLoai 2: Da so huu SWC Pass — dang ngu ngon trong khi he thong tu dong chay.\n\nGoi Ultimate (Vinh vien) — Gioi han 1.000 suat — Se dong cua vinh vien vao ${DEADLINE}. Khong co ngoai le.`;
+        await broadcastToStage('hot_lead', msg);
+        await broadcastToStage('interested', msg);
     }
 }, 60000);
 
-// ==========================================
-// ADMIN PANEL & LỆNH GỬI TIN HÀNG LOẠT (SENDALL)
-// ==========================================
+// ==========================================================
+// ADMIN PANEL & CAC LENH QUAN TRI
+// ==========================================================
 bot.onText(/\/(admin|menu)/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    bot.sendMessage(msg.chat.id, `👨‍💻 <b>ADMIN PANEL</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📊 Thống kê Phễu", callback_data: 'admin_stats' }], [{ text: "📢 Bảng lệnh Quản trị", callback_data: 'admin_help' }]] } });
-});
-
-bot.on('callback_query', async (query) => {
-    if(query.data === 'admin_stats' && query.from.id.toString() === ADMIN_ID) {
-        const total = await User.countDocuments(); const hotLead = await User.countDocuments({ funnelStage: 'hot_lead' });
-        bot.sendMessage(ADMIN_ID, `📊 <b>THỐNG KÊ SWC BOT</b>\n👥 Tổng users: ${total}\n🔥 Hot Lead: ${hotLead}\n⏳ Còn lại: ${getDaysLeft()} ngày`, { parse_mode: 'HTML' });
-    }
-    if(query.data === 'admin_help' && query.from.id.toString() === ADMIN_ID) {
-        bot.sendMessage(ADMIN_ID, `📢 <b>LỆNH ADMIN BẰNG TAY:</b>\n1. <code>/tracuu [ID]</code>\n2. <code>/setpass [ID] [Gói]</code>\n3. <code>/sendall [Text]</code>: Bắn tin cho tất cả.\n4. <code>/sendgroup [Text]</code>: Gửi Group`, { parse_mode: 'HTML' });
-    }
+    bot.sendMessage(msg.chat.id, `ADMIN PANEL SWC BOT V5`, {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "Thong ke Pheu", callback_data: 'admin_stats' }],
+                [{ text: "Bang lenh Quan tri", callback_data: 'admin_help' }]
+            ]
+        }
+    });
 });
 
 bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    const textToSend = match[1];
     const users = await User.find({});
-    
-    bot.sendMessage(ADMIN_ID, `⏳ Bắt đầu gửi tin nhắn hàng loạt kèm ảnh cho ${users.length} người...`);
-    let success = 0;
-    for (const u of users) {
-        try { 
-            await bot.sendPhoto(u.userId, IMG_MAIN_MENU, { caption: textToSend, parse_mode: 'HTML', reply_markup: { inline_keyboard: getGlobalButtons() } }); 
-            success++; 
-        } catch (e) {}
-        await new Promise(r => setTimeout(r, 70)); 
-    }
-    bot.sendMessage(ADMIN_ID, `✅ Gửi thành công: ${success}/${users.length} khách hàng.`);
+    bot.sendMessage(ADMIN_ID, `Bat dau gui tin nhan hang loat kem anh cho ${users.length} nguoi...`);
+    const success = await broadcastToAll(match[1], IMG_MAIN_MENU);
+    bot.sendMessage(ADMIN_ID, `Gui thanh cong: ${success}/${users.length} khach hang.`);
 });
 
-// Các lệnh quản lý khác
+bot.onText(/\/broadcast (\w+) ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const [, stage, text] = match;
+    await broadcastToStage(stage, text);
+    bot.sendMessage(ADMIN_ID, `Da gui tin den nhom: ${stage}`);
+});
+
 bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const user = await User.findOne({ userId: match[1] });
-    if (!user) return bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy!`);
-    bot.sendMessage(ADMIN_ID, `🔎 <b>HỒ SƠ KHÁCH HÀNG</b>\n🆔 <code>${match[1]}</code>\n👤 Tên: ${user.firstName} ${user.lastName}\n📞 SĐT: ${user.phone || 'Chưa có'}\n🎯 Phễu: ${user.funnelStage}\n💎 Gói Pass: ${user.swcPassTier}`, { parse_mode: 'HTML' });
+    if (!user) return bot.sendMessage(ADMIN_ID, `Khong tim thay!`);
+    const lastSeen = user.lastSeenDate ? new Date(user.lastSeenDate).toLocaleString('vi-VN') : 'Chua co';
+    bot.sendMessage(ADMIN_ID, `HO SO KHACH HANG\nID: ${match[1]}\nTen: ${user.firstName} ${user.lastName}\nSDT: ${user.phone || 'Chua co'}\nFunnel: ${user.funnelStage}\nGoi Pass: ${user.swcPassTier}\nSo tin nhan: ${user.messageCount || 0}\nLan cuoi hoat dong: ${lastSeen}\nTone gan nhat: ${user.lastTone || 'chua xac dinh'}\nQuan tam chinh: ${user.mainConcern || 'chua xac dinh'}\nGhi chu: ${user.notes || 'Khong co'}`, { parse_mode: 'HTML' });
 });
 
 bot.onText(/\/setpass (\d+) (\w+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const tier = match[2].toLowerCase();
-    if (!['none', 'essential', 'plus', 'ultimate'].includes(tier)) return bot.sendMessage(ADMIN_ID, `❌ Sai gói! Dùng: essential / plus / ultimate`);
+    if (!['none', 'essential', 'plus', 'ultimate'].includes(tier)) return bot.sendMessage(ADMIN_ID, `Sai goi! Dung: essential / plus / ultimate`);
     await User.updateOne({ userId: match[1] }, { $set: { swcPassTier: tier, funnelStage: tier !== 'none' ? 'converted' : 'hot_lead' } });
-    bot.sendMessage(ADMIN_ID, `✅ Đã Kích hoạt Gói: <b>${tier}</b> cho ${match[1]}`, { parse_mode: 'HTML' });
+    bot.sendMessage(ADMIN_ID, `Da cap nhat Goi: ${tier} cho ${match[1]}`);
+});
+
+bot.onText(/\/settag (\d+) (\w+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    await User.updateOne({ userId: match[1] }, { $set: { tag: match[2] } });
+    bot.sendMessage(ADMIN_ID, `Da cap nhat tag: ${match[2]} cho ${match[1]}`);
+});
+
+bot.onText(/\/reset (\d+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    await User.updateOne({ userId: match[1] }, { $set: { chatHistory: [], adminPausedAiUntil: null } });
+    bot.sendMessage(ADMIN_ID, `Da reset lich su AI cho ${match[1]}`);
+});
+
+bot.onText(/\/note (\d+) ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    await User.updateOne({ userId: match[1] }, { $set: { notes: match[2] } });
+    bot.sendMessage(ADMIN_ID, `Da luu ghi chu cho ${match[1]}: ${match[2]}`);
 });
 
 bot.onText(/\/sendgroup ([\s\S]+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    try { await bot.sendMessage(GROUP_USERNAME, `📢 <b>THÔNG BÁO TỪ BQT:</b>\n\n${match[1]}`, { parse_mode: 'HTML' }); bot.sendMessage(ADMIN_ID, `✅ Đã gửi Group!`);
-    } catch (e) { bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`); }
+    try {
+        await bot.sendMessage(GROUP_USERNAME, `THONG BAO TU BQT:\n\n${match[1]}`, { parse_mode: 'HTML' });
+        bot.sendMessage(ADMIN_ID, `Da gui Group!`);
+    } catch (e) { bot.sendMessage(ADMIN_ID, `Loi: ${e.message}`); }
 });
 
-// ==========================================
-// HTTP SERVER (BẮT BUỘC ĐỂ RENDER KHÔNG SẬP)
-// ==========================================
+// ==========================================================
+// HTTP SERVER (BAT BUOC DE RENDER KHONG SAP)
+// ==========================================================
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('SWC Bot v5.0 - Running OK!\n');
@@ -524,6 +835,6 @@ const server = http.createServer((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌐 Port ${PORT}`);
-    console.log("🚀 MA TRẬN CHỐT SALE VÀ AI CLAUDE ĐÃ KÍCH HOẠT THÀNH CÔNG!");
+    console.log(`Port ${PORT}`);
+    console.log("MA TRAN CHOT SALE VA AI CLAUDE DA KICH HOAT THANH CONG!");
 });
