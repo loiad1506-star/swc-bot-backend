@@ -25,12 +25,11 @@ bot.on("error", (msg) => console.log("⚠️ Lỗi chung:", msg.message));
 // ==========================================================
 const ADMIN_ID = process.env.ADMIN_ID || '507318519';
 const GROUP_USERNAME = '@swc_capital_chat';
-const DEADLINE = '31/03/2026';
 
-const SWC_FIELD_URL   = 'https://swc001.netlify.app/';
-const SWC_PASS_URL    = 'https://swcpass.vn';
-const ROAD_1M_URL     = 'https://swc001.netlify.app/road-to-1m';
-const ATLAS_URL       = 'https://swc001.netlify.app/chi-tiet-du-an-atlas';
+const SWC_FIELD_URL   = 'https://swcpass.com/swc-field/';
+const SWC_PASS_URL    = 'https://swcpass.com/swc-field/#pricing';
+const ROAD_1M_URL     = 'https://swcpass.com/rm1/';
+const ATLAS_URL       = 'https://swcpass.com/atlas/';
 const VIDEO_MOBILE    = 'https://www.youtube.com/watch?v=SEB7RJrutxg';
 const VIDEO_PC        = 'https://www.youtube.com/watch?v=gy_sxh9WCCM';
 
