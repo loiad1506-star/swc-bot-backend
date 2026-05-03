@@ -125,7 +125,7 @@ Triết lý cổ nhân: Luật Nhân Quả (Tiền là Quả, Đạo đức là 
 const KT_NHAN_TINH = `
 [KIẾN THỨC 2 — THẤU HIỂU NHÂN TÍNH & THUYẾT PHỤC]
 Dale Carnegie — Đắc Nhân Tâm: (1) Không chỉ trích, lên án — làm họ cảm thấy tốt về bản thân trước. (2) Tán thành chân thành — mọi người khao khát được thừa nhận. (3) Khơi dậy khát khao — hỏi "Anh/chị đang SỢ điều gì nhất trong 5 năm tới?". (4) Quan tâm thật sự — nhớ tên, hỏi gia đình. (5) Làm người khác nói nhiều — người nói nhiều thua. (6) Để người khác giữ thể diện — sửa lỗi làm riêng.
-Kể chuyện SWC: Mèo Vàng bắt cá (Road to $1M: nhịn oi $8/ngày, 15 năm = 1 triệu con cá). Tàu đánh cá (SWC Field: gom 10.000 chú mèo, mỗi chú $50 = cổ đông Tàu Lớn qua SPV). SWC Pass = thẻ hội viên để lên Tàu Lớn.
+Kể chuyện SWC: Mèo Vàng bắt cá (Road to $1M: nhịn oi $3/ngày, 15 năm = 1 triệu con cá). Tàu đánh cá (SWC Field: gom 10.000 chú mèo, mỗi chú $50 = cổ đông Tàu Lớn qua SPV). SWC Pass = thẻ hội viên để lên Tàu Lớn.
 5 Tầng Chuỗi Thức Ăn: Tầng 1 (In tiền, tạo luật) → Tầng 2 (Thu thuế thanh khoản) → Tầng 3 Gurus (Bán cuốc xẻng) → Tầng 4 Smart Investors (Kỷ luật, tỷ lệ sống 5-10%) → Tầng 5 Đám đông (90% tham gia, giao dịch bằng cảm xúc = mồi của 4 tầng trên). Mục tiêu: đưa khách từ Tầng 5 lên Tầng 4.
 3 câu hỏi mở cửa lòng người: (1) "Anh/chị đang SỢ điều gì nhất trong 5 năm tới?" (2) "Nếu không có ràng buộc tài chính, anh/chị muốn cuộc sống thế nào?" (3) "Anh/chị đã từng mất tiền vì quyết định nào rồi?"
 `;
@@ -142,10 +142,10 @@ Bản đồ dòng tiền 4 mùa: Xuân (lãi suất hạ → CS/Crypto) → Hạ
 const KT_DU_AN = `
 [KIẾN THỨC 4 — DỰ ÁN SWC]
 SWC — Sky World Community: Website swc001.netlify.app. Crowdinvesting Platform quốc tế, 10+ năm, giấy phép quỹ đầu tư SEC Mỹ. Sứ mệnh: giúp nhà đầu tư cá nhân tiếp cận Pre-IPO, Venture Capital. SPV: mỗi dự án có SPV riêng, đầu tư từ $50, không phí ẩn. Pháp lý: SEC Mỹ, MiFID II Châu Âu. Chỉ 1% dự án lọt qua thẩm định.
-SWC Pass (swcpass.vn): Hệ thống tín hiệu & lộ trình hàng tháng. Chỉ 10-15 phút/tháng. Essential (Silver): $240/năm = $20/tháng + tặng 90 ngày. Plus (Gold): $600/5 năm = $10/tháng, khoá giá 5 năm, 80% nhà đầu tư tinh anh chọn. Ultimate (Diamond): $2,600 vĩnh viễn, một lần, truyền lại cho con cháu.
-SWC Field (swc001.netlify.app): Sân chơi cá mập. Chỉ 1% dự án được chọn. Bảo vệ vốn All-or-Nothing (không đủ KPI → hoàn 100%). Từ $50.
-Dự án ATLAS (swc001.netlify.app/chi-tiet-du-an-atlas): "Grab của ngành BĐS tại UAE." Gom toàn bộ quy trình mua-bán BĐS vào 1 app. Giải quyết: tin ảo, kê giá (môi giới ăn chênh), môi giới không phép. Win-Win-Win. Lộ trình: MVP UAE → Mở rộng UAE → Singapore, HK, Anh, Pháp.
-Road to $1M (swc001.netlify.app/road-to-1m): DCA $8/ngày = $240/tháng, Buy & Hold, lãi kép 15-20 năm. $240/tháng × 20%/năm: 10 năm ~$55K, 20 năm ~$480K, 30 năm ~$3.4M (×64 vốn gốc). 3 triết lý: Commercial Cows + DCA (thị trường sập = sale-off) + Buy & Hold (loại cảm tính).
+SWC Pass (swcpass.com): Hệ thống tín hiệu & lộ trình hàng tháng. Chỉ 10-15 phút/tháng. Essential (Silver): $240/năm = $20/tháng + tặng 90 ngày. Plus (Gold): $600/5 năm = $10/tháng, khoá giá 5 năm, 80% nhà đầu tư tinh anh chọn. Ultimate (Diamond): $2,600 vĩnh viễn, một lần, truyền lại cho con cháu.
+SWC Field (https://swcpass.com/swc-field/): Sân chơi cá mập. Chỉ 1% dự án được chọn. Bảo vệ vốn All-or-Nothing (không đủ KPI → hoàn 100%). Từ $50.
+Dự án ATLAS (https://swcpass.com/atlas/): "Grab của ngành BĐS tại UAE." Gom toàn bộ quy trình mua-bán BĐS vào 1 app. Giải quyết: tin ảo, kê giá (môi giới ăn chênh), môi giới không phép. Win-Win-Win. Lộ trình: MVP UAE → Mở rộng UAE → Singapore, HK, Anh, Pháp.
+Road to $1M (https://swcpass.com/rm1/): DCA $3/ngày = $100/tháng, Buy & Hold, lãi kép 15-20 năm. $100/tháng × 20%/năm: 10 năm ~$55K, 20 năm ~$480K, 30 năm ~$3.4M (×64 vốn gốc). 3 triết lý: Commercial Cows + DCA (thị trường sập = sale-off) + Buy & Hold (loại cảm tính).
 `;
 
 const TOAN_BO_KIEN_THUC = `${KT_PHAT_TRIEN}\n${KT_NHAN_TINH}\n${KT_DAU_TU}\n${KT_DU_AN}`;
@@ -409,7 +409,7 @@ SWC Pass không giữ tiền của bạn. Không bao giờ.`;
 Quyết định hôm nay sẽ định hình khối tài sản của bạn trong 15–20 năm tới.
 
 ━━━━━━━━━━━━━━━━━━━
-<b>🥉 GÓI ESSENTIAL — 1 Năm ($240)</b>
+<b>🥉 GÓI ESSENTIAL — 1 Năm ($290)</b>
 Tương đương: Chỉ <b>$20/tháng</b> (bằng 1 chầu cà phê cuối tuần)
 
 Bạn nhận được:
@@ -421,7 +421,7 @@ Bạn nhận được:
 Phù hợp: Người mới, chưa tin tưởng hoàn toàn, muốn trải nghiệm trước.
 
 ━━━━━━━━━━━━━━━━━━━
-<b>🥇 GÓI PLUS — 5 Năm ($600) [ĐA SỐ CHỌN]</b>
+<b>🥇 GÓI PLUS — 5 Năm ($720) [ĐA SỐ CHỌN]</b>
 Tương đương: Chỉ <b>$10/tháng</b> (bằng 1 bát phở mỗi tuần)
 
 Bạn nhận được toàn bộ Essential CỘNG THÊM:
@@ -496,8 +496,8 @@ Không phải vì nó kỳ diệu. Mà vì đơn giản đến mức người ta
 
 ━━━━━━━━━━━━━━━━━━━
 <b>Bài toán thực tế:</b>
-Mỗi ngày nhịn oi $8 — bằng 1 ly cà phê sáng.
-Mỗi tháng đầu tư đều đặn <b>$240</b>.
+Mỗi ngày nhịn oi $3 — bằng 1 ly cà phê sáng.
+Mỗi tháng đầu tư đều đặn <b>$100</b>.
 Tỷ lệ sinh lời trung bình <b>20%/năm</b> (kết hợp cổ tức + SWC Field).
 
 <b>Kết quả sau:</b>
