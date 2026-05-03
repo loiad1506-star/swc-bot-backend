@@ -43,7 +43,7 @@ const IMG_ATLAS  = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
 const IMG_SPV    = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
 
 function getDaysLeft() {
-    const dl = new Date('2026-03-31T23:59:00+07:00');
+    const dl = new Date('2026-06-30T23:59:00+07:00');
     const diff = Math.ceil((dl - new Date()) / 86400000);
     return diff > 0 ? diff : 0;
 }
@@ -51,6 +51,7 @@ function getDaysLeft() {
 // NÚT BẤM TOÀN CỤC — KHÔNG CÓ NÚT VIDEO Ở ĐÂY
 function nutsLienKet() {
     return [
+        [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
         [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
         [{ text: '🗺️ Con đường $1,000,000', url: ROAD_1M_URL }, { text: '🏢 Dự án ATLAS', url: ATLAS_URL }],
         [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
@@ -125,7 +126,7 @@ Triết lý cổ nhân: Luật Nhân Quả (Tiền là Quả, Đạo đức là 
 const KT_NHAN_TINH = `
 [KIẾN THỨC 2 — THẤU HIỂU NHÂN TÍNH & THUYẾT PHỤC]
 Dale Carnegie — Đắc Nhân Tâm: (1) Không chỉ trích, lên án — làm họ cảm thấy tốt về bản thân trước. (2) Tán thành chân thành — mọi người khao khát được thừa nhận. (3) Khơi dậy khát khao — hỏi "Anh/chị đang SỢ điều gì nhất trong 5 năm tới?". (4) Quan tâm thật sự — nhớ tên, hỏi gia đình. (5) Làm người khác nói nhiều — người nói nhiều thua. (6) Để người khác giữ thể diện — sửa lỗi làm riêng.
-Kể chuyện SWC: Mèo Vàng bắt cá (Road to $1M: nhịn oi $3/ngày, 15 năm = 1 triệu con cá). Tàu đánh cá (SWC Field: gom 10.000 chú mèo, mỗi chú $50 = cổ đông Tàu Lớn qua SPV). SWC Pass = thẻ hội viên để lên Tàu Lớn.
+Kể chuyện SWC: Mèo Vàng bắt cá (Road to $1M: nhịn oi $8/ngày, 15 năm = 1 triệu con cá). Tàu đánh cá (SWC Field: gom 10.000 chú mèo, mỗi chú $50 = cổ đông Tàu Lớn qua SPV). SWC Pass = thẻ hội viên để lên Tàu Lớn.
 5 Tầng Chuỗi Thức Ăn: Tầng 1 (In tiền, tạo luật) → Tầng 2 (Thu thuế thanh khoản) → Tầng 3 Gurus (Bán cuốc xẻng) → Tầng 4 Smart Investors (Kỷ luật, tỷ lệ sống 5-10%) → Tầng 5 Đám đông (90% tham gia, giao dịch bằng cảm xúc = mồi của 4 tầng trên). Mục tiêu: đưa khách từ Tầng 5 lên Tầng 4.
 3 câu hỏi mở cửa lòng người: (1) "Anh/chị đang SỢ điều gì nhất trong 5 năm tới?" (2) "Nếu không có ràng buộc tài chính, anh/chị muốn cuộc sống thế nào?" (3) "Anh/chị đã từng mất tiền vì quyết định nào rồi?"
 `;
@@ -135,17 +136,17 @@ const KT_DAU_TU = `
 Warren Buffett: "Giá cả là những gì bạn phải trả. Giá trị là những gì bạn nhận được." Chỉ đầu tư vào thứ mình HIỂU (Circle of Competence). Mua DOANH NGHIỆP, không mua mảnh giấy. "Tốt hơn là mua công ty tuyệt vời với giá hợp lý, hơn mua công ty hợp lý với giá tuyệt vời" — Munger. "Thị trường là công cụ chuyển tiền từ tay người nóng vội sang tay người kiên nhẫn." Sợ khi người khác THAM LAM, THAM LAM khi người khác SỢ HÃNG. 2 Quy tắc vàng: Không mất vốn. Không quên Quy tắc 1. Lãi kép = Kỳ quan thứ 8 (Einstein).
 Giá cả vs Giá trị: Giá cả = hiện tượng, bị cảm xúc đám đông chi phối, ngắn hạn, dễ bị thao túng. Giá trị = bản chất bền vững. Bi kịch 90% F0: mang tư duy Trader nhưng hành động như Holder khi thất bại — không cắt lỗ, tự an ủi "dài hạn" với thứ chưa bao giờ nghiên cứu giá trị.
 4 bước giải mã tin tức: B1-Bóc trần sự thật (bình phong). B2-Đối chiếu M2/DXY. B3-Chỉ ra cảm xúc Tầng 5. B4-Hành động: Phòng thủ/Rút kiếm/Chốt lời.
-Dữ liệu vĩ mô (03/2026): FED 3.625%. M2 YoY +4.29% (Vùng Hoàng Kim 3-5%). DXY 98-100. CPI 2.4%. → TÍN HIỆU: M2 Vùng Hoàng Kim + Tầng 5 hoảng loạn = RÚT KIẾM, gom tài sản lõi.
+Dữ liệu vĩ mô (04/2026): FED 3.625%. M2 YoY +4.29% (Vùng Hoàng Kim 3-5%). DXY 98-100. CPI 2.4%. → TÍN HIỆU: M2 Vùng Hoàng Kim + Tầng 5 hoảng loạn = RÚT KIẾM, gom tài sản lõi.
 Bản đồ dòng tiền 4 mùa: Xuân (lãi suất hạ → CS/Crypto) → Hạ (BĐS sốt) → Thu (NHTW tăng lãi suất) → Đông (Tiết kiệm/Vàng/USD). Kẻ thắng là kẻ biết chực chờ ở bình CHUẨN BỊ ĐÓN nước.
 `;
 
 const KT_DU_AN = `
 [KIẾN THỨC 4 — DỰ ÁN SWC]
 SWC — Sky World Community: Website swc001.netlify.app. Crowdinvesting Platform quốc tế, 10+ năm, giấy phép quỹ đầu tư SEC Mỹ. Sứ mệnh: giúp nhà đầu tư cá nhân tiếp cận Pre-IPO, Venture Capital. SPV: mỗi dự án có SPV riêng, đầu tư từ $50, không phí ẩn. Pháp lý: SEC Mỹ, MiFID II Châu Âu. Chỉ 1% dự án lọt qua thẩm định.
-SWC Pass (swcpass.com): Hệ thống tín hiệu & lộ trình hàng tháng. Chỉ 10-15 phút/tháng. Essential (Silver): $240/năm = $20/tháng + tặng 90 ngày. Plus (Gold): $600/5 năm = $10/tháng, khoá giá 5 năm, 80% nhà đầu tư tinh anh chọn. Ultimate (Diamond): $2,600 vĩnh viễn, một lần, truyền lại cho con cháu.
-SWC Field (https://swcpass.com/swc-field/): Sân chơi cá mập. Chỉ 1% dự án được chọn. Bảo vệ vốn All-or-Nothing (không đủ KPI → hoàn 100%). Từ $50.
-Dự án ATLAS (https://swcpass.com/atlas/): "Grab của ngành BĐS tại UAE." Gom toàn bộ quy trình mua-bán BĐS vào 1 app. Giải quyết: tin ảo, kê giá (môi giới ăn chênh), môi giới không phép. Win-Win-Win. Lộ trình: MVP UAE → Mở rộng UAE → Singapore, HK, Anh, Pháp.
-Road to $1M (https://swcpass.com/rm1/): DCA $3/ngày = $100/tháng, Buy & Hold, lãi kép 15-20 năm. $100/tháng × 20%/năm: 10 năm ~$55K, 20 năm ~$480K, 30 năm ~$3.4M (×64 vốn gốc). 3 triết lý: Commercial Cows + DCA (thị trường sập = sale-off) + Buy & Hold (loại cảm tính).
+SWC Pass (swcpass.vn): Hệ thống tín hiệu & lộ trình hàng tháng. Chỉ 10-15 phút/tháng. Essential (Silver): $290/năm = $20/tháng + tặng 90 ngày. Plus (Gold): $720/5 năm = $10/tháng, khoá giá 5 năm, 80% nhà đầu tư tinh anh chọn. Ultimate (Diamond): $2,600 vĩnh viễn, một lần, truyền lại cho con cháu.
+SWC Field (swc001.netlify.app): Sân chơi cá mập. Chỉ 1% dự án được chọn. Bảo vệ vốn All-or-Nothing (không đủ KPI → hoàn 100%). Từ $50.
+Dự án ATLAS (swc001.netlify.app/chi-tiet-du-an-atlas): "Grab của ngành BĐS tại UAE." Gom toàn bộ quy trình mua-bán BĐS vào 1 app. Giải quyết: tin ảo, kê giá (môi giới ăn chênh), môi giới không phép. Win-Win-Win. Lộ trình: MVP UAE → Mở rộng UAE → Singapore, HK, Anh, Pháp.
+Road to $1M (swc001.netlify.app/road-to-1m): DCA $8/ngày = $240/tháng, Buy & Hold, lãi kép 15-20 năm. $240/tháng × 20%/năm: 10 năm ~$55K, 20 năm ~$480K, 30 năm ~$3.4M (×64 vốn gốc). 3 triết lý: Commercial Cows + DCA (thị trường sập = sale-off) + Buy & Hold (loại cảm tính).
 `;
 
 const TOAN_BO_KIEN_THUC = `${KT_PHAT_TRIEN}\n${KT_NHAN_TINH}\n${KT_DAU_TU}\n${KT_DU_AN}`;
@@ -308,7 +309,49 @@ Chỉ còn <b>${daysLeft} ngày</b> để bạn thay đổi quỹ đạo tài ch
 bot.onText(/\/start(.*)/i, async (msg) => {
     if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
-    const userId = msg.from.id.toString();
+    const userId = msg.from.id.toString();    // Xử lý đăng nhập từ Academy
+    const param = msg.text.replace('/start', '').trim();
+    
+    if (param === 'academy_login') {
+        let user = await User.findOne({ userId });
+        if (!user) {
+            user = new User({
+                userId,
+                firstName: msg.from.first_name || '',
+                lastName: msg.from.last_name || '',
+                username: msg.from.username ? `@${msg.from.username}` : '',
+                ngayThamGia: new Date()
+            });
+            await user.save();
+        }
+        
+        const text = `🎓 <b>Chào mừng ${user.firstName} đến với SWC Academy!</b>
+
+Bạn đang đăng nhập từ nền tảng đào tạo SWC Academy.
+
+✅ Tài khoản của bạn đã được xác nhận!
+👉 Quay lại trang Academy để bắt đầu học:
+
+🔗 <b>https://swcpass.com/academy/</b>
+
+Nhập email và mật khẩu tại trang Đăng ký để tạo tài khoản học tập nhé!`;
+
+        await bot.sendMessage(chatId, text, {
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🎓 Vào SWC Academy ngay', url: 'https://swcpass.com/academy/register.html' }],
+                    [{ text: '🏠 Menu Bot chính', callback_data: 'menu_chinh' }]
+                ]
+            }
+        });
+        
+        bot.sendMessage(ADMIN_ID,
+            `🎓 <b>LEAD TỪ ACADEMY!</b>\nTên: ${user.firstName} ${user.lastName}\nID: <code>${userId}</code>\nUsername: ${user.username}`,
+            { parse_mode: 'HTML' }).catch(() => {});
+        return;
+    }
+
 
     let user = await User.findOne({ userId });
     if (!user) {
@@ -409,7 +452,7 @@ SWC Pass không giữ tiền của bạn. Không bao giờ.`;
 Quyết định hôm nay sẽ định hình khối tài sản của bạn trong 15–20 năm tới.
 
 ━━━━━━━━━━━━━━━━━━━
-<b>🥉 GÓI ESSENTIAL — 1 Năm ($290)</b>
+<b>🥉 GÓI ESSENTIAL — 1 Năm ($240)</b>
 Tương đương: Chỉ <b>$20/tháng</b> (bằng 1 chầu cà phê cuối tuần)
 
 Bạn nhận được:
@@ -496,8 +539,8 @@ Không phải vì nó kỳ diệu. Mà vì đơn giản đến mức người ta
 
 ━━━━━━━━━━━━━━━━━━━
 <b>Bài toán thực tế:</b>
-Mỗi ngày nhịn oi $3 — bằng 1 ly cà phê sáng.
-Mỗi tháng đầu tư đều đặn <b>$100</b>.
+Mỗi ngày nhịn oi $8 — bằng 1 ly cà phê sáng.
+Mỗi tháng đầu tư đều đặn <b>$240</b>.
 Tỷ lệ sinh lời trung bình <b>20%/năm</b> (kết hợp cổ tức + SWC Field).
 
 <b>Kết quả sau:</b>
