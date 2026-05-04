@@ -42,6 +42,9 @@ const IMG_FIELD  = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
 const IMG_ATLAS  = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
 const IMG_SPV    = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
 
+const DEADLINE = '30/06/2026';
+const NOTIFY_GROUP_ID = process.env.NOTIFY_GROUP_ID || ADMIN_ID;
+
 function getDaysLeft() {
     const dl = new Date('2026-06-30T23:59:00+07:00');
     const diff = Math.ceil((dl - new Date()) / 86400000);
@@ -87,6 +90,20 @@ const userSchema = new mongoose.Schema({
     moiQuanTamChinh:   { type: String, default: '' }
 });
 const User = mongoose.model('User', userSchema);
+
+// Schema cho Thư viện Kiến thức (Academy)
+const knowledgeSchema = new mongoose.Schema({
+    category:      { type: String, enum: ['kien_thuc', 'du_an', 'tai_chinh', 'thu_thuat', 'tin_tuc'], required: true },
+    title:         { type: String, required: true },
+    content:       { type: String, default: '' },
+    imageUrl:      { type: String, default: '' },
+    linkUrl:       { type: String, default: '' },
+    telegramMsgId: { type: String, default: '' },
+    authorName:    { type: String, default: 'SWC Academy' },
+    createdAt:     { type: Date, default: Date.now },
+    views:         { type: Number, default: 0 }
+});
+const Knowledge = mongoose.model('Knowledge', knowledgeSchema);
 
 // ==========================================================
 // NHẬN DIỆN CẢM XÚC & MỐI QUAN TÂM
@@ -1415,14 +1432,96 @@ bot.onText(/\/thongbao ([\s\S]+)/i, async (msg, match) => {
 });
 
 // ==========================================================
-// HTTP SERVER
+// HTTP SERVER + ACADEMY API ENDPOINTS
 // ==========================================================
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('SWC Bot V6 — Đang chạy ổn định!\n');
+function parseBody(req) {
+    return new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
+        req.on('error', reject);
+    });
+}
+
+const server = http.createServer(async (req, res) => {
+    // CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.writeHead(200); return res.end(); }
+
+    try {
+        // POST /api/notify — Thông báo login/signup cho Admin
+        if (req.method === 'POST' && req.url === '/api/notify') {
+            const data = await parseBody(req);
+            const { action, name, email, phone, platform } = data;
+            const time = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+            const icon = action === 'signup' ? '🆕' : '🔑';
+            const label = action === 'signup' ? 'ĐĂNG KÝ MỚI' : 'ĐĂNG NHẬP';
+            const message = `${icon} <b>${label} — SWC ACADEMY</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Email: <code>${email || 'N/A'}</code>\n📞 SĐT: ${phone || 'Không có'}\n🕐 Thời gian: ${time}\n📱 Nền tảng: ${platform || 'Web'}`;
+            await bot.sendMessage(NOTIFY_GROUP_ID, message, { parse_mode: 'HTML' });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        }
+
+        // POST /api/auth/telegram — Xác thực Telegram Login
+        if (req.method === 'POST' && req.url === '/api/auth/telegram') {
+            const tgData = await parseBody(req);
+            let user = await User.findOne({ userId: tgData.id.toString() });
+            if (!user) {
+                user = new User({
+                    userId: tgData.id.toString(),
+                    firstName: tgData.first_name || '',
+                    lastName: tgData.last_name || '',
+                    username: tgData.username ? `@${tgData.username}` : ''
+                });
+                await user.save();
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+                ok: true,
+                user: { id: user.userId, name: `${user.firstName} ${user.lastName}`.trim(), username: user.username, hasPass: user.goiPass !== 'chua_co', passType: user.goiPass }
+            }));
+        }
+
+        // POST /api/check-pass — Kiểm tra SWC Pass
+        if (req.method === 'POST' && req.url === '/api/check-pass') {
+            const { telegramId } = await parseBody(req);
+            const user = await User.findOne({ userId: telegramId });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, hasPass: user ? user.goiPass !== 'chua_co' : false, passType: user ? user.goiPass : 'chua_co' }));
+        }
+
+        // POST /api/webhook — Lưu bài viết kiến thức từ Telegram
+        if (req.method === 'POST' && req.url === '/api/webhook') {
+            const { category, title, content, imageUrl, linkUrl } = await parseBody(req);
+            const article = new Knowledge({ category, title, content, imageUrl, linkUrl });
+            await article.save();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, id: article._id }));
+        }
+
+        // GET /api/knowledge — Lấy danh sách bài viết
+        if (req.method === 'GET' && req.url.startsWith('/api/knowledge')) {
+            const url = new URL(req.url, `http://${req.headers.host}`);
+            const category = url.searchParams.get('category');
+            const query = category ? { category } : {};
+            const articles = await Knowledge.find(query).sort({ createdAt: -1 }).limit(50);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, data: articles }));
+        }
+
+        // Default
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('SWC Bot V6 + Academy API — Running!\n');
+    } catch (err) {
+        console.error('API Error:', err.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+    }
 });
 
 server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
     console.log(`🌐 Server khởi động port ${process.env.PORT || 3000}`);
-    console.log('🚀 AI Tí và Hệ thống Chăm sóc Khách hàng SWC đã sẵn sàng!');
+    console.log('🚀 AI Tí + Academy API đã sẵn sàng!');
 });
