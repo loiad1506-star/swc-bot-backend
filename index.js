@@ -1432,6 +1432,113 @@ bot.onText(/\/thongbao ([\s\S]+)/i, async (msg, match) => {
 });
 
 // ==========================================================
+// THƯ VIỆN KIẾN THỨC — LỆNH ADMIN
+// ==========================================================
+const VALID_CATEGORIES = ['kien_thuc', 'du_an', 'tai_chinh', 'thu_thuat', 'tin_tuc'];
+const CAT_LABELS = { kien_thuc: '📚 Kiến thức', du_an: '💎 Dự án', tai_chinh: '📊 Tài chính', thu_thuat: '💡 Thủ thuật', tin_tuc: '📰 Tin tức' };
+
+// /post [danh_muc] | [tiêu đề] | [nội dung]
+bot.onText(/\/post ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const parts = match[1].split('|').map(s => s.trim());
+    if (parts.length < 3) {
+        return bot.sendMessage(ADMIN_ID,
+            `⚠️ <b>Cú pháp:</b>\n<code>/post danh_muc | Tiêu đề | Nội dung</code>\n\n<b>Danh mục:</b> ${VALID_CATEGORIES.join(', ')}\n\n<b>Ví dụ:</b>\n<code>/post kien_thuc | 17 Tư Duy Triệu Phú | Người giàu tin rằng...</code>`,
+            { parse_mode: 'HTML' });
+    }
+    const [category, title, ...contentParts] = parts;
+    const content = contentParts.join('|').trim();
+    if (!VALID_CATEGORIES.includes(category.toLowerCase())) {
+        return bot.sendMessage(ADMIN_ID, `❌ Danh mục không hợp lệ!\nDùng: ${VALID_CATEGORIES.join(', ')}`);
+    }
+    try {
+        const article = new Knowledge({
+            category: category.toLowerCase(),
+            title,
+            content,
+            authorName: 'Hồ Văn Lợi'
+        });
+        await article.save();
+        bot.sendMessage(ADMIN_ID,
+            `✅ <b>ĐÃ ĐĂNG BÀI!</b>\n\n📂 Danh mục: ${CAT_LABELS[category.toLowerCase()]}\n📝 Tiêu đề: <b>${title}</b>\n🆔 ID: <code>${article._id}</code>\n\n👉 Xem tại: https://swcpass.com/academy/chat.html`,
+            { parse_mode: 'HTML' });
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi đăng bài: ${e.message}`);
+    }
+});
+
+// /dsbai — Xem danh sách bài viết
+bot.onText(/\/dsbai/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        const articles = await Knowledge.find().sort({ createdAt: -1 }).limit(20);
+        if (articles.length === 0) {
+            return bot.sendMessage(ADMIN_ID, '📭 Thư viện hiện đang trống. Dùng /post để thêm bài.');
+        }
+        let text = `📖 <b>THƯ VIỆN KIẾN THỨC (${articles.length} bài mới nhất)</b>\n\n`;
+        articles.forEach((a, i) => {
+            const cat = CAT_LABELS[a.category] || a.category;
+            const date = new Date(a.createdAt).toLocaleDateString('vi-VN');
+            text += `${i+1}. ${cat} — <b>${a.title}</b>\n   🆔 <code>${a._id}</code> • ${date}\n\n`;
+        });
+        text += `\n📋 <b>Lệnh:</b>\n/xoabai [ID] — Xóa bài\n/suabai [ID] | Nội dung mới — Sửa nội dung`;
+        bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
+    }
+});
+
+// /xoabai [ID] — Xóa bài viết
+bot.onText(/\/xoabai (.+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        const result = await Knowledge.findByIdAndDelete(match[1].trim());
+        if (result) {
+            bot.sendMessage(ADMIN_ID, `✅ Đã xóa bài: <b>${result.title}</b>`, { parse_mode: 'HTML' });
+        } else {
+            bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy bài viết với ID: ${match[1]}`);
+        }
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
+    }
+});
+
+// /suabai [ID] | [Nội dung mới] — Sửa nội dung bài viết
+bot.onText(/\/suabai (.+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const parts = match[1].split('|').map(s => s.trim());
+    if (parts.length < 2) {
+        return bot.sendMessage(ADMIN_ID, `⚠️ Cú pháp: /suabai [ID] | [Nội dung mới]`);
+    }
+    try {
+        const result = await Knowledge.findByIdAndUpdate(parts[0], { $set: { content: parts.slice(1).join('|').trim() } }, { new: true });
+        if (result) {
+            bot.sendMessage(ADMIN_ID, `✅ Đã cập nhật bài: <b>${result.title}</b>`, { parse_mode: 'HTML' });
+        } else {
+            bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy bài ID: ${parts[0]}`);
+        }
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
+    }
+});
+
+// /getvideo [message_id] — Lấy video từ Private Channel
+bot.onText(/\/getvideo (\d+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        const forwarded = await bot.forwardMessage(ADMIN_ID, '-1003951391128', parseInt(match[1]));
+        if (forwarded.video) {
+            const fileLink = await bot.getFileLink(forwarded.video.file_id);
+            bot.sendMessage(ADMIN_ID, `🎬 <b>Video file link:</b>\n<code>${fileLink}</code>\n\nMessage ID: ${match[1]}`, { parse_mode: 'HTML' });
+        } else {
+            bot.sendMessage(ADMIN_ID, `✅ Đã forward message #${match[1]} — không phải video.`);
+        }
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
+    }
+});
+
+// ==========================================================
 // HTTP SERVER + ACADEMY API ENDPOINTS
 // ==========================================================
 function parseBody(req) {
