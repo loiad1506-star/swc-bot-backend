@@ -159,7 +159,7 @@ Triết lý cổ nhân: Luật Nhân Quả (Tiền là Quả, Đạo đức là 
 const KT_NHAN_TINH = `
 [KIẾN THỨC 2 — THẤU HIỂU NHÂN TÍNH & THUYẾT PHỤC]
 Dale Carnegie — Đắc Nhân Tâm: (1) Không chỉ trích, lên án — làm họ cảm thấy tốt về bản thân trước. (2) Tán thành chân thành — mọi người khao khát được thừa nhận. (3) Khơi dậy khát khao — hỏi "Anh/chị đang SỢ điều gì nhất trong 5 năm tới?". (4) Quan tâm thật sự — nhớ tên, hỏi gia đình. (5) Làm người khác nói nhiều — người nói nhiều thua. (6) Để người khác giữ thể diện — sửa lỗi làm riêng.
-Kể chuyện SWC: Mèo Vàng bắt cá (Road to $1M: nhịn oi $8/ngày, 15 năm = 1 triệu con cá). Tàu đánh cá (SWC Field: gom 10.000 chú mèo, mỗi chú $50 = cổ đông Tàu Lớn qua SPV). SWC Pass = thẻ hội viên để lên Tàu Lớn.
+Kể chuyện SWC: Con thuyền nhỏ ra khơi (Road to $1M: chỉ cần $100-$200/tháng, kiên nhẫn 15-20 năm = đạt mốc $1,000,000 nhờ lãi kép). Tàu đánh cá (SWC Field: gom 10.000 nhà đầu tư cá nhân, mỗi người từ $50 = cổ đông hợp pháp qua SPV chuẩn Mỹ). SWC Pass = tư cách thành viên để lên Tàu Lớn.
 5 Tầng Chuỗi Thức Ăn: Tầng 1 (In tiền, tạo luật) → Tầng 2 (Thu thuế thanh khoản) → Tầng 3 Gurus (Bán cuốc xẻng) → Tầng 4 Smart Investors (Kỷ luật, tỷ lệ sống 5-10%) → Tầng 5 Đám đông (90% tham gia, giao dịch bằng cảm xúc = mồi của 4 tầng trên). Mục tiêu: đưa khách từ Tầng 5 lên Tầng 4.
 3 câu hỏi mở cửa lòng người: (1) "Anh/chị đang SỢ điều gì nhất trong 5 năm tới?" (2) "Nếu không có ràng buộc tài chính, anh/chị muốn cuộc sống thế nào?" (3) "Anh/chị đã từng mất tiền vì quyết định nào rồi?"
 `;
@@ -175,56 +175,68 @@ Bản đồ dòng tiền 4 mùa: Xuân (lãi suất hạ → CS/Crypto) → Hạ
 
 const KT_DU_AN = `
 [KIẾN THỨC 4 — DỰ ÁN SWC]
-SWC — Sky World Community: Website swc001.netlify.app. Crowdinvesting Platform quốc tế, 10+ năm, giấy phép quỹ đầu tư SEC Mỹ. Sứ mệnh: giúp nhà đầu tư cá nhân tiếp cận Pre-IPO, Venture Capital. SPV: mỗi dự án có SPV riêng, đầu tư từ $50, không phí ẩn. Pháp lý: SEC Mỹ, MiFID II Châu Âu. Chỉ 1% dự án lọt qua thẩm định.
-SWC Pass (swcpass.vn): Hệ thống tín hiệu & lộ trình hàng tháng. Chỉ 10-15 phút/tháng. Essential (Silver): $290/năm = $20/tháng + tặng 90 ngày. Plus (Gold): $720/5 năm = $10/tháng, khoá giá 5 năm, 80% nhà đầu tư tinh anh chọn. Ultimate (Diamond): $2,600 vĩnh viễn, một lần, truyền lại cho con cháu.
-SWC Field (swc001.netlify.app): Sân chơi cá mập. Chỉ 1% dự án được chọn. Bảo vệ vốn All-or-Nothing (không đủ KPI → hoàn 100%). Từ $50.
-Dự án ATLAS (swc001.netlify.app/chi-tiet-du-an-atlas): "Grab của ngành BĐS tại UAE." Gom toàn bộ quy trình mua-bán BĐS vào 1 app. Giải quyết: tin ảo, kê giá (môi giới ăn chênh), môi giới không phép. Win-Win-Win. Lộ trình: MVP UAE → Mở rộng UAE → Singapore, HK, Anh, Pháp.
-Road to $1M (swc001.netlify.app/road-to-1m): DCA $8/ngày = $240/tháng, Buy & Hold, lãi kép 15-20 năm. $240/tháng × 20%/năm: 10 năm ~$55K, 20 năm ~$480K, 30 năm ~$3.4M (×64 vốn gốc). 3 triết lý: Commercial Cows + DCA (thị trường sập = sale-off) + Buy & Hold (loại cảm tính).
+SWC — Sky World Community: Website https://swc.capital/. Crowdinvesting Platform quốc tế, 10+ năm, giấy phép quỹ đầu tư SEC Mỹ. Sứ mệnh: giúp nhà đầu tư cá nhân tiếp cận Pre-IPO, Venture Capital. SPV: mỗi dự án có SPV riêng, đầu tư từ $50, không phí ẩn. Pháp lý: SEC Mỹ, MiFID II Châu Âu. Chỉ 1% dự án lọt qua thẩm định. QUYỀN LỢI CỔ PHIẾU CHUẨN MỸ: Thông qua SPV, nhà đầu tư sở hữu cổ phiếu hợp pháp — có giấy chứng nhận cổ đông, quyền cổ tức, quyền biểu quyết, quyền thoái vốn khi IPO.
+SWC Pass (https://swcpass.com/swc-field/#pricing): Hệ thống tín hiệu & lộ trình hàng tháng. Chỉ 10-15 phút/tháng. Essential (Silver): $290/năm = $20/tháng + tặng 90 ngày. Plus (Gold): $720/5 năm = $10/tháng, khoá giá 5 năm, 80% nhà đầu tư tinh anh chọn. Ultimate (Diamond): $2,600 vĩnh viễn, một lần, truyền lại cho con cháu.
+SWC Field (https://swcpass.com/swc-field/): Sân chơi cá mập. Chỉ 1% dự án được chọn. Bảo vệ vốn All-or-Nothing (không đủ KPI → hoàn 100%). Từ $50.
+Road to $1M (https://swcpass.com/rm1/): DCA $100-$200/tháng, Buy & Hold, lãi kép 15-20 năm. Với $150/tháng × 20%/năm: 10 năm ~$46K, 15 năm ~$145K, 20 năm ~$300K, 30 năm ~$2.1M. Quyền lợi: sở hữu cổ phiếu chuẩn Mỹ thông qua SPV.
+
+[KIẾN THỨC 5 — DỰ ÁN ATLAS CHI TIẾT]
+TỔNG QUAN: Atlas là nền tảng công nghệ số hóa toàn diện thị trường BĐS Dubai/UAE — "hệ điều hành" cho toàn bộ chuỗi giá trị giao dịch BĐS. Tích hợp tìm kiếm, kiểm tra, thanh toán, sang tên trong 1 hệ thống (One-Stop-Shop). Giá niêm yết minh bạch, loại bỏ thao túng giá từ môi giới. Xóa bỏ rào cản địa lý — NĐT không cần có mặt tại Dubai.
+QUY MÔ THỊ TRƯỜNG: Dòng tiền BĐS Dubai định giá 200 tỷ USD/năm. Giao dịch: 130K-150K (2022) → 260K-300K (2025) → 350K-420K (2027-2030). Tài sản trí tuệ Atlas được Dubai World Trade Center định giá 92 triệu USD.
+LỖ HỔNG THỊ TRƯỜNG: Không có môi trường đồng nhất toàn bộ quy trình. Giá cả thiếu minh bạch. Rủi ro pháp lý và lừa đảo.
+MÔ HÌNH DOANH THU: Phí hoa hồng 1%/giao dịch. Căn hộ 300K USD → phí 3K USD. Kịch bản: 0.1% thị phần = 2 triệu USD; 1% = 20 triệu; 3% = 60 triệu.
+DỰ PHÓNG: Năm 1: doanh thu 3.15 triệu, lãi ròng ~2 triệu — chi trả cổ tức ngay năm đầu. Năm 3: lợi nhuận bứt phá 80 triệu USD.
+IP SHARES: Giá 0.625 USD/share. Chiết khấu Early Bird 60%. Gói: 250 USD (400 shares) đến 5,000 USD (8,000 shares). Dự phóng sau vòng 1: 3.8 USD/share (gấp ~6 lần).
+DÒNG TIỀN SPV: Vốn đi: NĐT → Quỹ SPV (Escrow) → Atlas. Không đưa trực tiếp cho cá nhân. Nếu hủy → hoàn 100%. Lãi về: Atlas → SPV → Ví NĐT tự động.
+LỘ TRÌNH: GĐ1: MVP UAE. GĐ2: Mở rộng UAE + AI định giá. GĐ3: Singapore, HK, Anh, Pháp.
 `;
 
 const TOAN_BO_KIEN_THUC = `${KT_PHAT_TRIEN}\n${KT_NHAN_TINH}\n${KT_DAU_TU}\n${KT_DU_AN}`;
 
 // ==========================================================
-// SYSTEM PROMPT — NHÂN VẬT "TÍ" HOÀN TOÀN TIẾNG VIỆT
+// SYSTEM PROMPT — NHÂN VẬT "TRỢ LÝ SWC" HOÀN TOÀN TIẾNG VIỆT
 // ==========================================================
 function xayDungSystemPrompt(user, camXuc) {
     const daysLeft = getDaysLeft();
     const soTin = user.soTinNhan || 0;
 
     const quenMuc = soTin === 0
-        ? '[Lần đầu trò chuyện. Chào hỏi thân thiện, giới thiệu ngắn về Tí.]'
+        ? '[Lần đầu trò chuyện. Chào hỏi thân thiện, giới thiệu ngắn về Trợ lý SWC.]'
         : soTin >= 10
             ? `[Đã quen (${soTin} tin nhắn). Nói thẳng, không giới thiệu lại. Gọi tên ${user.firstName}.]`
             : `[Đã quen một chút (${soTin} tin nhắn). Tự nhiên như bạn bè.]`;
 
     const camXucGoi = {
-        buon: `[TÂM TRẠNG: ${user.firstName} đang có cảm xúc tiêu cực. ƯU TIÊN ĐỒNG CẢM trước, không vội tư vấn. Nói nhẹ nhàng, ngắn gọn như người bạn thân ngồi cạnh.]`,
-        lo_lang: `[TÂM TRẠNG: ${user.firstName} đang lo lắng. TRẤN AN trước bằng 1-2 câu thực tế. Sau đó mới giải thích.]`,
-        hoai_nghi: `[TÂM TRẠNG: ${user.firstName} đang hoài nghi. Không thuyết phục. Chỉ đưa FACT lạnh. Điềm tĩnh, không phòng thủ.]`,
-        phan_khich: `[TÂM TRẠNG: ${user.firstName} phấn khích quá mức. LÀM NGUỘI nhẹ bằng 1 rủi ro cụ thể trước khi đồng tình.]`,
-        ngan_gon: `[TÂM TRẠNG: Tin nhắn ngắn. Trả lời 2-3 dòng thôi, như đang nhắn tin với bạn bè.]`,
+        buon: `[TÂM TRẠNG: ${user.firstName} đang có cảm xúc tiêu cực. ƯU TIÊN ĐỒNG CẢM trước, không vội tư vấn. Kể 1 ví dụ thực tế về người từng ở hoàn cảnh tương tự rồi vượt qua.]`,
+        lo_lang: `[TÂM TRẠNG: ${user.firstName} đang lo lắng. TRẤN AN bằng dữ liệu thực tế và ví dụ cụ thể. Giải thích từng bước một.]`,
+        hoai_nghi: `[TÂM TRẠNG: ${user.firstName} đang hoài nghi. Không thuyết phục. Chỉ đưa FACT lạnh kèm ví dụ so sánh dễ hiểu. Điềm tĩnh, không phòng thủ.]`,
+        phan_khich: `[TÂM TRẠNG: ${user.firstName} phấn khích quá mức. LÀM NGUỘI nhẹ bằng 1 ví dụ thực tế về rủi ro trước khi đồng tình.]`,
+        ngan_gon: `[TÂM TRẠNG: Tin nhắn ngắn. Trả lời ngắn gọn nhưng vẫn kèm 1 ví dụ minh họa.]`,
         binh_thuong: ''
     }[camXuc] || '';
 
     const quanTamGoi = {
-        gia_ca: '[QUAN TÂM: Hỏi về GIÁ. Dùng so sánh chi phí cơ hội, không giảm giá.]',
-        do_tin_cay: '[QUAN TÂM: Lo LỪA ĐẢO. Đưa bằng chứng pháp lý SPV, SEC Mỹ, không giữ tiền của khách.]',
-        atlas: '[QUAN TÂM: Hỏi ATLAS/Dubai. Tập trung RWA, thanh khoản 3s, bảo vệ vốn All-or-Nothing.]',
-        road1m: '[QUAN TÂM: Hỏi ROAD TO $1M. Đưa toán học lãi kép, $8/ngày, 15 năm.]',
-        swcpass: '[QUAN TÂM: Hỏi SWC PASS. Gợi ý Gold 5 năm ($10/tháng) hoặc Ultimate ($2,600 vĩnh viễn).]',
+        gia_ca: '[QUAN TÂM: Hỏi về GIÁ. Dùng so sánh chi phí cơ hội với ví dụ đời thường (ly cà phê, bữa ăn ngoài), không giảm giá.]',
+        do_tin_cay: '[QUAN TÂM: Lo LỪA ĐẢO. Đưa bằng chứng pháp lý SPV, SEC Mỹ, so sánh cụ thể với Ponzi. Giải thích quyền sở hữu cổ phiếu chuẩn Mỹ.]',
+        atlas: '[QUAN TÂM: Hỏi ATLAS/Dubai. Tập trung RWA, thanh khoản, bảo vệ vốn All-or-Nothing, kèm ví dụ so sánh với Grab.]',
+        road1m: '[QUAN TÂM: Hỏi ROAD TO $1M. Đưa toán học lãi kép với $100-$200/tháng, 15-20 năm, kèm bảng số liệu cụ thể. Nhấn mạnh quyền sở hữu cổ phiếu chuẩn Mỹ.]',
+        swcpass: '[QUAN TÂM: Hỏi SWC PASS. Gợi ý Gold 5 năm ($10/tháng) hoặc Ultimate ($2,600 vĩnh viễn). So sánh với chi phí đời thường.]',
         chung: ''
     }[user.moiQuanTamChinh] || '';
 
-    return `Bạn là "Tí" — trợ lý AI phân tích tâm lý và tư vấn tài chính của quỹ Sky World Community Việt Nam, dưới quyền anh Hồ Văn Lợi.
+    return `Bạn là Trợ lý SWC — chuyên gia tư vấn giáo dục tài chính của Sky World Community Việt Nam, dưới quyền anh Hồ Văn Lợi.
 
-TÍNH CÁCH: Thấu hiểu nhân tính, sắc bén, như một Sói già Phố Wall. Xưng "em" hoặc "Tí", gọi khách là "anh/chị". Dùng ví dụ đời thực, kể chuyện, không dùng văn mẫu khô khan.
+TÍNH CÁCH: Thấu cảm sâu sắc, am hiểu tâm lý tài chính, cực giỏi tư duy đầu tư và quản lý tài chính cá nhân. Xưng "em" hoặc "Trợ lý", gọi khách là "anh/chị". Luôn dùng ví dụ đời thường dễ hiểu, kể chuyện thực tế để giáo dục.
 
 QUAN TRỌNG — PHONG CÁCH VIẾT:
 - KHÔNG BAO GIỜ dùng dấu sao (**) hay tiêu đề mục kiểu báo cáo
 - Ngắt dòng liên tục, mỗi ý 1-2 câu
-- Tối đa 200 từ mỗi phản hồi
-- Đôi khi bắt đầu bằng "Ừ thì...", "Thật ra là...", "Nói thật nhé anh/chị..."
-- KHÔNG bao giờ xưng là "Bot" hay "Trợ lý AI"
+- Phản hồi chi tiết 200-400 từ, LUÔN kèm ví dụ minh họa đời thường
+- Đôi khi bắt đầu bằng "Thật ra là...", "Nói thật nhé anh/chị...", "Em chia sẻ thêm nhé..."
+- Luôn xưng là "Trợ lý SWC" hoặc "em". KHÔNG bao giờ xưng là "Bot" hay dùng từ "Bot"
+- Mang tính chất GIÁO DỤC TÀI CHÍNH — giúp người đọc nhận thức vấn đề tài chính họ đang gặp phải
+- Sử dụng tâm lý thấu cảm: đặt mình vào vị trí người đọc trước khi đưa ra lời khuyên
+- Dạy cách vận hành dòng tiền, quản lý tài chính cá nhân qua các ví dụ cụ thể
 
 ${camXucGoi}
 ${quanTamGoi}
@@ -234,18 +246,25 @@ KIẾN THỨC CỐT LÕI:
 ${TOAN_BO_KIEN_THUC}
 
 NHIỆM VỤ CHÍNH:
-1. Gỡ bỏ tâm lý phòng thủ của F0. Khai sáng cho họ thấy tự trade là tự sát (chuỗi thức ăn tài chính Tầng 5).
-2. Chốt sale thẻ SWC Pass trước deadline ${DEADLINE} (còn ${daysLeft} ngày). Khuyên mạnh Gói Plus 5 năm ($600) và Ultimate Vĩnh viễn ($2,600).
-3. Hướng khách xem Video hướng dẫn và vào Group Chat.
-4. Áp dụng nguyên tắc Dale Carnegie: làm người khác NÓI NHIỀU, đặt câu hỏi, để khách tự thuyết phục bản thân.
+1. GIÁO DỤC TÀI CHÍNH: Giúp khách nhận thức vấn đề tài chính thực sự họ đang gặp phải. Dùng ví dụ đời thường, dễ hiểu (ví dụ: so sánh lạm phát với ly cà phê, tiền gửi ngân hàng vs đầu tư).
+2. Gỡ bỏ tâm lý phòng thủ của F0. Khai sáng cho họ thấy tự trade là tự sát (chuỗi thức ăn tài chính Tầng 5). Kèm ví dụ cụ thể.
+3. Giới thiệu Road to $1M với framework $100-$200/tháng — nhấn mạnh quyền sở hữu cổ phiếu chuẩn Mỹ thông qua SPV (có giấy chứng nhận cổ đông, quyền cổ tức, quyền biểu quyết).
+4. Chốt sale thẻ SWC Pass trước deadline ${DEADLINE} (còn ${daysLeft} ngày). Khuyên mạnh Gói Plus 5 năm ($720) và Ultimate Vĩnh viễn ($2,600).
+5. Áp dụng nguyên tắc Dale Carnegie: làm người khác NÓI NHIỀU, đặt câu hỏi, để khách tự thuyết phục bản thân.
 
-XỬ LÝ TỪ CHỐI:
-- "Giá cao": "$10/tháng chưa bằng 1 ly trà đá mỗi ngày, đổi lại tấm bản đồ bảo vệ gia sản 5 năm"
-- "Để nghĩ thêm": "Lạm phát 2.4% đang ăn mòn tiền mặt của anh/chị mỗi ngày. Trì hoãn hôm nay = trả giá đắt hơn ngày mai"
-- "Có lừa đảo không?": "SPV chuẩn mực pháp lý quốc tế. SEC Mỹ ký phép. Khác hoàn toàn Ponzi — chúng tôi KHÔNG GIỮ TIỀN của anh/chị"
-- "Tự đầu tư cũng được": "Có Pass, anh/chị ngồi mâm Tầng 1 Venture Capital — mua giá trước khi lên sàn. Tự đi thì xa, đi với SWC thì vừa an toàn vừa nắm thông tin trước đám đông"
+XỬ LÝ TỪ CHỐI (luôn kèm ví dụ):
+- "Giá cao": "Anh/chị ơi, $10/tháng chưa bằng 2 ly trà sữa. Nhưng 2 ly trà sữa đó trong 5 năm = gần 1 triệu đồng bay hơi không để lại gì. Cùng số tiền đó với SWC Pass = tấm bản đồ bảo vệ gia sản."
+- "Để nghĩ thêm": "Em hiểu hoàn toàn. Nhưng em chia sẻ 1 con số: lạm phát 2.4%/năm đang ăn mòn tiền mặt. 100 triệu trong ngân hàng = mất 2.4 triệu/năm sức mua mà anh/chị không hề hay biết."
+- "Có lừa đảo không?": "Câu hỏi rất hay và rất đáng hỏi. SPV chuẩn SEC Mỹ — anh/chị sở hữu cổ phiếu hợp pháp có giấy chứng nhận. Khác hoàn toàn Ponzi: SWC KHÔNG GIỮ TIỀN, tiền nằm trong app chứng khoán cá nhân của anh/chị."
+- "Tự đầu tư cũng được": "Hoàn toàn được! Nhưng tự đầu tư = mua cổ phiếu giá thị trường. Với SWC Pass = mua vòng Private, giá trước khi lên sàn. Giống như mua nhà giá gốc từ chủ đầu tư vs mua qua môi giới."
 
-QUY TẮC CUỐI: Luôn kết thúc bằng 1 câu hỏi mở nhắm vào nỗi đau. KHÔNG NHẮC Token, SWGT, không bịa số liệu.`;
+QUY TẮC CUỐI: Luôn kết thúc bằng 1 câu hỏi mở nhắm vào nỗi đau tài chính. KHÔNG NHẮC Token, SWGT, không bịa số liệu.
+
+QUY TẮC TUYỆT ĐỐI — KHÔNG BỊA THÔNG TIN:
+- TUYỆT ĐỐI không bịa đặt hay suy đoán thông tin về dự án Atlas, SWC Field, SWC Pass mà không có trong KIẾN THỨC CỐT LÕI ở trên.
+- Nếu khách hỏi câu hỏi mà em không chắc chắn câu trả lời → NÓI THẲNG: "Em xin ghi nhận câu hỏi này và chuyển đến đội ngũ chuyên gia SWC để trả lời chính xác nhất cho anh/chị nhé!"
+- Chỉ trả lời dựa trên dữ liệu đã được cung cấp trong phần KIẾN THỨC CỐT LÕI.
+- Với dự án Atlas: chỉ dùng số liệu chính xác (200 tỷ USD/năm, 92 triệu USD IP, phí 1%, IP Share 0.625 USD, dự phóng 3.8 USD...). Không tự bịa thêm con số mới.`;
 }
 
 // ==========================================================
@@ -279,7 +298,7 @@ async function goiClaude(user, tinNhanNguoiDung) {
 
         const response = await claude.messages.create({
             model: 'claude-sonnet-4-6',
-            max_tokens: 1000,
+            max_tokens: 1500,
             system: xayDungSystemPrompt(user, camXuc),
             messages: lichSuHopLe
         });
@@ -402,7 +421,7 @@ Nhập email và mật khẩu tại trang Đăng ký để tạo tài khoản h�
     }
 
     if (!user.phone) {
-        const loi_chao = `Xin chào <b>${user.firstName || 'bạn'}</b>! 🦁\n\nTôi là <b>RKT</b> — trợ lý phân tích tâm lý và đầu tư của <b>SWC Capital Việt Nam</b>.\n\nĐể hệ thống chẩn đoán đúng vị thế tài chính và cung cấp tài liệu phù hợp, vui lòng <b>bấm nút bên dưới</b> để chia sẻ số điện thoại nhé! 👇`;
+        const loi_chao = `Xin chào <b>${user.firstName || 'bạn'}</b>! 🤝\n\nTôi là <b>Trợ lý SWC</b> — chuyên gia phân tích tài chính và đầu tư của <b>SWC Capital Việt Nam</b>.\n\nĐể hệ thống chẩn đoán đúng vị thế tài chính và cung cấp tài liệu phù hợp, vui lòng <b>bấm nút bên dưới</b> để chia sẻ số điện thoại nhé! 👇`;
         bot.sendMessage(chatId, loi_chao, {
             parse_mode: 'HTML',
             reply_markup: {
@@ -572,22 +591,29 @@ Không phải vì nó kỳ diệu. Mà vì đơn giản đến mức người ta
 
 ━━━━━━━━━━━━━━━━━━━
 <b>Bài toán thực tế:</b>
-Mỗi ngày nhịn oi $8 — bằng 1 ly cà phê sáng.
-Mỗi tháng đầu tư đều đặn <b>$240</b>.
+Mỗi tháng trích ra $100-$200 — tương đương 2.5 - 5 triệu VNĐ.
+Ví dụ: bằng 1-2 bữa ăn nhà hàng, hoặc 1 chiếc áo mới.
 Tỷ lệ sinh lời trung bình <b>20%/năm</b> (kết hợp cổ tức + SWC Field).
 
-<b>Kết quả sau:</b>
-📌 10 năm → Tài khoản ~$55,000 (~1.4 tỷ VNĐ)
-📌 15 năm → Tài khoản ~$230,000 (~5.8 tỷ VNĐ)
-📌 20 năm → Tài khoản ~$480,000 (~12 tỷ VNĐ)
-📌 30 năm → Tài khoản ~$3,400,000 (gấp 64 lần vốn gốc bỏ ra!)
+<b>Với $150/tháng:</b>
+📌 10 năm → Tài khoản ~$46,000 (~1.2 tỷ VNĐ)
+📌 15 năm → Tài khoản ~$145,000 (~3.6 tỷ VNĐ)
+📌 20 năm → Tài khoản ~$300,000 (~7.5 tỷ VNĐ)
+📌 30 năm → Tài khoản ~$2,100,000 (~52.5 tỷ VNĐ)
+
+<b>Với $200/tháng:</b>
+📌 10 năm → ~$62,000 (~1.5 tỷ VNĐ)
+📌 20 năm → ~$400,000 (~10 tỷ VNĐ)
+📌 30 năm → ~$2,800,000 (~70 tỷ VNĐ)
 
 ━━━━━━━━━━━━━━━━━━━
 <b>So sánh với để tiền ngân hàng:</b>
-Cùng $240/tháng × 30 năm tiết kiệm thuần = khoảng 86 triệu VNĐ (bị lạm phát ăn mòn).
-Cùng số tiền đó với lãi kép SWC = ~$3,400,000 (khoảng 85 tỷ VNĐ).
+Cùng $150/tháng × 30 năm tiết kiệm thuần = khoảng $54,000 (bị lạm phát ăn mòn).
+Cùng số tiền đó với lãi kép SWC = ~$2,100,000.
+Chênh lệch <b>gần 40 lần</b>.
 
-Khác nhau 1,000 lần.
+<b>Và quan trọng:</b> Anh/chị sở hữu cổ phiếu chuẩn Mỹ thông qua SPV — có giấy chứng nhận cổ đông, quyền cổ tức, quyền biểu quyết. Đây là tài sản thực, không phải lời hứa.
+
 Không phải do may mắn. Chỉ do <b>Kỷ luật + Thời gian + Hệ thống đúng</b>.
 
 ⏰ <b>Mỗi năm trì hoãn = mất đi 1 năm sức mạnh lãi kép vĩnh viễn không lấy lại được.</b>`;
@@ -673,46 +699,87 @@ SWC Field: Không giữ tiền, không cam kết lãi suất — bạn sở hữ
 
     else if (data === 'atlas_chi_tiet') {
         imageUrl = IMG_ATLAS;
-        text = `🏢 <b>SIÊU DỰ ÁN ATLAS — "GRAB" CỦA NGÀNH BẤT ĐỘNG SẢN DUBAI</b>
+        text = `🏢 <b>ATLAS — SỐ HÓA TOÀN DIỆN THỊ TRƯỜNG BĐS TỶ ĐÔ DUBAI</b>
 
-Bạn nghĩ đầu tư BĐS phải có vài chục tỷ, mua cục gạch rồi chôn vốn 5–10 năm?
-Đó là tư duy của thập kỷ trước. <b>Chào mừng đến với RWA.</b>
+Thị trường BĐS UAE (Dubai) đạt quy mô <b>200 tỷ USD dòng tiền/năm</b>, với tốc độ tăng trưởng giao dịch gấp đôi mỗi 3-4 năm (130K giao dịch năm 2022 → dự báo 350K-420K giao dịch giai đoạn 2027-2030).
+
+Nhưng thị trường này vẫn đang vận hành <b>phân mảnh và tiềm ẩn nhiều rủi ro</b>.
 
 ━━━━━━━━━━━━━━━━━━━
 <b>ATLAS là gì?</b>
-Một hệ sinh thái kỹ thuật số toàn diện cho thị trường BĐS — bắt đầu tại UAE (Dubai).
+Nền tảng công nghệ — "hệ điều hành" tiên phong chuẩn hóa toàn bộ chuỗi giá trị giao dịch BĐS Dubai. Tích hợp <b>tìm kiếm → kiểm tra → thanh toán → sang tên</b> trong 1 hệ thống duy nhất (One-Stop-Shop).
 
-Nếu Grab là ứng dụng gom mọi nhu cầu gọi xe vào 1 nơi,
-thì ATLAS là <b>"Grab của ngành BĐS"</b> — gom toàn bộ quy trình:
-tìm kiếm → thẩm định pháp lý → đàm phán → thanh toán → ký hợp đồng.
-Tất cả trong <b>1 ứng dụng duy nhất</b>.
+<b>3 lỗ hổng Atlas giải quyết:</b>
+🔴 Không có môi trường đồng nhất — buộc qua môi giới với chính sách giá thiếu minh bạch
+🔴 Khách hàng bị bất ngờ về giá chốt cuối cùng — bị thao túng giá bởi bên thứ ba
+🔴 Rủi ro giấy tờ pháp lý và lừa đảo truyền thống kìm hãm dòng tiền đầu tư
 
-━━━━━━━━━━━━━━━━━━━
-<b>Vấn đề ATLAS giải quyết:</b>
-🔴 Tin ảo: Đăng nhà đẹp giá rẻ → gọi điện thì "vừa bán xong"
-🔴 Kê giá: Môi giới ăn chênh lệch 500 triệu giữa người mua và người bán
-🔴 Rủi ro pháp lý: Giấy tờ gửi qua Zalo, dễ bị lừa
-
-━━━━━━━━━━━━━━━━━━━
-<b>Win-Win-Win cho tất cả các bên:</b>
-👤 <b>Người mua:</b> Chỉ xem nhà thật, chỉ trả tiền khi giao dịch thành công
-🏠 <b>Người bán:</b> Không bị ép giá, có tính năng "Bán gấp" — AI tính giá hợp lý, chốt trong 1–2 ngày
-🤝 <b>Môi giới chân chính:</b> Hệ thống tự phân bổ khách, không cần chạy quảng cáo
+<b>3 giải pháp cốt lõi:</b>
+✅ Giá niêm yết minh bạch trên nền tảng — loại bỏ hoàn toàn thao túng giá
+✅ Xóa bỏ rào cản địa lý — NĐT không cần có mặt tại Dubai để giao dịch
+✅ Bảo vệ tuyệt đối — ngăn chặn rủi ro giấy phép và lừa đảo
 
 ━━━━━━━━━━━━━━━━━━━
-<b>Lộ trình 3 giai đoạn:</b>
-Giai đoạn 1: Xây dựng MVP, thị trường UAE
-Giai đoạn 2: Mở rộng toàn UAE, tích hợp AI định giá
-Giai đoạn 3: Singapore, Hồng Kông, Anh, Pháp
+<b>MÔ HÌNH DOANH THU:</b>
+Phí hoa hồng hệ thống <b>1%</b> trên mỗi giao dịch.
+Ví dụ: Căn hộ 300,000 USD → phí nền tảng 3,000 USD.
 
-<b>Tại sao đầu tư vào ATLAS ngay lúc này?</b>
-→ Đây là Giai đoạn 1 — giá vốn rẻ nhất
-→ Khi ATLAS mở rộng sang các quốc gia khác, giá trị cổ phần tăng theo
-→ Bảo vệ vốn All-or-Nothing — nếu không đủ KPI → hoàn 100%
+Kịch bản theo thị phần:
+📌 0.1% thị trường = Doanh thu <b>2 triệu USD</b>
+📌 1% thị trường = Doanh thu <b>20 triệu USD</b>
+📌 3% thị trường = Doanh thu <b>60 triệu USD</b>
+
+<b>Dự phóng tài chính:</b>
+→ Năm 1: Doanh thu 3.15 triệu USD, lợi nhuận ròng ~2 triệu USD — <b>chi trả cổ tức ngay năm đầu tiên</b>
+→ Năm 3: Lợi nhuận dự kiến bứt phá <b>80 triệu USD</b>
+
+Tài sản trí tuệ Atlas được <b>Dubai World Trade Center</b> định giá <b>92 triệu USD</b>.
 
 ⚠️ Vòng Private đang mở. Đóng cửa vào <b>${DEADLINE}</b> — còn <b>${daysLeft} ngày</b>.`;
         keyboard = [
+            [{ text: '💰 Gói đầu tư IP Shares & Dòng tiền SPV', callback_data: 'atlas_ip_shares' }],
             [{ text: '🛡️ Cấu trúc SPV bảo vệ vốn thế nào?', callback_data: 'field_spv' }],
+            ...nutsLienKet()
+        ];
+    }
+
+    else if (data === 'atlas_ip_shares') {
+        imageUrl = IMG_ATLAS;
+        text = `💰 <b>GÓI ĐẦU TƯ IP SHARES & CƠ CHẾ DÒNG TIỀN SPV</b>
+
+━━━━━━━━━━━━━━━━━━━
+<b>CHỈ SỐ GÓI ĐẦU TƯ IP SHARES:</b>
+
+📌 Giá hiện tại: <b>0.625 USD / 1 IP Share</b>
+📌 Chiết khấu Early Bird: <b>60%</b> (quy đổi 1:60)
+📌 Gói thấp nhất: <b>250 USD</b> = 400 IP shares
+📌 Gói cao nhất: <b>5,000 USD</b> = 8,000 IP shares
+📌 Dự phóng giá sau vòng 1: <b>3.8 USD/share</b> (tăng trưởng ~6 lần giá vốn)
+
+━━━━━━━━━━━━━━━━━━━
+<b>CƠ CHẾ VẬN HÀNH DÒNG TIỀN (ALL-OR-NOTHING):</b>
+
+<b>📤 Chiều Vốn đi: NĐT → Quỹ SPV → Atlas</b>
+Vốn của NĐT KHÔNG đưa trực tiếp cho cá nhân hay đội ngũ dự án.
+Vốn được chuyển vào tài khoản Escrow của Quỹ SPV (Special Purpose Vehicle).
+Chỉ khi gọi đủ ngân sách thành công, SPV mới giải ngân cho Atlas để xây dựng App MVP.
+Nếu dự án hủy → <b>hoàn trả 100% vốn tự động</b>.
+
+<b>📥 Chiều Lãi về: Atlas → Quỹ SPV → Ví NĐT</b>
+Ngay từ năm đầu tiên (lợi nhuận ròng dự tính 2 triệu USD), Atlas đã có khả năng chi trả cổ tức.
+Lợi nhuận kinh doanh từ nền tảng Atlas → đổ về Quỹ trung gian SPV → tự động chia và chảy thẳng về Ví hệ thống của NĐT.
+<b>Hoàn toàn tự động, minh bạch.</b>
+
+━━━━━━━━━━━━━━━━━━━
+<b>LỘ TRÌNH 3 GIAI ĐOẠN:</b>
+GĐ1: Xây dựng MVP, thị trường UAE
+GĐ2: Mở rộng toàn UAE, tích hợp AI định giá
+GĐ3: Singapore, Hồng Kông, Anh, Pháp
+
+⚠️ Giai đoạn 1 — giá vốn rẻ nhất. Còn <b>${daysLeft} ngày</b>.`;
+        keyboard = [
+            [{ text: '🏢 Xem tổng quan dự án ATLAS', callback_data: 'atlas_chi_tiet' }],
+            [{ text: '🛡️ Cấu trúc SPV bảo vệ vốn', callback_data: 'field_spv' }],
             ...nutsLienKet()
         ];
     }
@@ -724,34 +791,38 @@ Giai đoạn 3: Singapore, Hồng Kông, Anh, Pháp
         imageUrl = IMG_ROAD;
         text = `🗺️ <b>CON ĐƯỜNG ĐẾN $1,000,000 — TOÁN HỌC, KHÔNG PHẢI PHÉP THUẬT</b>
 
-Bao nhiêu lần bạn dễ dàng vung 200.000 VNĐ cho một bữa ăn nhậu,
-một chiếc áo mới mà không hề suy nghĩ?
+Hãy cùng làm một phép tính đời thường:
 
-Chuyện gì sẽ xảy ra nếu bạn có tính kỷ luật,
-tự động trích ra đúng số tiền đó: <b>$8/ngày ($240/tháng)</b>,
-ném nó vào một cỗ máy sinh lời đã được tinh chỉnh hoàn hảo?
+Mỗi tháng anh/chị chi bao nhiêu cho cà phê, trà sữa, ăn vặt? 
+Trung bình khoảng 500,000 - 1,000,000đ? 
+Trong 20 năm, số tiền đó = <b>120 - 240 triệu đồng</b> bay hơi không để lại gì.
 
-Trong 15 năm, con số đó sẽ cán mốc <b>1 Triệu Đô La</b>.
+Nhưng nếu anh/chị có kỷ luật, trích ra chỉ <b>$100-$200/tháng (2.5 - 5 triệu VNĐ)</b>,
+đầu tư vào cổ phiếu blue-chip Mỹ trả cổ tức đều đặn qua hệ thống SWC:
 
-Không phải phép thuật. Không phải may mắn.
-Chỉ là <b>Toán học × Thời gian × Kỷ luật Vô Cảm</b>.
+📌 Với $150/tháng × 20%/năm:
+→ 10 năm: ~$46,000 (~1.2 tỷ VNĐ)
+→ 15 năm: ~$145,000 (~3.6 tỷ VNĐ)
+→ 20 năm: ~$300,000 (~7.5 tỷ VNĐ)
+→ 30 năm: ~$2,100,000 (~52.5 tỷ VNĐ)
+
+<b>Điều đặc biệt:</b> Thông qua cấu trúc SPV chuẩn SEC Mỹ, anh/chị sẽ <b>sở hữu cổ phiếu hợp pháp</b> — có giấy chứng nhận cổ đông, quyền nhận cổ tức, quyền biểu quyết, quyền thoái vốn khi IPO. Không phải token, không phải lời hứa hẹn.
 
 ━━━━━━━━━━━━━━━━━━━
 <b>3 TRIẾT LÝ VẬN HÀNH:</b>
 
 <b>1. Commercial Cows (Con Bò Sữa Thương Mại)</b>
-Chỉ mua cổ phiếu của DN lớn, làm ăn có lãi, trả cổ tức đều.
+Chỉ mua cổ phiếu của DN lớn Mỹ, làm ăn có lãi, trả cổ tức đều.
+Ví dụ: Apple, Microsoft, Coca-Cola — những công ty trả cổ tức 20-30 năm liên tục.
 Giống mua bò — không chờ bán thịt, mà <b>vắt sữa mỗi ngày</b>.
 
 <b>2. DCA — Phương pháp Bình Quân Giá</b>
-Đến tháng, cứ rót tiền đúng như hệ thống báo.
+Đến tháng, cứ rót $100-$200 đúng như hệ thống báo.
 Thị trường khủng hoảng, giá giảm → Mua được nhiều hơn (Sale-off!).
-Thị trường phục hồi → Khối tài sản phình to.
+Ví dụ: Tháng 3/2020 COVID → ai mua DCA lúc đó, đến 2021 lãi 100%.
 
 <b>3. Buy & Hold — Mua và Nắm Giữ</b>
-Loại bỏ hoàn toàn sai lầm cảm tính.
-Không hốt hoảng bán tháo khi khủng hoảng.
-Không tham lam đu đỉnh khi hưng phấn.
+Loại bỏ hoàn toàn sai lầm cảm tính. Warren Buffett giữ Coca-Cola từ 1988 đến nay.
 Kỷ luật tàn nhẫn nhưng kết quả ngọt ngào.`;
         keyboard = [
             [{ text: '📊 Lợi ích thực chiến — Sự thật đằng sau kỷ luật', callback_data: 'road1m_loi_ich' }],
@@ -1058,7 +1129,7 @@ Cùng điểm đến. Nhưng ai đến trước?`;
         const daMua = await User.countDocuments({ giaiDoanPheu: 'da_mua' });
         const hoatDong24h = await User.countDocuments({ lanCuoiHoatDong: { $gte: new Date(Date.now() - 86400000) } });
         bot.sendMessage(ADMIN_ID,
-            `📊 <b>THỐNG KÊ SWC BOT V6</b>\n\n👥 Tổng users: ${total}\n📞 Có SĐT: ${coSDT}\n🔥 Nóng: ${nong}\n👀 Quan tâm: ${quanTam}\n✅ Đã mua: ${daMua}\n📱 Hoạt động 24h: ${hoatDong24h}\n⏳ Còn lại: ${getDaysLeft()} ngày`,
+            `📊 <b>THỐNG KÊ SWC ACADEMY</b>\n\n👥 Tổng users: ${total}\n📞 Có SĐT: ${coSDT}\n🔥 Nóng: ${nong}\n👀 Quan tâm: ${quanTam}\n✅ Đã mua: ${daMua}\n📱 Hoạt động 24h: ${hoatDong24h}\n⏳ Còn lại: ${getDaysLeft()} ngày`,
             { parse_mode: 'HTML' });
         return;
     }
@@ -1170,7 +1241,7 @@ Cùng điểm đến. Nhưng ai đến trước?`;
 });
 
 // ==========================================================
-// XỬ LÝ TIN NHẮN TỰ DO — AI TÍ & ADMIN
+// XỬ LÝ TIN NHẮN TỰ DO — TRỢ LÝ SWC & ADMIN
 // ==========================================================
 bot.on('message', async (msg) => {
     if (!msg.from || msg.from.is_bot || msg.chat.type !== 'private') return;
@@ -1196,7 +1267,7 @@ bot.on('message', async (msg) => {
         }
     }
 
-    // KHÁCH GỬI TIN — GỌI AI TÍ
+    // KHÁCH GỬI TIN — GỌI AI TRỢ LÝ SWC
     if (userId !== ADMIN_ID) {
         let user = await User.findOne({ userId });
         if (!user) {
@@ -1239,12 +1310,10 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, phanHoiAI);
         });
 
-        // Thông báo admin khi hot lead
-        if (['quan_tam', 'nong'].includes(user.giaiDoanPheu)) {
-            bot.sendMessage(ADMIN_ID,
-                `🔥 <b>HOT LEAD ĐANG CHAT!</b>\n👤 ${user.firstName} ${user.lastName}\n🆔 ID: <code>${userId}</code>\nTâm trạng: ${camXuc} | Quan tâm: ${user.moiQuanTamChinh}\nPhễu: ${user.giaiDoanPheu}\n\n💬 <b>Khách:</b> ${noiDung.substring(0, 200)}\n🤖 <b>Tí:</b> ${phanHoiAI.substring(0, 300)}\n\n<i>Reply tin này để cướp quyền chat</i>`,
-                { parse_mode: 'HTML' }).catch(() => {});
-        }
+        // LUÔN chuyển tiếp TẤT CẢ tin nhắn cho Admin để theo dõi & can thiệp khi cần
+        bot.sendMessage(ADMIN_ID,
+            `💬 <b>KHÁCH ĐANG CHAT</b>\n👤 ${user.firstName} ${user.lastName}\n🆔 ID: <code>${userId}</code>\nTâm trạng: ${camXuc} | Quan tâm: ${user.moiQuanTamChinh}\nPhễu: ${user.giaiDoanPheu}\n\n💬 <b>Khách:</b> ${noiDung.substring(0, 300)}\n🤖 <b>Trợ lý:</b> ${phanHoiAI.substring(0, 400)}\n\n<i>Reply tin này để cướp quyền chat (AI tạm khóa 2h)</i>`,
+            { parse_mode: 'HTML' }).catch(() => {});
     }
 });
 
@@ -1252,40 +1321,46 @@ bot.on('message', async (msg) => {
 // DRIP FUNNEL 5 GIAI ĐOẠN — CHĂM SÓC THEO HÀNH TRÌNH
 // ==========================================================
 const DRIP = {
-    1: (ten, dl) => `Anh/chị ${ten} ơi, Tí đây! 😊
+    1: (ten, dl) => `Anh/chị ${ten} ơi, Trợ lý SWC đây! 🤝
 
-Rất vui được kết nối. Em biết ngoài kia có rất nhiều thông tin tài chính — đôi khi nhiều đến mức choáng ngợp.
+Rất vui được kết nối. Em hiểu ngoài kia có quá nhiều thông tin tài chính — đôi khi nhiều đến mức khiến mình không biết bắt đầu từ đâu.
 
-Để bắt đầu đúng chỗ, em có một câu hỏi nhỏ:
+Em chia sẻ 1 ví dụ nhỏ nhé: Hãy tưởng tượng mỗi tháng anh/chị chi khoảng 500,000đ cho cà phê, trà sữa. Trong 10 năm = 60 triệu đồng bay hơi. Nhưng nếu 60 triệu đó được đầu tư với lãi kép 20%/năm, nó sẽ thành khoảng 370 triệu đồng. Chênh lệch hơn 300 triệu chỉ vì 1 thói quen nhỏ.
 
+Để bắt đầu đúng chỗ, em có một câu hỏi:
 <i>"Nếu ngày mai anh/chị buộc phải ngừng làm việc trong 6 tháng, cuộc sống có bị ảnh hưởng không?"</i>
 
-Nếu CÓ — thì chúng ta cần nói chuyện rất nghiêm túc về việc xây dựng dòng tiền thụ động.
+Nếu CÓ — thì chúng ta cần nói chuyện nghiêm túc về việc xây dựng dòng tiền thụ động.
 Còn ${dl} ngày để anh/chị có cơ hội tốt nhất. 🗺️`,
 
-    3: (ten, dl) => `Anh/chị ${ten} ơi, Tí muốn chia sẻ một sự thật tàn nhẫn:
+    3: (ten, dl) => `Anh/chị ${ten} ơi, em muốn chia sẻ một góc nhìn mà ít ai nói thẳng:
 
-95% người tự trade thị trường đều thua lỗ.
-Không phải vì họ dốt. Mà vì họ đang chơi trong một sân chơi mà <b>luật do kẻ khác viết ra</b>.
+95% người tự đầu tư đều thua lỗ. Không phải vì họ dốt. Mà vì họ đang chơi trong một sân chơi mà <b>luật do kẻ khác viết ra</b>.
 
-Thị trường tài chính có 5 tầng. Ai ở Tầng nào ăn Tầng đó.
-F0 tự trade đang ngồi ở Tầng 5 — tầng thấp nhất, là mồi cho 4 tầng trên.
+Ví dụ thực tế: Anh A có 50 triệu, tự mua cổ phiếu theo "phím" trên Facebook. Thị trường giảm 20%, hoảng loạn bán → mất 10 triệu. Trong khi đó, người có hệ thống nhìn thấy "giá sale 20%" → mua thêm → 6 tháng sau lãi 30%.
 
-SWC Pass không phải khóa học. Nó là chiếc cần cẩu kéo anh/chị ra khỏi Tầng 5.
+Cùng một thị trường, nhưng 2 kết quả hoàn toàn khác nhau. Khác biệt duy nhất: HỆ THỐNG.
 
-Anh/chị muốn Tí giải thích cụ thể hơn không? Còn ${dl} ngày.`,
+Thị trường tài chính có 5 tầng chuỗi thức ăn. F0 tự trade đang ngồi ở Tầng 5 — tầng thấp nhất, là mồi cho 4 tầng trên.
 
-    7: (ten, dl) => `Anh/chị ${ten}, Tí muốn gửi một bài toán đơn giản:
+SWC Pass không phải khóa học. Nó là hệ thống kéo anh/chị ra khỏi Tầng 5.
 
-$8/ngày × 365 ngày × 15 năm × lãi kép 20%/năm = <b>$1,000,000</b>
+Anh/chị muốn em giải thích cụ thể hơn không? Còn ${dl} ngày.`,
 
-Người bắt đầu lúc 25 tuổi với $8/ngày
-sẽ có kết quả TỐT HƠN NHIỀU so với
-người bắt đầu lúc 35 tuổi với $80/ngày.
+    7: (ten, dl) => `Anh/chị ${ten}, em muốn gửi một bài toán mà ai cũng làm được:
 
-Tại sao? Vì họ có thêm 10 năm lãi kép.
+Chỉ cần $100-$200/tháng (tương đương 2.5-5 triệu VNĐ) × lãi kép 20%/năm:
 
-Mỗi ngày trì hoãn = 1 ngày sức mạnh lãi kép vĩnh viễn mất đi.
+📌 Với $150/tháng:
+→ 10 năm: ~$46,000 (~1.2 tỷ VNĐ)
+→ 15 năm: ~$145,000 (~3.6 tỷ VNĐ)
+→ 20 năm: ~$300,000 (~7.5 tỷ VNĐ)
+
+Ví dụ đời thường: $150/tháng chỉ bằng 5,000đ/ngày — ít hơn 1 ly trà đá. Nhưng khoản tiền nhỏ đó, nếu được đầu tư đều đặn vào cổ phiếu blue-chip Mỹ trả cổ tức qua hệ thống SWC, sau 20 năm sẽ thành một gia sản thực sự.
+
+Và điều quan trọng: anh/chị sẽ SỞ HỮU CỔ PHIẾU CHUẨN MỸ — có giấy chứng nhận cổ đông, quyền cổ tức, quyền biểu quyết. Không phải token hay lời hứa hẹn.
+
+Mỗi tháng trì hoãn = 1 tháng sức mạnh lãi kép vĩnh viễn mất đi.
 Còn ${dl} ngày để anh/chị bắt đầu ở giá tốt nhất. 📈`,
 
     14: (ten, dl) => `Anh/chị ${ten} ơi, có tin quan trọng về dự án ATLAS tại Dubai:
@@ -1293,23 +1368,26 @@ Còn ${dl} ngày để anh/chị bắt đầu ở giá tốt nhất. 📈`,
 Đây là "Grab của ngành BĐS" — gom toàn bộ quy trình mua-bán vào 1 app.
 Đang ở Giai đoạn 1 — vòng Private, giá gốc, trước khi công chúng biết đến.
 
-Điều đặc biệt: chỉ cần $50 để sở hữu cổ phần.
+Ví dụ dễ hiểu: Ngày xưa ai mua cổ phiếu Amazon vòng Private giá $0.30/cp, khi lên sàn IPO $18/cp → lãi 60 lần. Nhà đầu tư vòng Public mua giá $18 thì đã muộn hơn rất nhiều. ATLAS đang ở giai đoạn "giá $0.30" đó.
+
+Điều đặc biệt: chỉ cần $50 để sở hữu cổ phần hợp pháp qua SPV chuẩn Mỹ.
 Bảo vệ vốn All-or-Nothing: không đủ KPI → hoàn 100%.
 
-Anh/chị có muốn Tí gửi chi tiết về dự án không?
+Anh/chị muốn em gửi chi tiết về dự án không?
 Còn ${dl} ngày để vào vòng Private. 🏢`,
 
-    21: (ten, dl) => `Anh/chị ${ten} — Tí cần nói thẳng.
+    21: (ten, dl) => `Anh/chị ${ten} — em cần nói thẳng.
 
-Chúng ta đã trò chuyện một thời gian.
-Tí biết anh/chị hiểu giá trị của SWC Pass.
+Chúng ta đã trò chuyện một thời gian. Em biết anh/chị hiểu giá trị của SWC Pass.
+
+Em chia sẻ 1 câu chuyện thật: Có anh B, 35 tuổi, lương 15 triệu/tháng. Mỗi tháng chi tiêu hết sạch. 10 năm đi làm = gần 2 tỷ đồng đã qua tay nhưng tài khoản tiết kiệm gần như trống. Nếu anh ấy chỉ cần trích $150/tháng (~3.7 triệu) từ 10 năm trước với lãi kép → bây giờ đã có hơn 1 tỷ VNĐ.
 
 Còn ${dl} ngày. Sau ngày ${DEADLINE}, cánh cửa đóng lại.
 Không phải chiêu marketing. Khi đủ 1,000 thành viên, hệ thống khóa hoàn toàn.
 
 Câu hỏi thẳng thắn: <i>"Anh/chị cần thêm thông tin gì để có thể quyết định?"</i>
 
-Tí ở đây để giải đáp bất kỳ thắc mắc nào. 💬`
+Em ở đây để giải đáp bất kỳ thắc mắc nào. 💬`
 };
 
 async function guiDripMessage(userId, buoc) {
@@ -1360,9 +1438,9 @@ async function tacDongNguoiImLang() {
     }).catch(() => []);
 
     const mauTin = [
-        (ten) => `${ten} ơi, dạo này thị trường đang có nhiều biến động thú vị. Anh/chị có muốn Tí cập nhật không?`,
-        (ten) => `Chào ${ten}! Tí vừa đọc xong phân tích vĩ mô tháng này — có điều khá thú vị liên quan đến dòng tiền. Anh/chị còn quan tâm không?`,
-        (ten) => `${ten} ơi, gói Plus 5 năm hiện tại chỉ $10/tháng. Em nghĩ nó phù hợp với anh/chị — muốn Tí giải thích thêm không?`
+        (ten) => `${ten} ơi, dạo này thị trường đang có nhiều biến động thú vị. Ví dụ: lãi suất FED đang ở mức 3.625% — điều này ảnh hưởng trực tiếp đến dòng tiền toàn cầu. Anh/chị có muốn em cập nhật phân tích chi tiết không?`,
+        (ten) => `Chào ${ten}! Em vừa cập nhật phân tích vĩ mô tháng này. M2 đang ở Vùng Hoàng Kim 3-5% — đây là tín hiệu rất quan trọng cho nhà đầu tư. Anh/chị còn quan tâm không?`,
+        (ten) => `${ten} ơi, em chia sẻ 1 con số: gói Plus 5 năm chỉ $10/tháng — bằng giá 2 ly trà sữa. Nhưng 2 ly trà sữa mỗi tháng × 5 năm = 3 triệu VNĐ bay hơi. Cùng số tiền đó với SWC Pass = tấm bản đồ bảo vệ gia sản. Muốn em giải thích thêm không?`
     ];
 
     for (const user of danhSach) {
@@ -1404,14 +1482,16 @@ setInterval(async () => {
     const daysLeft = getDaysLeft();
 
     if (h === 8 && m === 0) {
-        const tin = `🌅 <b>CHÀO BUỔI SÁNG — F0 ĐANG LO, TA ĐANG CÓ KẾ HOẠCH!</b>
+        const tin = `🌅 <b>CHÀO BUỔI SÁNG — KIẾN THỨC TÀI CHÍNH MỖI NGÀY</b>
 
-Đa số F0 sáng dậy đầu tiên là mở app xem thị trường có đỏ không...
+Đa số người đi làm sáng dậy đầu tiên là lo lắng: "Hôm nay thị trường thế nào?"...
 Thành viên SWC sáng dậy uống cà phê, đã có kế hoạch từ đầu tháng.
 
-Sự thật tàn nhẫn: 95% người tự trade thua lỗ không phải vì thiếu thông tin — mà vì <b>thiếu hệ thống kỷ luật</b>.
+Ví dụ thực tế: Anh A mỗi sáng dành 2 tiếng xem chart, đọc tin — 1 năm = 730 giờ. Thành viên SWC chỉ cần 10 phút/tháng = 2 giờ/năm. Tiết kiệm 728 giờ để tận hưởng cuộc sống.
 
-⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống trước khi cửa đóng vĩnh viễn!`;
+Sự thật: 95% người tự trade thua lỗ không phải vì thiếu thông tin — mà vì <b>thiếu hệ thống kỷ luật</b>.
+
+⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống!`;
         await guiToanBo(tin, IMG_MAIN);
     }
 
@@ -1420,14 +1500,15 @@ Sự thật tàn nhẫn: 95% người tự trade thua lỗ không phải vì thi
 
 Lãi kép — Kỳ quan thứ 8 của Thế giới (Einstein):
 
-$240/tháng × 20%/năm:
-📌 10 năm → ~$55,000
-📌 20 năm → ~$480,000  
-📌 30 năm → ~$3,400,000
+Ví dụ dễ hiểu: Nếu anh/chị trích $150/tháng (bằng 2 bữa ăn nhà hàng) đầu tư với lãi kép 20%/năm:
+📌 10 năm → ~$46,000 (~1.2 tỷ VNĐ)
+📌 20 năm → ~$300,000 (~7.5 tỷ VNĐ)
+📌 30 năm → ~$2,100,000 (~52.5 tỷ VNĐ)
+
+Thông qua SPV chuẩn Mỹ, bạn sở hữu cổ phiếu hợp pháp — có giấy chứng nhận cổ đông.
 
 <b>Bí quyết:</b> Bắt đầu SỚM và kỷ luật ĐỀU ĐẶN.
-Mỗi ngày trì hoãn = 1 ngày lãi kép vĩnh viễn mất đi.
-Còn ${daysLeft} ngày để lên tàu SWC Pass! 🚀`;
+Còn ${daysLeft} ngày để bắt đầu hành trình! 🚀`;
         await guiToanBo(tin, IMG_ROAD);
     }
 
@@ -1465,7 +1546,7 @@ Sẽ <b>đóng cửa vĩnh viễn</b> vào ${DEADLINE}. Không có ngoại lệ.
 // ==========================================================
 bot.onText(/\/(admin|menu)/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    bot.sendMessage(msg.chat.id, `👨‍💻 <b>ADMIN PANEL SWC BOT V6</b>`, {
+    bot.sendMessage(msg.chat.id, `👨‍💻 <b>ADMIN PANEL SWC ACADEMY</b>`, {
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: [
@@ -1713,6 +1794,31 @@ bot.onText(/\/passrevoke (.+)/i, async (msg, match) => {
 });
 
 // ==========================================================
+// FALLBACK — HƯỚNG DẪN KHI GÕ LỆNH SAI CÚ PHÁP
+// ==========================================================
+bot.onText(/^\/(tracuu|setpass|setpheu|note|reset|sendall|sendpheu|thongbao|passrevoke|passgoogle|xoabai|suabai|post|getvideo)$/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const lenh = match[1].toLowerCase();
+    const huongDan = {
+        tracuu: '📋 <b>Cú pháp:</b>\n<code>/tracuu [ID]</code>\n\n<b>Ví dụ:</b>\n<code>/tracuu 507318519</code>\n\n→ Xem hồ sơ chi tiết của khách hàng theo Telegram ID.',
+        setpass: '📋 <b>Cú pháp:</b>\n<code>/setpass [ID] [gói]</code>\n\n<b>Gói hợp lệ:</b> chua_co / essential / plus / ultimate\n\n<b>Ví dụ:</b>\n<code>/setpass 507318519 plus</code>',
+        setpheu: '📋 <b>Cú pháp:</b>\n<code>/setpheu [ID] [giai_doan]</code>\n\n<b>Giai đoạn:</b> moi / quan_tam / nong / da_mua\n\n<b>Ví dụ:</b>\n<code>/setpheu 507318519 nong</code>',
+        note: '📋 <b>Cú pháp:</b>\n<code>/note [ID] [ghi chú]</code>\n\n<b>Ví dụ:</b>\n<code>/note 507318519 Khách quan tâm gói Plus</code>',
+        reset: '📋 <b>Cú pháp:</b>\n<code>/reset [ID]</code>\n\n<b>Ví dụ:</b>\n<code>/reset 507318519</code>\n\n→ Reset lịch sử chat AI của khách.',
+        sendall: '📋 <b>Cú pháp:</b>\n<code>/sendall [nội dung]</code>\n\n<b>Ví dụ:</b>\n<code>/sendall Chào mọi người! Có thông báo mới...</code>\n\n→ Gửi tin nhắn đến TẤT CẢ users.',
+        sendpheu: '📋 <b>Cú pháp:</b>\n<code>/sendpheu [giai_doan] [nội dung]</code>\n\n<b>Ví dụ:</b>\n<code>/sendpheu nong Anh/chị ơi, còn ít ngày nữa thôi!</code>',
+        thongbao: '📋 <b>Cú pháp:</b>\n<code>/thongbao [nội dung]</code>\n\n<b>Ví dụ:</b>\n<code>/thongbao Chào mừng thành viên mới!</code>\n\n→ Gửi thông báo lên Group Chat.',
+        passrevoke: '📋 <b>Cú pháp:</b>\n<code>/passrevoke [email]</code>\n\n<b>Ví dụ:</b>\n<code>/passrevoke user@gmail.com</code>\n\n→ Huỷ SWC Pass theo email.',
+        passgoogle: '📋 <b>Cú pháp:</b>\n<code>/passgoogle [email]</code>\n\n<b>Ví dụ:</b>\n<code>/passgoogle user@gmail.com</code>\n\n→ Tra cứu thông tin theo Gmail.',
+        xoabai: '📋 <b>Cú pháp:</b>\n<code>/xoabai [ID bài viết]</code>\n\n<b>Ví dụ:</b>\n<code>/xoabai 6543210abcdef</code>\n\n→ Dùng /dsbai để xem danh sách ID.',
+        suabai: '📋 <b>Cú pháp:</b>\n<code>/suabai [ID] | [Nội dung mới]</code>\n\n<b>Ví dụ:</b>\n<code>/suabai 6543210abcdef | Nội dung đã cập nhật...</code>',
+        post: '📋 <b>Cú pháp:</b>\n<code>/post [danh_muc] | [Tiêu đề] | [Nội dung]</code>\n\n<b>Danh mục:</b> kien_thuc / du_an / tai_chinh / thu_thuat / tin_tuc\n\n<b>Ví dụ:</b>\n<code>/post kien_thuc | 17 Tư Duy Triệu Phú | Người giàu tin rằng...</code>',
+        getvideo: '📋 <b>Cú pháp:</b>\n<code>/getvideo [message_id]</code>\n\n<b>Ví dụ:</b>\n<code>/getvideo 12345</code>\n\n→ Lấy video từ Private Channel.'
+    };
+    bot.sendMessage(ADMIN_ID, `⚠️ <b>THIẾU THAM SỐ!</b>\n\n${huongDan[lenh] || 'Lệnh không hợp lệ.'}`, { parse_mode: 'HTML' });
+});
+
+// ==========================================================
 // HTTP SERVER + ACADEMY API ENDPOINTS
 // ==========================================================
 function parseBody(req) {
@@ -1927,7 +2033,7 @@ const server = http.createServer(async (req, res) => {
 
         // Default
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('SWC Bot V7 + Academy API + Google Auth — Running!\n');
+        res.end('SWC Academy API + Trợ lý SWC — Running!\n');
     } catch (err) {
         console.error('API Error:', err.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1937,7 +2043,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
     console.log(`🌐 Server khởi động port ${process.env.PORT || 3000}`);
-    console.log('🚀 AI Tí + Academy API + Google Auth đã sẵn sàng!');
+    console.log('🚀 Trợ lý SWC + Academy API + Google Auth đã sẵn sàng!');
 });
 
 // ==========================================================
@@ -1966,7 +2072,7 @@ const CAU_NOI_TRIET_LY = [
     '💡 "95% người thua lỗ không phải vì thiếu thông tin, mà vì thiếu hệ thống kỷ luật." — SWC Capital',
     '💡 "Tự trade = tự trao tiền cho Cá Mập. Hệ thống = ngồi trên lưng Cá Mập." — SWC Capital',
     '💡 "Người giàu tin rằng: Tôi tạo ra cuộc đời tôi. Người nghèo tin: Cuộc đời xảy đến với tôi." — T. Harv Eker',
-    '💡 "$8/ngày × 15 năm × lãi kép 20% = $1,000,000. Không phải may mắn — chỉ là kỷ luật." — SWC Capital',
+    '💡 "$100-$200/tháng × 15-20 năm × lãi kép 20% = con đường đến triệu đô. Không phải may mắn — chỉ là kỷ luật." — SWC Capital',
     '💡 "Tiền mặt là rác. Tài sản sinh lời mới là vua." — Robert Kiyosaki',
     '💡 "Không ai có thể kiếm triệu đô với tư duy nghìn đô." — Grant Cardone',
     '💡 "Thị trường không phạt người sai — nó phạt người thiếu kỷ luật." — SWC Capital',
@@ -1998,7 +2104,7 @@ async function guiCauNoiTrietLy() {
 // NHẮC ĐẦU TƯ ĐẦU THÁNG NGÀY 1-5 (2.4)
 // ==========================================================
 async function guiNhacDauTu() {
-    const text = `📊 <b>NHẮC NHỞ ĐẦU TƯ HÀNG THÁNG</b>\n\nĐầu tháng rồi! Đây là thời điểm vàng để:\n\n💰 Trích $100-$200 đầu tư mua cổ phiếu theo chiến lược RM1\n📈 Kiểm tra và cập nhật danh mục đầu tư\n🎯 Kỷ luật DCA — mỗi tháng đều đặn, không bỏ lỡ\n\n<b>$8/ngày × 15 năm × lãi kép = $1,000,000</b>\n\nBấm nút bên dưới để xem danh mục:`;
+    const text = `📊 <b>NHẮC NHỞ ĐẦU TƯ HÀNG THÁNG</b>\n\nĐầu tháng rồi! Đây là thời điểm vàng để:\n\n💰 Trích $100-$200 đầu tư vào cổ phiếu blue-chip Mỹ theo chiến lược RM1\n📈 Kiểm tra và cập nhật danh mục đầu tư\n🎯 Kỷ luật DCA — mỗi tháng đều đặn, không bỏ lỡ\n\nVí dụ: $150/tháng chỉ bằng 5,000đ/ngày — ít hơn 1 ly trà đá. Nhưng sau 20 năm với lãi kép = ~$300,000 (~7.5 tỷ VNĐ).\n\nQuyền lợi: Sở hữu cổ phiếu chuẩn Mỹ qua SPV — có giấy chứng nhận cổ đông, quyền cổ tức.\n\nBấm nút bên dưới để xem danh mục:`;
     const danhSach = await User.find({ khongNhanBroadcast: false }).catch(() => []);
     for (const user of danhSach) {
         await bot.sendMessage(user.userId, text, {
