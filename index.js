@@ -87,7 +87,20 @@ const userSchema = new mongoose.Schema({
     adminPausedAiDen:  { type: Date, default: null },
     lichSuChat:        { type: Array, default: [] },
     camXucGanNhat:     { type: String, default: 'binh_thuong' },
-    moiQuanTamChinh:   { type: String, default: '' }
+    moiQuanTamChinh:   { type: String, default: '' },
+    // Google Sign-In fields
+    googleEmail:       { type: String, default: '' },
+    googleName:        { type: String, default: '' },
+    googleAvatar:      { type: String, default: '' },
+    googleId:          { type: String, default: '' },
+    // Xác thực thông tin
+    zaloPhone:         { type: String, default: '' },
+    telegramUsername:   { type: String, default: '' },
+    verified:          { type: Boolean, default: false },
+    // SWC Pass activation
+    swcPassCode:       { type: String, default: '' },
+    swcPassActivated:  { type: Boolean, default: false },
+    passRequestedAt:   { type: Date, default: null }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -1053,6 +1066,28 @@ Cùng điểm đến. Nhưng ai đến trước?`;
         return;
     }
 
+    // SWC PASS ACTIVATION — Admin bấm nút kích hoạt
+    else if (data.startsWith('activate_pass_') && callbackQuery.from.id.toString() === ADMIN_ID) {
+        const email = data.replace('activate_pass_', '');
+        try {
+            const user = await User.findOne({ googleEmail: email });
+            if (user) {
+                user.goiPass = 'essential';
+                user.swcPassActivated = true;
+                user.giaiDoanPheu = 'da_mua';
+                await user.save();
+                bot.sendMessage(ADMIN_ID,
+                    `✅ <b>ĐÃ KÍCH HOẠT SWC PASS!</b>\n\n📧 Email: <code>${email}</code>\n👤 Tên: ${user.googleName || user.firstName}\n💳 Gói: Essential\n\n🎉 Thành viên sẽ được mở khoá toàn bộ khoá học khi reload trang Academy.`,
+                    { parse_mode: 'HTML' });
+            } else {
+                bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy user với email: ${email}`);
+            }
+        } catch (e) {
+            bot.sendMessage(ADMIN_ID, `❌ Lỗi kích hoạt: ${e.message}`);
+        }
+        return;
+    }
+
     if (text !== '') {
         bot.deleteMessage(chatId, messageId).catch(() => {});
         if (imageUrl) {
@@ -1599,6 +1634,119 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ ok: true, hasPass: user ? user.goiPass !== 'chua_co' : false, passType: user ? user.goiPass : 'chua_co' }));
         }
 
+        // POST /api/auth/google — Đăng nhập Google (2.2)
+        if (req.method === 'POST' && req.url === '/api/auth/google') {
+            const { email, name, picture, googleId } = await parseBody(req);
+            const time = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+            // Tìm hoặc tạo user theo email
+            let user = await User.findOne({ googleEmail: email });
+            if (!user) {
+                user = new User({
+                    userId: 'google_' + (googleId || Date.now()),
+                    firstName: name ? name.split(' ')[0] : '',
+                    lastName: name ? name.split(' ').slice(1).join(' ') : '',
+                    googleEmail: email,
+                    googleName: name || '',
+                    googleAvatar: picture || '',
+                    googleId: googleId || '',
+                    ngayThamGia: new Date()
+                });
+                await user.save();
+
+                // Thông báo Admin — user mới đăng ký qua Google
+                await bot.sendMessage(ADMIN_ID,
+                    `🆕 <b>ĐĂNG KÝ MỚI — GOOGLE SIGN-IN</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Email: <code>${email}</code>\n🕐 Thời gian: ${time}\n📱 Nền tảng: SWC Academy`,
+                    { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
+                        [{ text: '✅ Kích hoạt SWC Pass', callback_data: 'activate_pass_' + email }],
+                        [{ text: '📊 Xem thống kê', callback_data: 'admin_thongke' }]
+                    ]}}).catch(() => {});
+            } else {
+                user.googleName = name || user.googleName;
+                user.googleAvatar = picture || user.googleAvatar;
+                user.lanCuoiHoatDong = new Date();
+                await user.save();
+
+                // Thông báo Admin — user quay lại
+                await bot.sendMessage(ADMIN_ID,
+                    `🔑 <b>ĐĂNG NHẬP LẠI — GOOGLE</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Email: <code>${email}</code>\n🕐 Thời gian: ${time}\n💳 Pass: ${user.goiPass}`,
+                    { parse_mode: 'HTML' }).catch(() => {});
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, isNew: !user.verified }));
+        }
+
+        // POST /api/check-verified — Kiểm tra user đã xác thực chưa
+        if (req.method === 'POST' && req.url === '/api/check-verified') {
+            const { email } = await parseBody(req);
+            const user = await User.findOne({ googleEmail: email });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            if (user && user.verified) {
+                return res.end(JSON.stringify({ ok: true, verified: true, hasPass: user.goiPass !== 'chua_co', passType: user.goiPass }));
+            }
+            return res.end(JSON.stringify({ ok: true, verified: false }));
+        }
+
+        // POST /api/verify-info — Lưu thông tin Telegram + Zalo sau Google login
+        if (req.method === 'POST' && req.url === '/api/verify-info') {
+            const { email, telegram, zaloPhone, passCode } = await parseBody(req);
+            const user = await User.findOne({ googleEmail: email });
+            if (!user) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ ok: false, error: 'User not found' }));
+            }
+
+            user.telegramUsername = telegram || '';
+            user.zaloPhone = zaloPhone || '';
+            user.verified = true;
+            if (passCode) user.swcPassCode = passCode;
+            await user.save();
+
+            // Thông báo Admin
+            const time = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+            await bot.sendMessage(ADMIN_ID,
+                `📋 <b>XÁC THỰC THÔNG TIN</b>\n\n👤 Tên: <b>${user.googleName}</b>\n📧 Email: <code>${email}</code>\n💬 Telegram: ${telegram || 'Không có'}\n📱 Zalo: ${zaloPhone || 'Không có'}\n💳 Mã Pass: ${passCode || 'Không nhập'}\n🕐 ${time}`,
+                { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
+                    [{ text: '✅ Kích hoạt SWC Pass', callback_data: 'activate_pass_' + email }]
+                ]}}).catch(() => {});
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, hasPass: user.goiPass !== 'chua_co', passType: user.goiPass }));
+        }
+
+        // POST /api/request-pass — Yêu cầu kích hoạt SWC Pass (1.4 + 2.7)
+        if (req.method === 'POST' && req.url === '/api/request-pass') {
+            const { email, name } = await parseBody(req);
+            const time = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+            // Cập nhật passRequestedAt
+            await User.updateOne({ googleEmail: email }, { $set: { passRequestedAt: new Date() } });
+
+            // Gửi tin nhắn cho Admin với NÚT KÍCH HOẠT
+            await bot.sendMessage(ADMIN_ID,
+                `🔑 <b>YÊU CẦU KÍCH HOẠT SWC PASS!</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Gmail: <code>${email}</code>\n🕐 Thời gian: ${time}\n\n⚡ Bấm nút bên dưới để kích hoạt:`,
+                { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
+                    [{ text: '✅ KÍCH HOẠT SWC PASS NGAY', callback_data: 'activate_pass_' + email }],
+                    [{ text: '📊 Xem thống kê', callback_data: 'admin_thongke' }]
+                ]}});
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        }
+
+        // POST /api/check-pass-email — Kiểm tra SWC Pass bằng email
+        if (req.method === 'POST' && req.url === '/api/check-pass-email') {
+            const { email } = await parseBody(req);
+            const user = await User.findOne({ googleEmail: email });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+                ok: true,
+                hasPass: user ? user.goiPass !== 'chua_co' : false,
+                passType: user ? user.goiPass : 'chua_co'
+            }));
+        }
+
         // POST /api/webhook — Lưu bài viết kiến thức từ Telegram
         if (req.method === 'POST' && req.url === '/api/webhook') {
             const { category, title, content, imageUrl, linkUrl } = await parseBody(req);
@@ -1620,7 +1768,7 @@ const server = http.createServer(async (req, res) => {
 
         // Default
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('SWC Bot V6 + Academy API — Running!\n');
+        res.end('SWC Bot V7 + Academy API + Google Auth — Running!\n');
     } catch (err) {
         console.error('API Error:', err.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1630,5 +1778,157 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
     console.log(`🌐 Server khởi động port ${process.env.PORT || 3000}`);
-    console.log('🚀 AI Tí + Academy API đã sẵn sàng!');
+    console.log('🚀 AI Tí + Academy API + Google Auth đã sẵn sàng!');
 });
+
+// ==========================================================
+// CÂU NÓI TRIẾT LÝ 6H SÁNG (2.5)
+// ==========================================================
+const CAU_NOI_TRIET_LY = [
+    '💡 "Thị trường là công cụ chuyển tiền từ túi người nóng vội sang túi người kiên nhẫn." — Warren Buffett',
+    '💡 "Lãi kép là Kỳ quan thứ 8 của Thế giới. Ai hiểu nó, người đó kiếm được nó." — Albert Einstein',
+    '💡 "Giá cả là những gì bạn phải trả. Giá trị là những gì bạn nhận được." — Warren Buffett',
+    '💡 "Người giàu không làm việc vì tiền. Họ để tiền làm việc cho họ." — Robert Kiyosaki',
+    '💡 "Nếu bạn sinh ra trong nghèo khó, đó không phải lỗi của bạn. Nhưng nếu bạn chết trong nghèo khó, đó là lỗi của bạn." — Bill Gates',
+    '💡 "Cách duy nhất để làm việc vĩ đại là yêu những gì bạn làm." — Steve Jobs',
+    '💡 "Hãy sợ khi người khác tham lam, và tham lam khi người khác sợ hãi." — Warren Buffett',
+    '💡 "Đầu tư vào bản thân là khoản đầu tư sinh lời nhất mà bạn có thể thực hiện." — Warren Buffett',
+    '💡 "Thành công là đi từ thất bại này đến thất bại khác mà không mất đi nhiệt huyết." — Winston Churchill',
+    '💡 "Không phải kẻ mạnh nhất sống sót, cũng không phải kẻ thông minh nhất, mà là kẻ thích ứng tốt nhất." — Charles Darwin',
+    '💡 "Kỷ luật là cầu nối giữa mục tiêu và thành tựu." — Jim Rohn',
+    '💡 "Bạn không cần phải vĩ đại để bắt đầu, nhưng bạn phải bắt đầu để trở nên vĩ đại." — Zig Ziglar',
+    '💡 "Tiền bạc không phải là tất cả, nhưng nó đứng cùng hàng với oxy." — Zig Ziglar',
+    '💡 "Quy tắc số 1: Không bao giờ mất tiền. Quy tắc số 2: Không bao giờ quên quy tắc số 1." — Warren Buffett',
+    '💡 "Người thắng cuộc không bao giờ bỏ cuộc, và người bỏ cuộc không bao giờ thắng." — Vince Lombardi',
+    '💡 "Thời gian là bạn của doanh nghiệp tuyệt vời, là kẻ thù của doanh nghiệp tầm thường." — Warren Buffett',
+    '💡 "Hãy đói khát. Hãy dại khờ." — Steve Jobs',
+    '💡 "Mỗi ngày trì hoãn là 1 ngày sức mạnh lãi kép vĩnh viễn mất đi." — SWC Capital',
+    '💡 "Con đường đến triệu đô không phải phép thuật. Chỉ là Toán học × Thời gian × Kỷ luật." — SWC Capital',
+    '💡 "95% người thua lỗ không phải vì thiếu thông tin, mà vì thiếu hệ thống kỷ luật." — SWC Capital',
+    '💡 "Tự trade = tự trao tiền cho Cá Mập. Hệ thống = ngồi trên lưng Cá Mập." — SWC Capital',
+    '💡 "Người giàu tin rằng: Tôi tạo ra cuộc đời tôi. Người nghèo tin: Cuộc đời xảy đến với tôi." — T. Harv Eker',
+    '💡 "$8/ngày × 15 năm × lãi kép 20% = $1,000,000. Không phải may mắn — chỉ là kỷ luật." — SWC Capital',
+    '💡 "Tiền mặt là rác. Tài sản sinh lời mới là vua." — Robert Kiyosaki',
+    '💡 "Không ai có thể kiếm triệu đô với tư duy nghìn đô." — Grant Cardone',
+    '💡 "Thị trường không phạt người sai — nó phạt người thiếu kỷ luật." — SWC Capital',
+    '💡 "Khi mọi thứ dường như chống lại bạn, hãy nhớ máy bay cất cánh ngược gió." — Henry Ford',
+    '💡 "Đừng tìm kiếm cơ hội — hãy tạo ra nó." — Chris Grosser',
+    '💡 "Giàu có là khả năng trải nghiệm cuộc sống đầy đủ." — Henry David Thoreau',
+    '💡 "Bạn bỏ lỡ 100% cú sút mà bạn không thực hiện." — Wayne Gretzky',
+    '💡 "Tương lai thuộc về những người tin vào vẻ đẹp của ước mơ mình." — Eleanor Roosevelt'
+];
+
+async function guiCauNoiTrietLy() {
+    const cauNoi = CAU_NOI_TRIET_LY[Math.floor(Math.random() * CAU_NOI_TRIET_LY.length)];
+    const text = `🌅 <b>CHÀO BUỔI SÁNG — SWC CAPITAL</b>\n\n${cauNoi}\n\n🎯 <i>Mỗi ngày một bước tiến — kiên nhẫn và kỷ luật sẽ đưa bạn đến đích.</i>`;
+    const danhSach = await User.find({ soTinNhan: { $gte: 1 } }).catch(() => []);
+    for (const user of danhSach) {
+        await bot.sendMessage(user.userId, text, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }]
+            ]}
+        }).catch(() => {});
+        await new Promise(r => setTimeout(r, 100));
+    }
+    console.log(`✅ Đã gửi câu triết lý cho ${danhSach.length} người`);
+}
+
+// ==========================================================
+// NHẮC ĐẦU TƯ ĐẦU THÁNG NGÀY 1-5 (2.4)
+// ==========================================================
+async function guiNhacDauTu() {
+    const text = `📊 <b>NHẮC NHỞ ĐẦU TƯ HÀNG THÁNG</b>\n\nĐầu tháng rồi! Đây là thời điểm vàng để:\n\n💰 Trích $100-$200 đầu tư mua cổ phiếu theo chiến lược RM1\n📈 Kiểm tra và cập nhật danh mục đầu tư\n🎯 Kỷ luật DCA — mỗi tháng đều đặn, không bỏ lỡ\n\n<b>$8/ngày × 15 năm × lãi kép = $1,000,000</b>\n\nBấm nút bên dưới để xem danh mục:`;
+    const danhSach = await User.find({ khongNhanBroadcast: false }).catch(() => []);
+    for (const user of danhSach) {
+        await bot.sendMessage(user.userId, text, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [
+                [{ text: '🗺️ Xem danh mục RM1', url: ROAD_1M_URL }],
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
+                [{ text: '🏠 Menu Bot', callback_data: 'menu_chinh' }]
+            ]}
+        }).catch(() => {});
+        await new Promise(r => setTimeout(r, 100));
+    }
+    console.log(`✅ Đã gửi nhắc đầu tư cho ${danhSach.length} người`);
+}
+
+// ==========================================================
+// NHẮC HỌC TẬP CHO SWC PASS MEMBER MỖI NGÀY (2.3)
+// ==========================================================
+const MAU_NHAC_HOC = [
+    (ten) => `📚 Chào ${ten}! Hôm nay bạn đã dành 10 phút để học kiến thức mới chưa?\n\nMỗi ngày một bài — kiến thức sẽ tích lũy thành sức mạnh.\n\nVào SWC Academy ngay nhé! 🎓`,
+    (ten) => `🧠 ${ten} ơi, kiến thức mới đang chờ bạn trên SWC Academy!\n\nĐừng quên cập nhật tin tức thị trường và đọc phân tích mới nhất.\n\nMỗi ngày tiến 1 bước — 365 bước/năm! 🚀`,
+    (ten) => `💡 ${ten}, bạn đã vào nhóm chat SWC Capital hôm nay chưa?\n\nNhiều thông tin giá trị đang được chia sẻ. Đừng bỏ lỡ!\n\nVào nhóm ngay nhé! 💬`,
+    (ten) => `📈 Chào ${ten}! Nhắc nhở: Kiểm tra danh mục đầu tư định kỳ.\n\nThành viên SWC Pass được cập nhật tín hiệu mới nhất hàng tháng.\n\nVào Academy để xem bài giảng mới! 🎓`
+];
+
+async function guiNhacHocTap() {
+    const danhSach = await User.find({ goiPass: { $ne: 'chua_co' }, khongNhanBroadcast: false }).catch(() => []);
+    for (const user of danhSach) {
+        const mau = MAU_NHAC_HOC[Math.floor(Math.random() * MAU_NHAC_HOC.length)];
+        const text = mau(user.firstName || user.googleName || 'bạn');
+        await bot.sendMessage(user.userId, text, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '📰 Thư viện Kiến thức', url: 'https://swcpass.com/academy/chat.html' }],
+                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
+                [{ text: '🗺️ Danh mục RM1', url: ROAD_1M_URL }]
+            ]}
+        }).catch(() => {});
+        await new Promise(r => setTimeout(r, 100));
+    }
+    console.log(`✅ Đã gửi nhắc học tập cho ${danhSach.length} thành viên Pass`);
+}
+
+// ==========================================================
+// FOLLOW-UP TỰ ĐỘNG CHO CHƯA KÍCH HOẠT PASS (2.3)
+// ==========================================================
+async function followUpChuaKichHoat() {
+    const danhSach = await User.find({
+        googleEmail: { $ne: '' },
+        goiPass: 'chua_co',
+        khongNhanBroadcast: false,
+        verified: true
+    }).catch(() => []);
+
+    for (const user of danhSach) {
+        const ten = user.googleName || user.firstName || 'bạn';
+        const text = `👋 Chào ${ten}!\n\nBạn đã đăng ký SWC Academy nhưng chưa kích hoạt SWC Pass.\n\n🔓 Kích hoạt SWC Pass để:\n✅ Mở khoá toàn bộ khoá học nâng cao\n✅ Nhận tín hiệu đầu tư hàng tháng\n✅ Tham gia cộng đồng VIP\n\nChỉ cần bấm nút bên dưới — Admin sẽ kích hoạt ngay cho bạn! ⚡`;
+        await bot.sendMessage(user.userId, text, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [
+                [{ text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '💬 Hỏi Bot Tí', callback_data: 'menu_chinh' }]
+            ]}
+        }).catch(() => {});
+        await new Promise(r => setTimeout(r, 200));
+    }
+}
+
+// ==========================================================
+// CRON MỚI — GỘP VÀO INTERVAL CHÍNH
+// ==========================================================
+setInterval(async () => {
+    const gio = layGioVN();
+    const h = gio.getUTCHours();
+    const m = gio.getUTCMinutes();
+    const ngay = gio.getUTCDate();
+
+    // 6:00 sáng VN — Câu nói triết lý (2.5)
+    if (h === 6 && m === 0) await guiCauNoiTrietLy();
+
+    // 7:00 sáng — Nhắc SWC Pass member học tập (2.3)
+    if (h === 7 && m === 0) await guiNhacHocTap();
+
+    // Ngày 1-5 đầu tháng, 9h sáng — Nhắc đầu tư RM1 (2.4)
+    if (ngay >= 1 && ngay <= 5 && h === 9 && m === 0) await guiNhacDauTu();
+
+    // 15:00 chiều — Follow-up chưa kích hoạt Pass (2.3)
+    if (h === 15 && m === 0) await followUpChuaKichHoat();
+}, 60000);
