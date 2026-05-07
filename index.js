@@ -1765,6 +1765,21 @@ bot.onText(/\/passlist/i, async (msg) => {
     }
 });
 
+// /resetallpass — Reset tất cả SWC Pass
+bot.onText(/\/resetallpass/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        bot.sendMessage(ADMIN_ID, '⏳ Đang tiến hành reset toàn bộ SWC Pass...');
+        const result = await User.updateMany(
+            { goiPass: { $ne: 'chua_co' } },
+            { $set: { goiPass: 'chua_co', passTier: '', passExpiry: null, swcPassActivated: false } }
+        );
+        bot.sendMessage(ADMIN_ID, `✅ Đã reset thành công SWC Pass cho ${result.modifiedCount} tài khoản về trạng thái chưa kích hoạt! Anh có thể bắt đầu cấp lại mới.`);
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, '❌ Lỗi reset: ' + e.message);
+    }
+});
+
 // /passnolist — Danh sách chưa kích hoạt
 bot.onText(/\/passnolist/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
