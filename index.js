@@ -121,6 +121,16 @@ const knowledgeSchema = new mongoose.Schema({
 });
 const Knowledge = mongoose.model('Knowledge', knowledgeSchema);
 
+const chatSchema = new mongoose.Schema({
+    author: String,
+    avatar: String,
+    hasPass: Boolean,
+    text: String,
+    time: String,
+    createdAt: { type: Date, default: Date.now }
+});
+const ChatMsg = mongoose.model('ChatMsg', chatSchema);
+
 // ==========================================================
 // NHẬN DIỆN CẢM XÚC & MỐI QUAN TÂM
 // ==========================================================
@@ -1898,6 +1908,21 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ ok: true }));
         }
 
+        // GET /api/chat — Lấy lịch sử chat cộng đồng
+        if (req.method === 'GET' && req.url === '/api/chat') {
+            const msgs = await ChatMsg.find().sort({ createdAt: -1 }).limit(100);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, data: msgs.reverse() }));
+        }
+
+        // POST /api/chat — Gửi tin nhắn mới lên cộng đồng
+        if (req.method === 'POST' && req.url === '/api/chat') {
+            const data = await parseBody(req);
+            const msg = new ChatMsg(data);
+            await msg.save();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        }
         // POST /api/auth/telegram — Xác thực Telegram Login
         if (req.method === 'POST' && req.url === '/api/auth/telegram') {
             const tgData = await parseBody(req);
