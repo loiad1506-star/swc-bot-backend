@@ -26,21 +26,21 @@ bot.on("error", (msg) => console.log("⚠️ Lỗi chung:", msg.message));
 const ADMIN_ID = process.env.ADMIN_ID || '507318519';
 const GROUP_USERNAME = '@swc_capital_chat';
 
-const SWC_FIELD_URL   = 'https://swcpass.com/swc-field/';
-const SWC_PASS_URL    = 'https://swcpass.com/swc-field/#pricing';
-const ROAD_1M_URL     = 'https://swcpass.com/rm1/';
-const ATLAS_URL       = 'https://swcpass.com/atlas/';
-const VIDEO_MOBILE    = 'https://www.youtube.com/watch?v=SEB7RJrutxg';
-const VIDEO_PC        = 'https://www.youtube.com/watch?v=gy_sxh9WCCM';
+const SWC_FIELD_URL = 'https://swcpass.com/swc-field/';
+const SWC_PASS_URL = 'https://swcpass.com/swc-field/#pricing';
+const ROAD_1M_URL = 'https://swcpass.com/rm1/';
+const ATLAS_URL = 'https://swcpass.com/atlas/';
+const VIDEO_MOBILE = 'https://www.youtube.com/watch?v=SEB7RJrutxg';
+const VIDEO_PC = 'https://www.youtube.com/watch?v=gy_sxh9WCCM';
 
-const IMG_MAIN   = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6';
-const IMG_PASS   = 'https://photos.app.goo.gl/cbECmeni7rhuBAst5';
-const IMG_HANG   = 'https://photos.app.goo.gl/yZU4FjisXcrQVMuf7';
-const IMG_ROAD   = 'https://photos.app.goo.gl/Ca3xJzrWPaxzLSur7';
-const IMG_ROAD2  = 'https://photos.app.goo.gl/pcfu5PUhz8Xs61kt7';
-const IMG_FIELD  = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
-const IMG_ATLAS  = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
-const IMG_SPV    = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
+const IMG_MAIN = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6';
+const IMG_PASS = 'https://photos.app.goo.gl/cbECmeni7rhuBAst5';
+const IMG_HANG = 'https://photos.app.goo.gl/yZU4FjisXcrQVMuf7';
+const IMG_ROAD = 'https://photos.app.goo.gl/Ca3xJzrWPaxzLSur7';
+const IMG_ROAD2 = 'https://photos.app.goo.gl/pcfu5PUhz8Xs61kt7';
+const IMG_FIELD = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
+const IMG_ATLAS = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
+const IMG_SPV = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
 
 const DEADLINE = '30/06/2026';
 const NOTIFY_GROUP_ID = process.env.NOTIFY_GROUP_ID || ADMIN_ID;
@@ -57,7 +57,7 @@ function nutsLienKet() {
         [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
         [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
         [{ text: '🗺️ Con đường $1,000,000', url: ROAD_1M_URL }, { text: '🏢 Dự án ATLAS', url: ATLAS_URL }],
-        [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
+        [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }],
         [{ text: '🏠 Quay về Menu Chính', callback_data: 'menu_chinh' }]
     ];
 }
@@ -70,54 +70,54 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .catch(err => console.error('❌ Lỗi MongoDB:', err.message));
 
 const userSchema = new mongoose.Schema({
-    userId:            { type: String, unique: true },
-    firstName:         { type: String, default: '' },
-    lastName:          { type: String, default: '' },
-    username:          { type: String, default: '' },
-    phone:             { type: String, default: '' },
-    ngayThamGia:       { type: Date, default: Date.now },
-    lanCuoiHoatDong:   { type: Date, default: Date.now },
-    soTinNhan:         { type: Number, default: 0 },
-    goiPass:           { type: String, default: 'chua_co', enum: ['chua_co', 'essential', 'plus', 'ultimate'] },
-    giaiDoanPheu:      { type: String, default: 'moi', enum: ['moi', 'quan_tam', 'nong', 'da_mua'] },
-    ngayPheuGuiCuoi:   { type: Date, default: null },
-    buocPheuHienTai:   { type: Number, default: 0 },
-    khongNhanBroadcast:{ type: Boolean, default: false },
-    ghiChu:            { type: String, default: '' },
-    adminPausedAiDen:  { type: Date, default: null },
-    lichSuChat:        { type: Array, default: [] },
-    camXucGanNhat:     { type: String, default: 'binh_thuong' },
-    moiQuanTamChinh:   { type: String, default: '' },
+    userId: { type: String, unique: true },
+    firstName: { type: String, default: '' },
+    lastName: { type: String, default: '' },
+    username: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    ngayThamGia: { type: Date, default: Date.now },
+    lanCuoiHoatDong: { type: Date, default: Date.now },
+    soTinNhan: { type: Number, default: 0 },
+    goiPass: { type: String, default: 'chua_co', enum: ['chua_co', 'essential', 'plus', 'ultimate'] },
+    giaiDoanPheu: { type: String, default: 'moi', enum: ['moi', 'quan_tam', 'nong', 'da_mua'] },
+    ngayPheuGuiCuoi: { type: Date, default: null },
+    buocPheuHienTai: { type: Number, default: 0 },
+    khongNhanBroadcast: { type: Boolean, default: false },
+    ghiChu: { type: String, default: '' },
+    adminPausedAiDen: { type: Date, default: null },
+    lichSuChat: { type: Array, default: [] },
+    camXucGanNhat: { type: String, default: 'binh_thuong' },
+    moiQuanTamChinh: { type: String, default: '' },
     // Google Sign-In fields
-    googleEmail:       { type: String, default: '' },
-    googleName:        { type: String, default: '' },
-    googleAvatar:      { type: String, default: '' },
-    googleId:          { type: String, default: '' },
+    googleEmail: { type: String, default: '' },
+    googleName: { type: String, default: '' },
+    googleAvatar: { type: String, default: '' },
+    googleId: { type: String, default: '' },
     // Xác thực thông tin
-    zaloPhone:         { type: String, default: '' },
-    telegramUsername:   { type: String, default: '' },
-    verified:          { type: Boolean, default: false },
+    zaloPhone: { type: String, default: '' },
+    telegramUsername: { type: String, default: '' },
+    verified: { type: Boolean, default: false },
     // SWC Pass activation
-    swcPassCode:       { type: String, default: '' },
-    swcPassActivated:  { type: Boolean, default: false },
-    passRequestedAt:   { type: Date, default: null },
-    passTier:          { type: String, default: '', enum: ['', '1_year', '5_year', 'lifetime'] },
-    passExpiry:        { type: Date, default: null },
-    passActivatedAt:   { type: Date, default: null }
+    swcPassCode: { type: String, default: '' },
+    swcPassActivated: { type: Boolean, default: false },
+    passRequestedAt: { type: Date, default: null },
+    passTier: { type: String, default: '', enum: ['', '1_year', '5_year', 'lifetime'] },
+    passExpiry: { type: Date, default: null },
+    passActivatedAt: { type: Date, default: null }
 });
 const User = mongoose.model('User', userSchema);
 
 // Schema cho Thư viện Kiến thức (Academy)
 const knowledgeSchema = new mongoose.Schema({
-    category:      { type: String, enum: ['kien_thuc', 'du_an', 'tai_chinh', 'thu_thuat', 'tin_tuc'], required: true },
-    title:         { type: String, required: true },
-    content:       { type: String, default: '' },
-    imageUrl:      { type: String, default: '' },
-    linkUrl:       { type: String, default: '' },
+    category: { type: String, enum: ['kien_thuc', 'du_an', 'tai_chinh', 'thu_thuat', 'tin_tuc'], required: true },
+    title: { type: String, required: true },
+    content: { type: String, default: '' },
+    imageUrl: { type: String, default: '' },
+    linkUrl: { type: String, default: '' },
     telegramMsgId: { type: String, default: '' },
-    authorName:    { type: String, default: 'SWC Academy' },
-    createdAt:     { type: Date, default: Date.now },
-    views:         { type: Number, default: 0 }
+    authorName: { type: String, default: 'SWC Academy' },
+    createdAt: { type: Date, default: Date.now },
+    views: { type: Number, default: 0 }
 });
 const Knowledge = mongoose.model('Knowledge', knowledgeSchema);
 
@@ -126,21 +126,21 @@ const Knowledge = mongoose.model('Knowledge', knowledgeSchema);
 // ==========================================================
 function phanTichCamXuc(text) {
     const t = text.toLowerCase();
-    if (['thua lỗ','mất hết','thất bại','buồn','bị lừa rồi','chán nản'].some(k => t.includes(k))) return 'buon';
-    if (['lừa đảo','scam','đa cấp','không tin','bằng chứng','chứng minh đi'].some(k => t.includes(k))) return 'hoai_nghi';
-    if (['sợ','lo lắng','rủi ro','có thật không','an toàn không','chắc không'].some(k => t.includes(k))) return 'lo_lang';
-    if (['x10','x100','giàu nhanh','all in','đổi đời','muốn mua ngay'].some(k => t.includes(k))) return 'phan_khich';
+    if (['thua lỗ', 'mất hết', 'thất bại', 'buồn', 'bị lừa rồi', 'chán nản'].some(k => t.includes(k))) return 'buon';
+    if (['lừa đảo', 'scam', 'đa cấp', 'không tin', 'bằng chứng', 'chứng minh đi'].some(k => t.includes(k))) return 'hoai_nghi';
+    if (['sợ', 'lo lắng', 'rủi ro', 'có thật không', 'an toàn không', 'chắc không'].some(k => t.includes(k))) return 'lo_lang';
+    if (['x10', 'x100', 'giàu nhanh', 'all in', 'đổi đời', 'muốn mua ngay'].some(k => t.includes(k))) return 'phan_khich';
     if (text.split(' ').length <= 5) return 'ngan_gon';
     return 'binh_thuong';
 }
 
 function phanTichMoiQuanTam(text) {
     const t = text.toLowerCase();
-    if (['giá','phí','bao nhiêu','tiền','đắt','rẻ hơn'].some(k => t.includes(k))) return 'gia_ca';
-    if (['lừa','scam','an toàn','pháp lý','uy tín'].some(k => t.includes(k))) return 'do_tin_cay';
-    if (['atlas','dubai','bất động sản','bds'].some(k => t.includes(k))) return 'atlas';
-    if (['road','1m','triệu','lãi kép','dca'].some(k => t.includes(k))) return 'road1m';
-    if (['pass','thẻ','essential','plus','ultimate'].some(k => t.includes(k))) return 'swcpass';
+    if (['giá', 'phí', 'bao nhiêu', 'tiền', 'đắt', 'rẻ hơn'].some(k => t.includes(k))) return 'gia_ca';
+    if (['lừa', 'scam', 'an toàn', 'pháp lý', 'uy tín'].some(k => t.includes(k))) return 'do_tin_cay';
+    if (['atlas', 'dubai', 'bất động sản', 'bds'].some(k => t.includes(k))) return 'atlas';
+    if (['road', '1m', 'triệu', 'lãi kép', 'dca'].some(k => t.includes(k))) return 'road1m';
+    if (['pass', 'thẻ', 'essential', 'plus', 'ultimate'].some(k => t.includes(k))) return 'swcpass';
     return 'chung';
 }
 
@@ -346,11 +346,11 @@ Chỉ còn <b>${daysLeft} ngày</b> để bạn thay đổi quỹ đạo tài ch
             [{ text: '📱 Hướng dẫn kích hoạt (Điện thoại)', url: VIDEO_MOBILE }],
             [{ text: '💻 Hướng dẫn kích hoạt (Máy tính)', url: VIDEO_PC }],
             [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
-            [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }]
+            [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }]
         ]
     };
 
-    if (messageId) bot.deleteMessage(chatId, messageId).catch(() => {});
+    if (messageId) bot.deleteMessage(chatId, messageId).catch(() => { });
     bot.sendPhoto(chatId, IMG_MAIN, { caption: text, parse_mode: 'HTML', reply_markup: keyboard })
         .catch(() => bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: keyboard }));
 }
@@ -363,7 +363,7 @@ bot.onText(/\/start(.*)/i, async (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id.toString();    // Xử lý đăng nhập từ Academy
     const param = msg.text.replace('/start', '').trim();
-    
+
     if (param === 'academy_login') {
         let user = await User.findOne({ userId });
         if (!user) {
@@ -376,7 +376,7 @@ bot.onText(/\/start(.*)/i, async (msg) => {
             });
             await user.save();
         }
-        
+
         const text = `🎓 <b>Chào mừng ${user.firstName} đến với SWC Academy!</b>
 
 Bạn đang đăng nhập từ nền tảng đào tạo SWC Academy.
@@ -397,10 +397,10 @@ Nhập email và mật khẩu tại trang Đăng ký để tạo tài khoản h�
                 ]
             }
         });
-        
+
         bot.sendMessage(ADMIN_ID,
             `🎓 <b>LEAD TỪ ACADEMY!</b>\nTên: ${user.firstName} ${user.lastName}\nID: <code>${userId}</code>\nUsername: ${user.username}`,
-            { parse_mode: 'HTML' }).catch(() => {});
+            { parse_mode: 'HTML' }).catch(() => { });
         return;
     }
 
@@ -417,7 +417,7 @@ Nhập email và mật khẩu tại trang Đăng ký để tạo tài khoản h�
         await user.save();
         bot.sendMessage(ADMIN_ID,
             `🆕 <b>LEAD MỚI!</b>\nTên: ${user.firstName} ${user.lastName}\nID: <code>${userId}</code>\nUsername: ${user.username}`,
-            { parse_mode: 'HTML' }).catch(() => {});
+            { parse_mode: 'HTML' }).catch(() => { });
     }
 
     if (!user.phone) {
@@ -429,7 +429,7 @@ Nhập email và mật khẩu tại trang Đăng ký để tạo tài khoản h�
                 resize_keyboard: true,
                 one_time_keyboard: true
             }
-        }).catch(() => {});
+        }).catch(() => { });
     } else {
         guiMenuChinh(chatId);
     }
@@ -442,12 +442,12 @@ bot.on('contact', async (msg) => {
     bot.sendMessage(chatId, '⏳ Đang xử lý hồ sơ nhà đầu tư...', {
         reply_markup: { remove_keyboard: true }
     }).then(sent => {
-        bot.deleteMessage(chatId, sent.message_id).catch(() => {});
+        bot.deleteMessage(chatId, sent.message_id).catch(() => { });
         guiMenuChinh(chatId);
     });
     bot.sendMessage(ADMIN_ID,
         `📞 <b>KHÁCH CÓ SỐ ĐIỆN THOẠI!</b>\nTên: ${msg.from.first_name}\nSĐT: ${msg.contact.phone_number}\nID: <code>${userId}</code>`,
-        { parse_mode: 'HTML' }).catch(() => {});
+        { parse_mode: 'HTML' }).catch(() => { });
 });
 
 // ==========================================================
@@ -459,7 +459,7 @@ bot.on('callback_query', async (callbackQuery) => {
     const data = callbackQuery.data;
     const daysLeft = getDaysLeft();
     let text = ''; let keyboard = []; let imageUrl = '';
-    bot.answerCallbackQuery(callbackQuery.id).catch(() => {});
+    bot.answerCallbackQuery(callbackQuery.id).catch(() => { });
 
     if (data === 'menu_chinh') return guiMenuChinh(chatId, messageId);
 
@@ -1147,12 +1147,16 @@ Cùng điểm đến. Nhưng ai đến trước?`;
         if (!user) { bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy user: ${email}`); return; }
         bot.sendMessage(ADMIN_ID,
             `🔑 <b>CHỌN GÓI SWC PASS</b>\n\n👤 ${user.googleName || user.firstName}\n📧 <code>${email}</code>\n\nChọn gói kích hoạt:`,
-            { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
-                [{ text: '📅 1 Năm', callback_data: 'passtier_1year_' + email }],
-                [{ text: '📅 5 Năm', callback_data: 'passtier_5year_' + email }],
-                [{ text: '♾️ Vĩnh Viễn', callback_data: 'passtier_lifetime_' + email }],
-                [{ text: '❌ Huỷ', callback_data: 'cancel_pass' }]
-            ]}});
+            {
+                parse_mode: 'HTML', reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📅 1 Năm', callback_data: 'passtier_1year_' + email }],
+                        [{ text: '📅 5 Năm', callback_data: 'passtier_5year_' + email }],
+                        [{ text: '♾️ Vĩnh Viễn', callback_data: 'passtier_lifetime_' + email }],
+                        [{ text: '❌ Huỷ', callback_data: 'cancel_pass' }]
+                    ]
+                }
+            });
         return;
     }
 
@@ -1195,10 +1199,14 @@ Cùng điểm đến. Nhưng ai đến trước?`;
             const expiryText = expiry ? expiry.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : 'Không giới hạn';
             bot.sendMessage(ADMIN_ID,
                 `✅ <b>ĐÃ KÍCH HOẠT SWC PASS!</b>\n\n👤 Tên: <b>${user.googleName || user.firstName}</b>\n📧 Email: <code>${email}</code>\n💳 Gói: <b>${tierName}</b>\n📅 Hết hạn: ${expiryText}\n⏱️ Kích hoạt lúc: ${now.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}\n\n🎉 Thành viên sẽ được mở khoá khi reload trang Academy.`,
-                { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
-                    [{ text: '🔴 Huỷ SWC Pass', callback_data: 'revoke_pass_' + email }],
-                    [{ text: '📊 Thống kê', callback_data: 'admin_thongke' }]
-                ]}});
+                {
+                    parse_mode: 'HTML', reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '🔴 Huỷ SWC Pass', callback_data: 'revoke_pass_' + email }],
+                            [{ text: '📊 Thống kê', callback_data: 'admin_thongke' }]
+                        ]
+                    }
+                });
         } catch (e) {
             bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
         }
@@ -1230,7 +1238,7 @@ Cùng điểm đến. Nhưng ai đến trước?`;
     else if (data === 'cancel_pass') { return; }
 
     if (text !== '') {
-        bot.deleteMessage(chatId, messageId).catch(() => {});
+        bot.deleteMessage(chatId, messageId).catch(() => { });
         if (imageUrl) {
             bot.sendPhoto(chatId, imageUrl, { caption: text, parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } })
                 .catch(() => bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } }));
@@ -1258,7 +1266,7 @@ bot.on('message', async (msg) => {
             const targetId = match[1];
             await bot.sendMessage(targetId,
                 `👨‍💻 <b>Phản hồi từ Đội ngũ Chuyên gia SWC:</b>\n\n${msg.text || msg.caption}`,
-                { parse_mode: 'HTML' }).catch(() => {});
+                { parse_mode: 'HTML' }).catch(() => { });
             bot.sendMessage(ADMIN_ID, `✅ Đã gửi phản hồi cho khách ID: <code>${targetId}</code>`, { parse_mode: 'HTML' });
             await User.updateOne({ userId: targetId }, {
                 $set: { adminPausedAiDen: new Date(Date.now() + 2 * 3600000) }
@@ -1283,10 +1291,10 @@ bot.on('message', async (msg) => {
 
         // Forward file/ảnh cho admin
         if (msg.photo || msg.video || msg.document) {
-            await bot.forwardMessage(ADMIN_ID, chatId, msg.message_id).catch(() => {});
+            await bot.forwardMessage(ADMIN_ID, chatId, msg.message_id).catch(() => { });
             bot.sendMessage(ADMIN_ID,
                 `📎 <b>TỆP TỪ KHÁCH HÀNG</b>\n👤 ${user.firstName} ${user.lastName}\n🆔 ID: <code>${userId}</code>\nGhi chú: ${msg.caption || 'Không có'}\n\n<i>Reply tin này để chat trực tiếp (AI bị tạm khóa 2h)</i>`,
-                { parse_mode: 'HTML' }).catch(() => {});
+                { parse_mode: 'HTML' }).catch(() => { });
         }
 
         // Nếu admin đang xử lý — chỉ forward, không gọi AI
@@ -1294,12 +1302,12 @@ bot.on('message', async (msg) => {
         if (user.adminPausedAiDen && user.adminPausedAiDen > now) {
             bot.sendMessage(ADMIN_ID,
                 `💬 <b>KHÁCH TRẢ LỜI (CHẾ ĐỘ ADMIN)</b>\n👤 ${user.firstName}\n🆔 ID: <code>${userId}</code>\nNội dung: ${msg.text || '[Tệp]'}\n\n<i>Reply để tiếp tục chat</i>`,
-                { parse_mode: 'HTML' }).catch(() => {});
+                { parse_mode: 'HTML' }).catch(() => { });
             return;
         }
 
         // Typing delay tự nhiên
-        bot.sendChatAction(chatId, 'typing').catch(() => {});
+        bot.sendChatAction(chatId, 'typing').catch(() => { });
         const noiDung = msg.text || msg.caption || '[Khách gửi tệp]';
         const camXuc = phanTichCamXuc(noiDung);
         const delay = { ngan_gon: 800, buon: 2000, hoai_nghi: 2500, lo_lang: 1500, phan_khich: 1200 }[camXuc] || Math.min(noiDung.length * 15, 3000);
@@ -1313,7 +1321,7 @@ bot.on('message', async (msg) => {
         // LUÔN chuyển tiếp TẤT CẢ tin nhắn cho Admin để theo dõi & can thiệp khi cần
         bot.sendMessage(ADMIN_ID,
             `💬 <b>KHÁCH ĐANG CHAT</b>\n👤 ${user.firstName} ${user.lastName}\n🆔 ID: <code>${userId}</code>\nTâm trạng: ${camXuc} | Quan tâm: ${user.moiQuanTamChinh}\nPhễu: ${user.giaiDoanPheu}\n\n💬 <b>Khách:</b> ${noiDung.substring(0, 300)}\n🤖 <b>Trợ lý:</b> ${phanHoiAI.substring(0, 400)}\n\n<i>Reply tin này để cướp quyền chat (AI tạm khóa 2h)</i>`,
-            { parse_mode: 'HTML' }).catch(() => {});
+            { parse_mode: 'HTML' }).catch(() => { });
     }
 });
 
@@ -1446,7 +1454,7 @@ async function tacDongNguoiImLang() {
     for (const user of danhSach) {
         const tin = mauTin[Math.floor(Math.random() * mauTin.length)](user.firstName || 'bạn');
         const keyboard = { inline_keyboard: [[{ text: 'Muốn biết thêm', callback_data: 'menu_chinh' }], ...nutsLienKet().slice(-1)] };
-        await bot.sendMessage(user.userId, tin, { reply_markup: keyboard }).catch(() => {});
+        await bot.sendMessage(user.userId, tin, { reply_markup: keyboard }).catch(() => { });
         await new Promise(r => setTimeout(r, 300));
     }
 }
@@ -1469,7 +1477,7 @@ async function guiToanBo(noiDung, anhUrl = null, chiBaoGomPheu = null) {
                 await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
             }
             thanhCong++;
-        } catch (e) {}
+        } catch (e) { }
         await new Promise(r => setTimeout(r, 70));
     }
     return thanhCong;
@@ -1577,7 +1585,7 @@ bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
     if (!user) return bot.sendMessage(ADMIN_ID, `❌ Không tìm thấy user ID: ${match[1]}`);
     const lanCuoi = user.lanCuoiHoatDong ? new Date(user.lanCuoiHoatDong).toLocaleString('vi-VN') : 'Chưa có';
     bot.sendMessage(ADMIN_ID,
-        `🔎 <b>HỒ SƠ KHÁCH HÀNG</b>\n🆔 ID: <code>${match[1]}</code>\n👤 Tên: ${user.firstName} ${user.lastName}\n📱 Username: ${user.username || 'Không có'}\n📞 SĐT: ${user.phone || 'Chưa có'}\n🎯 Phễu: ${user.giaiDoanPheu}\n💳 Gói Pass: ${user.goiPass}\n💬 Số tin nhắn: ${user.soTinNhan || 0}\n🕐 Lần cuối: ${lanCuoi}\n😊 Tâm trạng: ${user.camXucGanNhat || 'chưa xác định'}\n🎯 Quan tâm: ${user.moiQuanTamChinh || 'chưa xác định'}\n📝 Ghi chú: ${user.ghiChu || 'Không có'}`,
+        `🔎 <b>HỒ SƠ KHÁCH HÀNG</b>\n🆔 ID: <code>${match[1]}</code>\n📧 Email: <code>${user.googleEmail || 'Chưa liên kết'}</code>\n👤 Tên: ${user.firstName} ${user.lastName}\n📱 Username: ${user.username || 'Không có'}\n📞 SĐT: ${user.phone || 'Chưa có'}\n🎯 Phễu: ${user.giaiDoanPheu}\n💳 Gói Pass: ${user.passTier || user.goiPass}\n💬 Số tin nhắn: ${user.soTinNhan || 0}\n🕐 Lần cuối: ${lanCuoi}\n😊 Tâm trạng: ${user.camXucGanNhat || 'chưa xác định'}\n🎯 Quan tâm: ${user.moiQuanTamChinh || 'chưa xác định'}\n📝 Ghi chú: ${user.ghiChu || 'Không có'}`,
         { parse_mode: 'HTML' });
 });
 
@@ -1592,7 +1600,7 @@ bot.onText(/\/setpass (\d+) (\w+)/i, async (msg, match) => {
 bot.onText(/\/setpheu (\d+) (\w+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const giaiDoan = match[2].toLowerCase();
-    if (!['moi','quan_tam','nong','da_mua'].includes(giaiDoan)) return bot.sendMessage(ADMIN_ID, `❌ Sai giai đoạn! Dùng: moi / quan_tam / nong / da_mua`);
+    if (!['moi', 'quan_tam', 'nong', 'da_mua'].includes(giaiDoan)) return bot.sendMessage(ADMIN_ID, `❌ Sai giai đoạn! Dùng: moi / quan_tam / nong / da_mua`);
     await User.updateOne({ userId: match[1] }, { $set: { giaiDoanPheu: giaiDoan } });
     bot.sendMessage(ADMIN_ID, `✅ Đã cập nhật phễu: ${giaiDoan} cho ID: ${match[1]}`);
 });
@@ -1665,7 +1673,7 @@ bot.onText(/\/dsbai/i, async (msg) => {
         articles.forEach((a, i) => {
             const cat = CAT_LABELS[a.category] || a.category;
             const date = new Date(a.createdAt).toLocaleDateString('vi-VN');
-            text += `${i+1}. ${cat} — <b>${a.title}</b>\n   🆔 <code>${a._id}</code> • ${date}\n\n`;
+            text += `${i + 1}. ${cat} — <b>${a.title}</b>\n   🆔 <code>${a._id}</code> • ${date}\n\n`;
         });
         text += `\n📋 <b>Lệnh:</b>\n/xoabai [ID] — Xóa bài\n/suabai [ID] | Nội dung mới — Sửa nội dung`;
         bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
@@ -1738,7 +1746,7 @@ bot.onText(/\/passlist/i, async (msg) => {
         const tier = u.passTier === 'lifetime' ? '♾️ Vĩnh Viễn' : u.passTier === '5_year' ? '📅 5 Năm' : u.passTier === '1_year' ? '📅 1 Năm' : '📅 N/A';
         const expiry = u.passExpiry ? u.passExpiry.toLocaleDateString('vi-VN') : 'Không giới hạn';
         const daysLeft = u.passExpiry ? Math.ceil((u.passExpiry - new Date()) / 86400000) : '∞';
-        text += `${i+1}. ${u.googleName || u.firstName} — ${tier}\n   📧 <code>${u.googleEmail}</code>\n   ⏳ Còn ${daysLeft} ngày | Hết hạn: ${expiry}\n\n`;
+        text += `${i + 1}. ${u.googleName || u.firstName} — ${tier}\n   📧 <code>${u.googleEmail}</code>\n   ⏳ Còn ${daysLeft} ngày | Hết hạn: ${expiry}\n\n`;
     });
     bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
 });
@@ -1750,11 +1758,14 @@ bot.onText(/\/passnolist/i, async (msg) => {
     if (users.length === 0) return bot.sendMessage(ADMIN_ID, '✅ Tất cả đều đã kích hoạt!');
     let text = `🔒 <b>CHƯA KÍCH HOẠT SWC PASS (${users.length})</b>\n\n`;
     users.forEach((u, i) => {
-        text += `${i+1}. ${u.googleName || u.firstName}\n   📧 <code>${u.googleEmail}</code>\n`;
+        text += `${i + 1}. ${u.googleName || u.firstName}\n   📧 <code>${u.googleEmail}</code>\n`;
     });
-    bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard:
-        users.slice(0, 5).map(u => [{ text: '✅ Kích hoạt ' + (u.googleName || u.googleEmail), callback_data: 'activate_pass_' + u.googleEmail }])
-    }});
+    bot.sendMessage(ADMIN_ID, text, {
+        parse_mode: 'HTML', reply_markup: {
+            inline_keyboard:
+                users.slice(0, 5).map(u => [{ text: '✅ Kích hoạt ' + (u.googleName || u.googleEmail), callback_data: 'activate_pass_' + u.googleEmail }])
+        }
+    });
 });
 
 // /passgoogle [email] — Tra cứu theo Gmail
@@ -1768,11 +1779,18 @@ bot.onText(/\/passgoogle (.+)/i, async (msg, match) => {
     const daysLeft = user.passExpiry ? Math.ceil((user.passExpiry - new Date()) / 86400000) : '∞';
     bot.sendMessage(ADMIN_ID,
         `👤 <b>THÔNG TIN USER</b>\n\n📧 Email: <code>${user.googleEmail}</code>\n👤 Tên: ${user.googleName}\n💬 Telegram: ${user.telegramUsername || 'N/A'}\n📱 Zalo: ${user.zaloPhone || 'N/A'}\n💳 Pass: ${tier}\n⏳ Còn: ${daysLeft} ngày\n📅 Hết hạn: ${expiry}\n🕐 Đăng ký: ${user.ngayThamGia.toLocaleDateString('vi-VN')}`,
-        { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
-            user.goiPass !== 'chua_co'
-                ? [{ text: '🔴 Huỷ SWC Pass', callback_data: 'revoke_pass_' + email }]
-                : [{ text: '✅ Kích hoạt SWC Pass', callback_data: 'activate_pass_' + email }]
-        ]}});
+        {
+            parse_mode: 'HTML', reply_markup: {
+                inline_keyboard: [
+                    user.goiPass !== 'chua_co'
+                        ? [{ text: '🔴 Huỷ SWC Pass', callback_data: 'revoke_pass_' + email }]
+                        : [],
+                    [{ text: '✅ Kích hoạt Gói 1 Năm', callback_data: 'passtier_1year_' + email }],
+                    [{ text: '✅ Kích hoạt Gói 5 Năm', callback_data: 'passtier_5year_' + email }],
+                    [{ text: '✅ Kích hoạt Vĩnh Viễn', callback_data: 'passtier_lifetime_' + email }]
+                ].filter(row => row.length > 0)
+            }
+        });
 });
 
 // /passrevoke [email] — Huỷ SWC Pass
@@ -1825,7 +1843,7 @@ function parseBody(req) {
     return new Promise((resolve, reject) => {
         let body = '';
         req.on('data', chunk => body += chunk);
-        req.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
+        req.on('end', () => { try { resolve(JSON.parse(body)); } catch (e) { reject(e); } });
         req.on('error', reject);
     });
 }
@@ -1902,10 +1920,14 @@ const server = http.createServer(async (req, res) => {
                 // Thông báo Admin — user mới đăng ký qua Google
                 await bot.sendMessage(ADMIN_ID,
                     `🆕 <b>ĐĂNG KÝ MỚI — GOOGLE SIGN-IN</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Email: <code>${email}</code>\n🕐 Thời gian: ${time}\n📱 Nền tảng: SWC Academy`,
-                    { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
-                        [{ text: '✅ Kích hoạt SWC Pass', callback_data: 'activate_pass_' + email }],
-                        [{ text: '📊 Xem thống kê', callback_data: 'admin_thongke' }]
-                    ]}}).catch(() => {});
+                    {
+                        parse_mode: 'HTML', reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '✅ Kích hoạt SWC Pass', callback_data: 'activate_pass_' + email }],
+                                [{ text: '📊 Xem thống kê', callback_data: 'admin_thongke' }]
+                            ]
+                        }
+                    }).catch(() => { });
             } else {
                 user.googleName = name || user.googleName;
                 user.googleAvatar = picture || user.googleAvatar;
@@ -1915,7 +1937,7 @@ const server = http.createServer(async (req, res) => {
                 // Thông báo Admin — user quay lại
                 await bot.sendMessage(ADMIN_ID,
                     `🔑 <b>ĐĂNG NHẬP LẠI — GOOGLE</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Email: <code>${email}</code>\n🕐 Thời gian: ${time}\n💳 Pass: ${user.goiPass}`,
-                    { parse_mode: 'HTML' }).catch(() => {});
+                    { parse_mode: 'HTML' }).catch(() => { });
             }
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1952,9 +1974,13 @@ const server = http.createServer(async (req, res) => {
             const time = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
             await bot.sendMessage(ADMIN_ID,
                 `📋 <b>XÁC THỰC THÔNG TIN</b>\n\n👤 Tên: <b>${user.googleName}</b>\n📧 Email: <code>${email}</code>\n💬 Telegram: ${telegram || 'Không có'}\n📱 Zalo: ${zaloPhone || 'Không có'}\n💳 Mã Pass: ${passCode || 'Không nhập'}\n🕐 ${time}`,
-                { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
-                    [{ text: '✅ Kích hoạt SWC Pass', callback_data: 'activate_pass_' + email }]
-                ]}}).catch(() => {});
+                {
+                    parse_mode: 'HTML', reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '✅ Kích hoạt SWC Pass', callback_data: 'activate_pass_' + email }]
+                        ]
+                    }
+                }).catch(() => { });
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ ok: true, hasPass: user.goiPass !== 'chua_co', passType: user.goiPass }));
@@ -1971,14 +1997,41 @@ const server = http.createServer(async (req, res) => {
             // Gửi tin nhắn cho Admin với NÚT KÍCH HOẠT
             await bot.sendMessage(ADMIN_ID,
                 `🔑 <b>YÊU CẦU KÍCH HOẠT SWC PASS!</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Gmail: <code>${email}</code>\n🕐 Thời gian: ${time}\n\n⚡ Bấm nút bên dưới để kích hoạt:`,
-                { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
-                    [{ text: '✅ KÍCH HOẠT SWC PASS NGAY', callback_data: 'activate_pass_' + email }],
-                    [{ text: '📊 Xem thống kê', callback_data: 'admin_thongke' }]
-                ]}});
+                {
+                    parse_mode: 'HTML', reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '✅ Kích hoạt Gói 1 Năm', callback_data: 'passtier_1year_' + email }],
+                            [{ text: '✅ Kích hoạt Gói 5 Năm', callback_data: 'passtier_5year_' + email }],
+                            [{ text: '✅ Kích hoạt Vĩnh Viễn', callback_data: 'passtier_lifetime_' + email }],
+                            [{ text: '📊 Xem thống kê', callback_data: 'admin_thongke' }]
+                        ]
+                    }
+                });
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ ok: true }));
         }
+
+        // POST /api/request-upgrade — Yêu cầu nâng cấp SWC Pass
+        if (req.method === 'POST' && req.url === '/api/request-upgrade') {
+            const { email, name, currentTier } = await parseBody(req);
+            const time = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+            await bot.sendMessage(ADMIN_ID,
+                `🚀 <b>YÊU CẦU NÂNG CẤP SWC PASS!</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Gmail: <code>${email}</code>\n💳 Gói hiện tại: ${currentTier || 'N/A'}\n🕐 Thời gian: ${time}\n\n⚡ Bấm nút bên dưới để nâng cấp:`,
+                {
+                    parse_mode: 'HTML', reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '✅ Nâng cấp Gói 5 Năm', callback_data: 'passtier_5year_' + email }],
+                            [{ text: '✅ Nâng cấp Vĩnh Viễn', callback_data: 'passtier_lifetime_' + email }]
+                        ]
+                    }
+                });
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        }
+
 
         // POST /api/check-pass-email — Kiểm tra SWC Pass bằng email
         if (req.method === 'POST' && req.url === '/api/check-pass-email') {
@@ -2090,11 +2143,13 @@ async function guiCauNoiTrietLy() {
     for (const user of danhSach) {
         await bot.sendMessage(user.userId, text, {
             parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [
-                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
-                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }]
-            ]}
-        }).catch(() => {});
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                    [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }]
+                ]
+            }
+        }).catch(() => { });
         await new Promise(r => setTimeout(r, 100));
     }
     console.log(`✅ Đã gửi câu triết lý cho ${danhSach.length} người`);
@@ -2109,13 +2164,15 @@ async function guiNhacDauTu() {
     for (const user of danhSach) {
         await bot.sendMessage(user.userId, text, {
             parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [
-                [{ text: '🗺️ Xem danh mục RM1', url: ROAD_1M_URL }],
-                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
-                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
-                [{ text: '🏠 Menu Chính', callback_data: 'menu_chinh' }]
-            ]}
-        }).catch(() => {});
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🗺️ Xem danh mục RM1', url: ROAD_1M_URL }],
+                    [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                    [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }],
+                    [{ text: '🏠 Menu Chính', callback_data: 'menu_chinh' }]
+                ]
+            }
+        }).catch(() => { });
         await new Promise(r => setTimeout(r, 100));
     }
     console.log(`✅ Đã gửi nhắc đầu tư cho ${danhSach.length} người`);
@@ -2138,13 +2195,15 @@ async function guiNhacHocTap() {
         const text = mau(user.firstName || user.googleName || 'bạn');
         await bot.sendMessage(user.userId, text, {
             parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [
-                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
-                [{ text: '📰 Thư viện Kiến thức', url: 'https://swcpass.com/academy/chat.html' }],
-                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@','')}` }],
-                [{ text: '🗺️ Danh mục RM1', url: ROAD_1M_URL }]
-            ]}
-        }).catch(() => {});
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                    [{ text: '📰 Thư viện Kiến thức', url: 'https://swcpass.com/academy/chat.html' }],
+                    [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }],
+                    [{ text: '🗺️ Danh mục RM1', url: ROAD_1M_URL }]
+                ]
+            }
+        }).catch(() => { });
         await new Promise(r => setTimeout(r, 100));
     }
     console.log(`✅ Đã gửi nhắc học tập cho ${danhSach.length} thành viên Pass`);
@@ -2166,12 +2225,14 @@ async function followUpChuaKichHoat() {
         const text = `👋 Chào ${ten}!\n\nBạn đã đăng ký SWC Academy nhưng chưa kích hoạt SWC Pass.\n\n🔓 Kích hoạt SWC Pass để:\n✅ Mở khoá toàn bộ khoá học nâng cao\n✅ Nhận tín hiệu đầu tư hàng tháng\n✅ Tham gia cộng đồng VIP\n\nChỉ cần bấm nút bên dưới — Admin sẽ kích hoạt ngay cho bạn! ⚡`;
         await bot.sendMessage(user.userId, text, {
             parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: [
-                [{ text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
-                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
-                [{ text: '💬 Hỏi Trợ Lý', callback_data: 'menu_chinh' }]
-            ]}
-        }).catch(() => {});
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
+                    [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                    [{ text: '💬 Hỏi Trợ Lý', callback_data: 'menu_chinh' }]
+                ]
+            }
+        }).catch(() => { });
         await new Promise(r => setTimeout(r, 200));
     }
 }
@@ -2184,6 +2245,20 @@ setInterval(async () => {
     const h = gio.getUTCHours();
     const m = gio.getUTCMinutes();
     const ngay = gio.getUTCDate();
+
+    // Tự động hạ gói Pass nếu quá hạn
+    try {
+        const now = new Date();
+        const expiredUsers = await User.find({ goiPass: { $ne: 'chua_co' }, passExpiry: { $lt: now, $ne: null } });
+        for (let user of expiredUsers) {
+            user.goiPass = 'chua_co';
+            user.passTier = '';
+            user.passExpiry = null;
+            user.swcPassActivated = false;
+            await user.save();
+            bot.sendMessage(ADMIN_ID, `⚠️ <b>HỆ THỐNG TỰ ĐỘNG HẠ GÓI</b>\n\n📧 Email: <code>${user.googleEmail}</code>\n👤 Tên: ${user.googleName}\nLý do: Đã hết hạn SWC Pass.`, { parse_mode: 'HTML' });
+        }
+    } catch (e) { }
 
     // 6:00 sáng VN — Câu nói triết lý (2.5)
     if (h === 6 && m === 0) await guiCauNoiTrietLy();
