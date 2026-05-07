@@ -1741,14 +1741,28 @@ bot.onText(/\/passlist/i, async (msg) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const users = await User.find({ goiPass: { $ne: 'chua_co' } }).sort({ passActivatedAt: -1 });
     if (users.length === 0) return bot.sendMessage(ADMIN_ID, '📭 Chưa có ai kích hoạt SWC Pass.');
+    
     let text = `💳 <b>DANH SÁCH SWC PASS (${users.length})</b>\n\n`;
+    const chunks = [];
+    
     users.forEach((u, i) => {
         const tier = u.passTier === 'lifetime' ? '♾️ Vĩnh Viễn' : u.passTier === '5_year' ? '📅 5 Năm' : u.passTier === '1_year' ? '📅 1 Năm' : '📅 N/A';
         const expiry = u.passExpiry ? u.passExpiry.toLocaleDateString('vi-VN') : 'Không giới hạn';
         const daysLeft = u.passExpiry ? Math.ceil((u.passExpiry - new Date()) / 86400000) : '∞';
-        text += `${i + 1}. ${u.googleName || u.firstName} — ${tier}\n   📧 <code>${u.googleEmail}</code>\n   ⏳ Còn ${daysLeft} ngày | Hết hạn: ${expiry}\n\n`;
+        const userText = `${i + 1}. ${u.googleName || u.firstName} — ${tier}\n   📧 <code>${u.googleEmail || 'Chưa liên kết'}</code>\n   ⏳ Còn ${daysLeft} ngày | Hết hạn: ${expiry}\n\n`;
+        
+        if (text.length + userText.length > 3900) {
+            chunks.push(text);
+            text = userText;
+        } else {
+            text += userText;
+        }
     });
-    bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML' });
+    if (text) chunks.push(text);
+    
+    for (const chunk of chunks) {
+        await bot.sendMessage(ADMIN_ID, chunk, { parse_mode: 'HTML' });
+    }
 });
 
 // /passnolist — Danh sách chưa kích hoạt
