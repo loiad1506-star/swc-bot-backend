@@ -1439,7 +1439,7 @@ async function guiDripMessage(userId, buoc) {
 // Kiểm tra drip mỗi 1 giờ
 setInterval(async () => {
     const now = new Date();
-    const users = await User.find({ khongNhanBroadcast: false, goiPass: 'chua_co' }).catch(() => []);
+    const users = await User.find({ khongNhanBroadcast: { $ne: true }, goiPass: 'chua_co' }).catch(() => []);
     for (const user of users) {
         const ngayTG = new Date(user.ngayThamGia);
         const soNgay = Math.floor((now - ngayTG) / 86400000);
@@ -1460,7 +1460,7 @@ setInterval(async () => {
 async function tacDongNguoiImLang() {
     const baBaSo = new Date(Date.now() - 3 * 86400000);
     const danhSach = await User.find({
-        khongNhanBroadcast: false,
+        khongNhanBroadcast: { $ne: true },
         goiPass: 'chua_co',
         lanCuoiHoatDong: { $lt: baBaSo },
         giaiDoanPheu: { $in: ['quan_tam', 'nong'] }
@@ -1486,7 +1486,7 @@ async function tacDongNguoiImLang() {
 function layGioVN() { return new Date(new Date().getTime() + 7 * 3600000); }
 
 async function guiToanBo(noiDung, anhUrl = null, chiBaoGomPheu = null) {
-    const dieuKien = { khongNhanBroadcast: false };
+    const dieuKien = { khongNhanBroadcast: { $ne: true } };
     if (chiBaoGomPheu) dieuKien.giaiDoanPheu = { $in: Array.isArray(chiBaoGomPheu) ? chiBaoGomPheu : [chiBaoGomPheu] };
     const danhSach = await User.find(dieuKien);
     let thanhCong = 0;
@@ -2242,7 +2242,7 @@ async function guiCauNoiTrietLy() {
 // ==========================================================
 async function guiNhacDauTu() {
     const text = `📊 <b>NHẮC NHỞ ĐẦU TƯ HÀNG THÁNG</b>\n\nĐầu tháng rồi! Đây là thời điểm vàng để:\n\n💰 Trích $100-$200 đầu tư vào cổ phiếu blue-chip Mỹ theo chiến lược RM1\n📈 Kiểm tra và cập nhật danh mục đầu tư\n🎯 Kỷ luật DCA — mỗi tháng đều đặn, không bỏ lỡ\n\nVí dụ: $150/tháng chỉ bằng 5,000đ/ngày — ít hơn 1 ly trà đá. Nhưng sau 20 năm với lãi kép = ~$300,000 (~7.5 tỷ VNĐ).\n\nQuyền lợi: Sở hữu cổ phiếu chuẩn Mỹ qua SPV — có giấy chứng nhận cổ đông, quyền cổ tức.\n\nBấm nút bên dưới để xem danh mục:`;
-    const danhSach = await User.find({ khongNhanBroadcast: false }).catch(() => []);
+    const danhSach = await User.find({ khongNhanBroadcast: { $ne: true } }).catch(() => []);
     for (const user of danhSach) {
         await bot.sendMessage(user.userId, text, {
             parse_mode: 'HTML',
@@ -2271,7 +2271,7 @@ const MAU_NHAC_HOC = [
 ];
 
 async function guiNhacHocTap() {
-    const danhSach = await User.find({ goiPass: { $ne: 'chua_co' }, khongNhanBroadcast: false }).catch(() => []);
+    const danhSach = await User.find({ goiPass: { $ne: 'chua_co' }, khongNhanBroadcast: { $ne: true } }).catch(() => []);
     for (const user of danhSach) {
         const mau = MAU_NHAC_HOC[Math.floor(Math.random() * MAU_NHAC_HOC.length)];
         const text = mau(user.firstName || user.googleName || 'bạn');
@@ -2298,7 +2298,7 @@ async function followUpChuaKichHoat() {
     const danhSach = await User.find({
         googleEmail: { $ne: '' },
         goiPass: 'chua_co',
-        khongNhanBroadcast: false,
+        khongNhanBroadcast: { $ne: true },
         verified: true
     }).catch(() => []);
 
