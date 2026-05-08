@@ -125,6 +125,7 @@ const chatSchema = new mongoose.Schema({
     author: String,
     avatar: String,
     hasPass: Boolean,
+    passTier: String,
     text: String,
     time: String,
     createdAt: { type: Date, default: Date.now }
@@ -136,6 +137,7 @@ const commentSchema = new mongoose.Schema({
     author: String,
     avatar: String,
     hasPass: Boolean,
+    passTier: String,
     text: String,
     time: String,
     createdAt: { type: Date, default: Date.now }
