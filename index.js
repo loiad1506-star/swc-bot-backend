@@ -127,6 +127,7 @@ const chatSchema = new mongoose.Schema({
     hasPass: Boolean,
     passTier: String,
     text: String,
+    imageUrl: String,
     time: String,
     createdAt: { type: Date, default: Date.now }
 });
