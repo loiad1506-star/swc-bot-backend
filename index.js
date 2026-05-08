@@ -131,6 +131,17 @@ const chatSchema = new mongoose.Schema({
 });
 const ChatMsg = mongoose.model('ChatMsg', chatSchema);
 
+const commentSchema = new mongoose.Schema({
+    articleId: String,
+    author: String,
+    avatar: String,
+    hasPass: Boolean,
+    text: String,
+    time: String,
+    createdAt: { type: Date, default: Date.now }
+});
+const Comment = mongoose.model('Comment', commentSchema);
+
 // ==========================================================
 // NHẬN DIỆN CẢM XÚC & MỐI QUAN TÂM
 // ==========================================================
@@ -1904,6 +1915,23 @@ const server = http.createServer(async (req, res) => {
             const label = action === 'signup' ? 'ĐĂNG KÝ MỚI' : 'ĐĂNG NHẬP';
             const message = `${icon} <b>${label} — SWC ACADEMY</b>\n\n👤 Tên: <b>${name || 'N/A'}</b>\n📧 Email: <code>${email || 'N/A'}</code>\n📞 SĐT: ${phone || 'Không có'}\n🕐 Thời gian: ${time}\n📱 Nền tảng: ${platform || 'Web'}`;
             await bot.sendMessage(NOTIFY_GROUP_ID, message, { parse_mode: 'HTML' });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        }
+
+        // GET /api/comments — Lấy bình luận bài viết
+        if (req.method === 'GET' && req.url.startsWith('/api/comments?articleId=')) {
+            const articleId = new URL(req.url, 'http://localhost').searchParams.get('articleId');
+            const comments = await Comment.find({ articleId }).sort({ createdAt: 1 }).limit(100);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, data: comments }));
+        }
+
+        // POST /api/comments — Thêm bình luận mới
+        if (req.method === 'POST' && req.url === '/api/comments') {
+            const data = await parseBody(req);
+            const cmt = new Comment(data);
+            await cmt.save();
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ ok: true }));
         }
