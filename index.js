@@ -1436,6 +1436,12 @@ async function guiDripMessage(userId, buoc) {
     } catch (e) { console.error('Lỗi drip:', e.message); }
 }
 
+// Tự động xoá tin nhắn cộng đồng sau 7 ngày (chạy mỗi giờ)
+setInterval(async () => {
+    const bayNgayTruoc = new Date(Date.now() - 7 * 86400000);
+    await ChatMsg.deleteMany({ createdAt: { $lt: bayNgayTruoc } }).catch(() => {});
+}, 3600000);
+
 // Kiểm tra drip mỗi 1 giờ
 setInterval(async () => {
     const now = new Date();
@@ -1511,16 +1517,13 @@ setInterval(async () => {
     const daysLeft = getDaysLeft();
 
     if (h === 8 && m === 0) {
-        const tin = `🌅 <b>CHÀO BUỔI SÁNG — KIẾN THỨC TÀI CHÍNH MỖI NGÀY</b>
+        const ngay = new Date().getDate();
+        const baiHoc = TIN_NHAN_30_NGAY[ngay] || TIN_NHAN_30_NGAY[1];
+        const tin = `🌅 <b>CHÀO BUỔI SÁNG — BÀI HỌC TÂM LÝ & ĐẦU TƯ</b>
 
-Đa số người đi làm sáng dậy đầu tiên là lo lắng: "Hôm nay thị trường thế nào?"...
-Thành viên SWC sáng dậy uống cà phê, đã có kế hoạch từ đầu tháng.
+${baiHoc}
 
-Ví dụ thực tế: Anh A mỗi sáng dành 2 tiếng xem chart, đọc tin — 1 năm = 730 giờ. Thành viên SWC chỉ cần 10 phút/tháng = 2 giờ/năm. Tiết kiệm 728 giờ để tận hưởng cuộc sống.
-
-Sự thật: 95% người tự trade thua lỗ không phải vì thiếu thông tin — mà vì <b>thiếu hệ thống kỷ luật</b>.
-
-⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống!`;
+⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống SWC!`;
         await guiToanBo(tin, IMG_MAIN);
     }
 
@@ -1753,6 +1756,19 @@ bot.onText(/\/getvideo (\d+)/i, async (msg, match) => {
     }
 });
 
+// /xoachat [ngày] — Xóa tin nhắn cộng đồng
+bot.onText(/\/xoachat (\d+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        const days = parseInt(match[1]);
+        const cutoff = new Date(Date.now() - days * 86400000);
+        const result = await ChatMsg.deleteMany({ createdAt: { $lt: cutoff } });
+        bot.sendMessage(ADMIN_ID, `✅ Đã xoá <b>${result.deletedCount}</b> tin nhắn trên trang Cộng Đồng cũ hơn ${days} ngày.`, { parse_mode: 'HTML' });
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`);
+    }
+});
+
 // ==========================================================
 // ADMIN PASS MANAGEMENT COMMANDS
 // ==========================================================
@@ -1864,7 +1880,7 @@ bot.onText(/\/passrevoke (.+)/i, async (msg, match) => {
 // ==========================================================
 // FALLBACK — HƯỚNG DẪN KHI GÕ LỆNH SAI CÚ PHÁP
 // ==========================================================
-bot.onText(/^\/(tracuu|setpass|setpheu|note|reset|sendall|sendpheu|thongbao|passrevoke|passgoogle|xoabai|suabai|post|getvideo)$/i, async (msg, match) => {
+bot.onText(/^\/(tracuu|setpass|setpheu|note|reset|sendall|sendpheu|thongbao|passrevoke|passgoogle|xoabai|suabai|post|getvideo|xoachat)$/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const lenh = match[1].toLowerCase();
     const huongDan = {
@@ -1881,7 +1897,8 @@ bot.onText(/^\/(tracuu|setpass|setpheu|note|reset|sendall|sendpheu|thongbao|pass
         xoabai: '📋 <b>Cú pháp:</b>\n<code>/xoabai [ID bài viết]</code>\n\n<b>Ví dụ:</b>\n<code>/xoabai 6543210abcdef</code>\n\n→ Dùng /dsbai để xem danh sách ID.',
         suabai: '📋 <b>Cú pháp:</b>\n<code>/suabai [ID] | [Nội dung mới]</code>\n\n<b>Ví dụ:</b>\n<code>/suabai 6543210abcdef | Nội dung đã cập nhật...</code>',
         post: '📋 <b>Cú pháp:</b>\n<code>/post [danh_muc] | [Tiêu đề] | [Nội dung]</code>\n\n<b>Danh mục:</b> kien_thuc / du_an / tai_chinh / thu_thuat / tin_tuc\n\n<b>Ví dụ:</b>\n<code>/post kien_thuc | 17 Tư Duy Triệu Phú | Người giàu tin rằng...</code>',
-        getvideo: '📋 <b>Cú pháp:</b>\n<code>/getvideo [message_id]</code>\n\n<b>Ví dụ:</b>\n<code>/getvideo 12345</code>\n\n→ Lấy video từ Private Channel.'
+        getvideo: '📋 <b>Cú pháp:</b>\n<code>/getvideo [message_id]</code>\n\n<b>Ví dụ:</b>\n<code>/getvideo 12345</code>\n\n→ Lấy video từ Private Channel.',
+        xoachat: '📋 <b>Cú pháp:</b>\n<code>/xoachat [số ngày]</code>\n\n<b>Ví dụ:</b>\n<code>/xoachat 7</code>\n\n→ Xoá toàn bộ tin nhắn chat trên trang Cộng Đồng cũ hơn 7 ngày.'
     };
     bot.sendMessage(ADMIN_ID, `⚠️ <b>THIẾU THAM SỐ!</b>\n\n${huongDan[lenh] || 'Lệnh không hợp lệ.'}`, { parse_mode: 'HTML' });
 });
