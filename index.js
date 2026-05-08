@@ -318,7 +318,7 @@ async function goiClaude(user, tinNhanNguoiDung) {
         if (lichSuHopLe.length > 0 && lichSuHopLe[0].role === 'assistant') lichSuHopLe.shift();
 
         const response = await claude.messages.create({
-            model: 'claude-sonnet-4-6',
+            model: 'claude-3-5-sonnet-20240620',
             max_tokens: 1500,
             system: xayDungSystemPrompt(user, camXuc),
             messages: lichSuHopLe
@@ -1967,6 +1967,19 @@ const server = http.createServer(async (req, res) => {
             await msg.save();
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ ok: true }));
+        }
+
+        // POST /api/chat-delete — Xóa tin nhắn cộng đồng
+        if (req.method === 'POST' && req.url === '/api/chat-delete') {
+            const { id, author } = await parseBody(req);
+            const msg = await ChatMsg.findById(id);
+            if (msg && msg.author === author) {
+                await ChatMsg.findByIdAndDelete(id);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ ok: true }));
+            }
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: false, error: 'Unauthorized' }));
         }
         // POST /api/auth/telegram — Xác thực Telegram Login
         if (req.method === 'POST' && req.url === '/api/auth/telegram') {
