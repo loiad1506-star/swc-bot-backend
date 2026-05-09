@@ -1592,6 +1592,18 @@ bot.onText(/\/(admin|menu)/i, async (msg) => {
     });
 });
 
+bot.onText(/\/(xoa|del)/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    if (msg.reply_to_message) {
+        try {
+            await bot.deleteMessage(msg.chat.id, msg.reply_to_message.message_id);
+            await bot.deleteMessage(msg.chat.id, msg.message_id);
+        } catch (e) {
+            bot.sendMessage(ADMIN_ID, `❌ Lỗi khi xoá tin nhắn: ${e.message}`);
+        }
+    }
+});
+
 bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const danhSach = await User.find({});
