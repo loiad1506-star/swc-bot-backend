@@ -2352,6 +2352,71 @@ async function followUpChuaKichHoat() {
     }
 }
 
+const TIN_NHAN_30_NGAY = [
+    "Đầu tư không phải là đánh bạc. Đó là một quá trình dài hạn, đòi hỏi sự kiên nhẫn và kỷ luật thép.", // 0
+    "Trong đầu tư, 'Sợ hãi' và 'Tham lam' là hai kẻ thù lớn nhất. Hãy học cách kiểm soát chúng thay vì để chúng điều khiển bạn.",
+    "Lãi kép là kỳ quan thứ 8 của thế giới. Hãy để tiền của bạn làm việc cho bạn một cách kiên trì mỗi ngày.",
+    "Bạn không cần phải thông minh xuất chúng để đầu tư thành công, nhưng bạn bắt buộc phải có kỷ luật dài hạn.",
+    "Thị trường chứng khoán là thiết bị chuyển tiền từ kẻ thiếu kiên nhẫn sang người kiên nhẫn.",
+    "Rủi ro lớn nhất không phải là bạn đầu tư sai, mà là bạn không chịu bắt đầu đầu tư sớm.",
+    "Mọi cơ hội lớn đều được ngụy trang dưới dạng rủi ro và sự hoài nghi. Bạn có đủ bản lĩnh để nắm bắt?",
+    "Đừng đặt tất cả trứng vào một giỏ. Quản trị rủi ro và phân bổ vốn là kỹ năng sống còn trong thị trường tài chính.",
+    "Biến động thị trường là cơ hội cho người đã chuẩn bị sẵn tiền mặt và kiến thức, nhưng là thảm họa với kẻ vay mượn.",
+    "Khi người khác tham lam, bạn hãy sợ hãi. Khi người khác sợ hãi, bạn hãy tham lam. Đây là nguyên tắc vàng của Warren Buffett.",
+    "Thời gian quan trọng hơn thời điểm. Nắm giữ tài sản lâu dài luôn mang lại kết quả tốt hơn việc cố đoán đỉnh và đáy.", // 10
+    "Tiết kiệm là bước đầu tiên của tự do tài chính. Đầu tư là bước thứ hai để làm cho số tiền đó sinh sôi nảy nở.",
+    "Kiến thức là khoản đầu tư mang lại lợi nhuận cao nhất. Hãy không ngừng học hỏi và nâng cấp tư duy của chính mình.",
+    "Người thành công trong đầu tư không bao giờ hành động dựa trên cảm xúc nhất thời, họ dựa trên dữ liệu và kế hoạch.",
+    "Khủng hoảng kinh tế luôn đi kèm với sự phân phối lại tài sản. Nếu bạn có chuẩn bị, đó là cơ hội đổi đời lớn nhất.",
+    "Một danh mục đầu tư xuất sắc là một danh mục giúp bạn ngủ ngon vào ban đêm, bất chấp bão táp thị trường.",
+    "Đừng bao giờ đầu tư vào một mô hình kinh doanh mà bạn không hiểu rõ. Đó là cách nhanh nhất để mất tiền.",
+    "Bạn không thể kiểm soát được hướng đi của thị trường, nhưng bạn có thể kiểm soát được cách mình phản ứng với nó.",
+    "Sự giàu có thực sự không đo bằng số tiền bạn kiếm được, mà bằng số thời gian bạn có thể sống tự do không cần làm việc.",
+    "Hãy tránh xa tâm lý FOMO (Hội chứng sợ bỏ lỡ). Cơ hội đầu tư tốt luôn luôn xuất hiện, đừng vội vàng đu đỉnh.",
+    "Kỷ luật đầu tư hàng tháng (DCA) là cách an toàn và bền vững nhất để xây dựng tài sản lên đến hàng triệu đô.", // 20
+    "Sự khác biệt giữa người giàu và người nghèo nằm ở tư duy: Người nghèo tiêu tiền rồi mới tiết kiệm, người giàu tiết kiệm để đầu tư rồi mới tiêu xài.",
+    "Đầu tư giá trị cần thời gian để chứng minh. Những quả ngọt nhất luôn dành cho người biết gieo hạt và kiên nhẫn chăm sóc.",
+    "Đừng để lòng tham che mờ lý trí khi thị trường tăng trưởng nóng. Luôn nhớ phải chốt lời và bảo vệ thành quả.",
+    "Mọi quyết định đầu tư đều có rủi ro, nhưng rủi ro cao nhất là để tiền của bạn nằm im và bị lạm phát bào mòn.",
+    "Người bi quan luôn thấy khó khăn trong mọi cơ hội, người lạc quan luôn thấy cơ hội trong mọi khó khăn. Bạn chọn làm ai?",
+    "Một kế hoạch đầu tư tồi tệ được thực hiện với kỷ luật thép vẫn tốt hơn một kế hoạch hoàn hảo nhưng bị bỏ dở giữa chừng.",
+    "Hãy học cách tha thứ cho những sai lầm đầu tư của chính mình. Những sai lầm đó là bài học đắt giá giúp bạn hoàn thiện hơn.",
+    "Độc lập tài chính bắt đầu từ việc bạn từ bỏ những chi tiêu không cần thiết để đổi lấy sự an tâm trong tương lai.",
+    "Thay vì theo dõi bảng giá mỗi ngày, hãy dành thời gian đó để phát triển kỹ năng và gia tăng thu nhập từ công việc của bạn.",
+    "Thành công trong đầu tư chỉ chiếm 10% kỹ năng chọn tài sản, 90% còn lại là nghệ thuật quản trị tâm lý và cảm xúc.", // 30
+    "Kiên trì, kỷ luật và không ngừng học hỏi. Chúc bạn một ngày mới đầy năng lượng và những quyết định đầu tư sáng suốt!" // 31
+];
+
+async function guiBaiVietNgauNhien() {
+    try {
+        const result = await Knowledge.aggregate([{ $sample: { size: 1 } }]);
+        if (!result || result.length === 0) return;
+        const baiViet = result[0];
+        const tin = `📚 <b>BÀI VIẾT NỔI BẬT HÔM NAY</b>\n\n📌 <b>Tiêu đề:</b> ${baiViet.title}\n✍️ <b>Tác giả:</b> ${baiViet.authorName || 'SWC Academy'}\n\n📖 Bấm vào link bên dưới để xem toàn bộ nội dung bài phân tích chi tiết. Một kho tàng kiến thức đang chờ bạn khám phá! 👇\n\n🔗 <b>Đọc ngay:</b> https://swcpass.com/academy/chat.html?id=${baiViet._id}`;
+        
+        // Gửi Group
+        if (baiViet.imageUrl) {
+            await bot.sendPhoto('-1002341901192', baiViet.imageUrl, { parse_mode: 'HTML', caption: tin }).catch(() => {});
+        } else {
+            await bot.sendMessage('-1002341901192', tin, { parse_mode: 'HTML' }).catch(() => {});
+        }
+
+        // Gửi Toàn bộ User
+        const danhSach = await User.find({ khongNhanBroadcast: { $ne: true } }).catch(() => []);
+        for (const user of danhSach) {
+            if (baiViet.imageUrl) {
+                await bot.sendPhoto(user.userId, baiViet.imageUrl, { parse_mode: 'HTML', caption: tin }).catch(() => {});
+            } else {
+                await bot.sendMessage(user.userId, tin, { parse_mode: 'HTML' }).catch(() => {});
+            }
+            await new Promise(r => setTimeout(r, 70));
+        }
+        console.log(`✅ Đã gửi bài viết ngẫu nhiên: ${baiViet.title}`);
+    } catch (error) {
+        console.log('Lỗi gửi bài ngẫu nhiên:', error.message);
+    }
+}
+
 // ==========================================================
 // CRON MỚI — GỘP VÀO INTERVAL CHÍNH
 // ==========================================================
@@ -2386,4 +2451,7 @@ setInterval(async () => {
 
     // 15:00 chiều — Follow-up chưa kích hoạt Pass (2.3)
     if (h === 15 && m === 0) await followUpChuaKichHoat();
+
+    // 20:30 tối — Tự động lấy bài viết ngẫu nhiên từ Web gửi vào Nhóm & User
+    if (h === 20 && m === 30) await guiBaiVietNgauNhien();
 }, 60000);
