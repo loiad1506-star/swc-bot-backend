@@ -27,20 +27,24 @@ const ADMIN_ID = process.env.ADMIN_ID || '507318519';
 const GROUP_USERNAME = '@swc_capital_chat';
 
 const SWC_FIELD_URL = 'https://swcpass.com/swc-field/';
-const SWC_PASS_URL = 'https://swcpass.com/swc-field/#pricing';
+const SWC_PASS_URL = 'https://swcpass.com/swc-pass-la-gi/';
+const SWC_PASS_PRICING_URL = 'https://swcpass.com/swc-field/#pricing';
 const ROAD_1M_URL = 'https://swcpass.com/rm1/';
 const ATLAS_URL = 'https://swcpass.com/atlas/';
+const ACADEMY_URL = 'https://swcpass.com/academy/';
+const EVENT_URL = 'https://swcpass.com/su-kien-swc/';
+const ZOOM_URL = 'https://swcpass.com/zoom';
 const VIDEO_MOBILE = 'https://www.youtube.com/watch?v=SEB7RJrutxg';
 const VIDEO_PC = 'https://www.youtube.com/watch?v=gy_sxh9WCCM';
 
 const IMG_MAIN = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6';
-const IMG_PASS = 'https://photos.app.goo.gl/cbECmeni7rhuBAst5';
-const IMG_HANG = 'https://photos.app.goo.gl/yZU4FjisXcrQVMuf7';
-const IMG_ROAD = 'https://photos.app.goo.gl/Ca3xJzrWPaxzLSur7';
-const IMG_ROAD2 = 'https://photos.app.goo.gl/pcfu5PUhz8Xs61kt7';
-const IMG_FIELD = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
-const IMG_ATLAS = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
-const IMG_SPV = 'https://photos.app.goo.gl/9nub7vRX5h9buGwr8';
+const IMG_PASS = 'https://swcpass.com/wp-content/uploads/2026/05/Gemini_Generated_Image_ebq0peebq0peebq0-scaled.png';
+const IMG_HANG = 'https://swcpass.com/wp-content/uploads/2026/05/A%CC%89nh-ma%CC%80n-hi%CC%80nh-2026-05-17-lu%CC%81c-22.30.41-1536x1014.png';
+const IMG_ROAD = 'https://swcpass.com/wp-content/uploads/2026/04/Gemini_Generated_Image_5m8fyi5m8fyi5m8f-1400x781.jpeg';
+const IMG_ROAD2 = 'https://swcpass.com/wp-content/uploads/2026/04/Gemini_Generated_Image_5m8fyi5m8fyi5m8f-1400x781.jpeg';
+const IMG_FIELD = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6';
+const IMG_ATLAS = 'https://sf-static.upanhlaylink.com/view/image_202604060bbbadd39dbe1578382402c49482c216.jpg';
+const IMG_SPV = 'https://swcpass.com/wp-content/uploads/2026/04/Gemini_Generated_Image_7i42737i42737i42-scaled.png';
 
 const DEADLINE = '30/06/2026';
 const NOTIFY_GROUP_ID = process.env.NOTIFY_GROUP_ID || ADMIN_ID;
@@ -51,12 +55,13 @@ function getDaysLeft() {
     return diff > 0 ? diff : 0;
 }
 
-// NÚT BẤM TOÀN CỤC — KHÔNG CÓ NÚT VIDEO Ở ĐÂY
+// NÚT BẤM TOÀN CỤC
 function nutsLienKet() {
     return [
-        [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
-        [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
+        [{ text: '🎓 Vào SWC Academy', url: ACADEMY_URL }],
+        [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 SWC Pass là gì?', url: SWC_PASS_URL }],
         [{ text: '🗺️ Con đường $1,000,000', url: ROAD_1M_URL }, { text: '🏢 Dự án ATLAS', url: ATLAS_URL }],
+        [{ text: '📅 Sự kiện SWC', url: EVENT_URL }, { text: '📹 Zoom Meeting', url: ZOOM_URL }],
         [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }],
         [{ text: '🏠 Quay về Menu Chính', callback_data: 'menu_chinh' }]
     ];
@@ -282,7 +287,16 @@ XỬ LÝ TỪ CHỐI (luôn kèm ví dụ):
 - "Có lừa đảo không?": "Câu hỏi rất hay và rất đáng hỏi. SPV chuẩn SEC Mỹ — anh/chị sở hữu cổ phiếu hợp pháp có giấy chứng nhận. Khác hoàn toàn Ponzi: SWC KHÔNG GIỮ TIỀN, tiền nằm trong app chứng khoán cá nhân của anh/chị."
 - "Tự đầu tư cũng được": "Hoàn toàn được! Nhưng tự đầu tư = mua cổ phiếu giá thị trường. Với SWC Pass = mua vòng Private, giá trước khi lên sàn. Giống như mua nhà giá gốc từ chủ đầu tư vs mua qua môi giới."
 
-QUY TẮC CUỐI: Luôn kết thúc bằng 1 câu hỏi mở nhắm vào nỗi đau tài chính. KHÔNG NHẮC Token, SWGT, không bịa số liệu.
+LINK QUAN TRỌNG — Khi nội dung liên quan đến từ khoá, LUÔN gửi kèm link tương ứng:
+- Pass, thẻ, membership → https://swcpass.com/swc-pass-la-gi/
+- Field, sân chơi, đầu tư Private → https://swcpass.com/swc-field/
+- Road, $1M, lãi kép, DCA → https://swcpass.com/rm1/
+- Atlas, Dubai, BĐS → https://swcpass.com/atlas/
+- Khoá học, Academy, học → https://swcpass.com/academy/
+- Sự kiện, chương trình, kế hoạch, lịch → https://swcpass.com/su-kien-swc/
+- Zoom, họp, phát sóng, live → https://swcpass.com/zoom
+
+QUY TẮC CUỐI: Luôn kết thúc bằng 1 câu hỏi mở nhắm vào nỗi đau tài chính. KHÔNG NHẮC Token, SWGT, không bịa số liệu. Khi phù hợp, gửi kèm link liên quan từ danh sách LINK QUAN TRỌNG ở trên.
 
 QUY TẮC TUYỆT ĐỐI — KHÔNG BỊA THÔNG TIN:
 - TUYỆT ĐỐI không bịa đặt hay suy đoán thông tin về dự án Atlas, SWC Field, SWC Pass mà không có trong KIẾN THỨC CỐT LÕI ở trên.
@@ -369,7 +383,9 @@ Chỉ còn <b>${daysLeft} ngày</b> để bạn thay đổi quỹ đạo tài ch
             [{ text: '❓ HỎI ĐÁP — PHÁ VỠ RÀO CẢN TÂM LÝ', callback_data: 'faq_chinh' }],
             [{ text: '📱 Hướng dẫn kích hoạt (Điện thoại)', url: VIDEO_MOBILE }],
             [{ text: '💻 Hướng dẫn kích hoạt (Máy tính)', url: VIDEO_PC }],
-            [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
+            [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 SWC Pass là gì?', url: SWC_PASS_URL }],
+            [{ text: '📅 Sự kiện SWC', url: EVENT_URL }, { text: '📹 Zoom Meeting', url: ZOOM_URL }],
+            [{ text: '🎓 Vào SWC Academy', url: ACADEMY_URL }],
             [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }]
         ]
     };
@@ -1159,7 +1175,7 @@ Cùng điểm đến. Nhưng ai đến trước?`;
     }
     else if (data === 'admin_lenh' && callbackQuery.from.id.toString() === ADMIN_ID) {
         bot.sendMessage(ADMIN_ID,
-            `📋 <b>LỆNH ADMIN:</b>\n\n<b>👥 Quản lý user:</b>\n/tracuu [ID] — Xem hồ sơ khách\n/setpass [ID] [gói] — Cập nhật gói Pass\n/setpheu [ID] [giai_doan] — Cập nhật phễu\n/note [ID] [ghi chú] — Lưu ghi chú\n/reset [ID] — Reset lịch sử AI\n\n<b>💳 SWC Pass:</b>\n/passlist — Xem DS đã kích hoạt Pass\n/passnolist — Xem DS chưa kích hoạt\n/passgoogle [email] — Tra cứu theo Gmail\n/passrevoke [email] — Huỷ SWC Pass\n\n<b>📢 Broadcast:</b>\n/sendall [nội dung] — Gửi tất cả\n/sendpheu [giai_doan] [nội dung] — Gửi theo phễu\n/thongbao [nội dung] — Gửi Group`,
+            `📋 <b>LỆNH ADMIN:</b>\n\n<b>👥 Quản lý user:</b>\n/tracuu [ID] — Xem hồ sơ khách\n/setpass [ID] [gói] — Cập nhật gói Pass\n/setpheu [ID] [giai_doan] — Cập nhật phễu\n/note [ID] [ghi chú] — Lưu ghi chú\n/reset [ID] — Reset lịch sử AI\n\n<b>💳 SWC Pass:</b>\n/passlist — Xem DS đã kích hoạt Pass\n/passnolist — Xem DS chưa kích hoạt\n/passgoogle [email] — Tra cứu theo Gmail\n/passrevoke [email] — Huỷ SWC Pass\n\n<b>📢 Broadcast:</b>\n/sendall [nội dung] — Gửi tất cả\n/sendpheu [giai_doan] [nội dung] — Gửi theo phễu\n/guichat [nội dung] — Gửi cho người từng chat (có ảnh+nút)\n/thongbao [nội dung] — Gửi Group\n\n<b>🧪 Test:</b>\n/test — Xem bảng lệnh test tất cả chức năng`,
             { parse_mode: 'HTML' });
         return;
     }
@@ -1574,7 +1590,8 @@ setInterval(async () => {
     if (h === 8 && m === 0) {
         const baiHoc = TIN_NHAN_30_NGAY[ngay] || TIN_NHAN_30_NGAY[1];
         const tin = `🌅 <b>CHÀO BUỔI SÁNG — BÀI HỌC TÂM LÝ & ĐẦU TƯ</b>\n\n${baiHoc}\n\n⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống SWC!`;
-        await guiToanBo(tin, IMG_MAIN);
+        const kq = await guiToanBo(tin, IMG_MAIN);
+        bot.sendMessage(ADMIN_ID, `⏰ <b>AUTO 08:00 — Tin sáng</b>\n✅ ${kq.thanhCong}/${kq.tongSo} | ❌ ${kq.thatBai}`, { parse_mode: 'HTML' }).catch(() => {});
     }
 
     // BUỔI TRƯA — XOAY VÒNG 10 tin khác nhau theo ngày
@@ -1582,7 +1599,8 @@ setInterval(async () => {
         const idx = ngay % TIN_BUOI_TRUA.length;
         const tin = TIN_BUOI_TRUA[idx](daysLeft);
         const anhArr = [IMG_ROAD, IMG_FIELD, IMG_MAIN, IMG_ATLAS, IMG_HANG];
-        await guiToanBo(tin, anhArr[idx % anhArr.length]);
+        const kq = await guiToanBo(tin, anhArr[idx % anhArr.length]);
+        bot.sendMessage(ADMIN_ID, `⏰ <b>AUTO 12:00 — Tin trưa</b> (mẫu ${idx + 1})\n✅ ${kq.thanhCong}/${kq.tongSo} | ❌ ${kq.thatBai}`, { parse_mode: 'HTML' }).catch(() => {});
     }
 
     // BUỔI CHIỀU — XOAY VÒNG 10 tin khác nhau theo ngày
@@ -1590,14 +1608,16 @@ setInterval(async () => {
         const idx = ngay % TIN_BUOI_CHIEU.length;
         const tin = TIN_BUOI_CHIEU[idx](daysLeft);
         const anhArr = [IMG_FIELD, IMG_ATLAS, IMG_ROAD, IMG_MAIN, IMG_HANG];
-        await guiToanBo(tin, anhArr[idx % anhArr.length]);
+        const kq = await guiToanBo(tin, anhArr[idx % anhArr.length]);
+        bot.sendMessage(ADMIN_ID, `⏰ <b>AUTO 19:30 — Tin chiều</b> (mẫu ${idx + 1})\n✅ ${kq.thanhCong}/${kq.tongSo} | ❌ ${kq.thatBai}`, { parse_mode: 'HTML' }).catch(() => {});
     }
 
-    // BUỔI TỐI — XOAY VÒNG 10 tin khác nhau (chỉ gửi phễu nóng + quan_tam)
+    // BUỔI TỐI — XOAY VÒNG 10 tin khác nhau (gửi TẤT CẢ user)
     if (h === 20 && m === 30) {
         const idx = ngay % TIN_BUOI_TOI.length;
         const tin = TIN_BUOI_TOI[idx](daysLeft);
-        await guiToanBo(tin, IMG_HANG, ['nong', 'quan_tam']);
+        const kq = await guiToanBo(tin, IMG_HANG);
+        bot.sendMessage(ADMIN_ID, `⏰ <b>AUTO 20:30 — Tin tối</b> (mẫu ${idx + 1})\n✅ ${kq.thanhCong}/${kq.tongSo} | ❌ ${kq.thatBai}`, { parse_mode: 'HTML' }).catch(() => {});
     }
 
     if (h === 10 && m === 0) await tacDongNguoiImLang();
@@ -1645,6 +1665,137 @@ bot.onText(/\/sendpheu (\w+) ([\s\S]+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
     const kq = await guiToanBo(match[2], IMG_MAIN, match[1]);
     bot.sendMessage(ADMIN_ID, `✅ Phễu "${match[1]}": ${kq.thanhCong}/${kq.tongSo} thành công, ${kq.thatBai} thất bại`);
+});
+
+// ==========================================================
+// /guichat — GỬI TIN CHO NGƯỜI TỪNG NHẮN TIN VỚI BOT
+// Hỗ trợ: văn bản + ảnh + nút bấm tùy chỉnh
+// ==========================================================
+// Cú pháp 1: /guichat [nội dung]
+// Cú pháp 2: /guichat [nội dung] | [URL ảnh]
+// Cú pháp 3: /guichat [nội dung] | [URL ảnh] | [text nút] | [URL nút]
+// Cú pháp 4: /guichat [nội dung] | | [text nút] | [URL nút]  (không ảnh, có nút)
+// Hoặc: Reply 1 tấm ảnh + caption /guichat [nội dung] | [text nút] | [URL nút]
+bot.onText(/\/guichat ([\s\S]+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+
+    const parts = match[1].split('|').map(s => s.trim());
+    let noiDung = parts[0] || '';
+    let anhUrl = null;
+    let nutText = '';
+    let nutUrl = '';
+
+    // Kiểm tra nếu admin reply 1 tấm ảnh
+    if (msg.reply_to_message && msg.reply_to_message.photo) {
+        const photo = msg.reply_to_message.photo;
+        anhUrl = await bot.getFileLink(photo[photo.length - 1].file_id).catch(() => null);
+        // Cú pháp khi reply ảnh: /guichat [nội dung] | [text nút] | [URL nút]
+        if (parts[1]) nutText = parts[1];
+        if (parts[2]) nutUrl = parts[2];
+    } else {
+        // Cú pháp bình thường: /guichat [nội dung] | [URL ảnh] | [text nút] | [URL nút]
+        if (parts[1]) anhUrl = parts[1] || null;
+        if (parts[2]) nutText = parts[2];
+        if (parts[3]) nutUrl = parts[3];
+    }
+
+    // Nếu anhUrl rỗng thì set null
+    if (!anhUrl || anhUrl.length < 5) anhUrl = null;
+
+    // Tạo keyboard
+    let keyboard = [];
+    if (nutText && nutUrl) {
+        keyboard.push([{ text: nutText, url: nutUrl }]);
+    }
+    // Luôn thêm nút Menu + Nhóm
+    keyboard.push(...nutsLienKet());
+
+    // Đếm user đã từng nhắn tin
+    const dieuKien = {
+        soTinNhan: { $gte: 1 },
+        userId: { $regex: /^\d+$/ },
+        khongNhanBroadcast: { $ne: true }
+    };
+    const danhSach = await User.find(dieuKien);
+    const tongSo = danhSach.length;
+
+    if (tongSo === 0) {
+        return bot.sendMessage(ADMIN_ID, '📭 Không có user nào từng nhắn tin với bot.');
+    }
+
+    // Xác nhận trước khi gửi
+    let xacNhan = `📤 <b>XÁC NHẬN GỬI TIN</b>\n\n`;
+    xacNhan += `👥 Số người nhận: <b>${tongSo}</b> (đã từng chat)\n`;
+    xacNhan += `📝 Nội dung: ${noiDung.substring(0, 200)}...\n`;
+    if (anhUrl) xacNhan += `🖼️ Có ảnh: ${anhUrl.substring(0, 60)}...\n`;
+    if (nutText) xacNhan += `🔗 Nút bấm: "${nutText}" → ${nutUrl.substring(0, 50)}\n`;
+    xacNhan += `\n⏳ Đang gửi...`;
+    await bot.sendMessage(ADMIN_ID, xacNhan, { parse_mode: 'HTML' });
+
+    // Bắt đầu gửi
+    let thanhCong = 0; let thatBai = 0; let loiDau = '';
+    for (const user of danhSach) {
+        try {
+            if (anhUrl) {
+                try {
+                    await bot.sendPhoto(user.userId, anhUrl, {
+                        caption: noiDung,
+                        parse_mode: 'HTML',
+                        reply_markup: { inline_keyboard: keyboard }
+                    });
+                } catch (photoErr) {
+                    // Ảnh lỗi → fallback text
+                    await bot.sendMessage(user.userId, noiDung, {
+                        parse_mode: 'HTML',
+                        reply_markup: { inline_keyboard: keyboard }
+                    });
+                }
+            } else {
+                await bot.sendMessage(user.userId, noiDung, {
+                    parse_mode: 'HTML',
+                    reply_markup: { inline_keyboard: keyboard }
+                });
+            }
+            thanhCong++;
+        } catch (e) {
+            thatBai++;
+            if (!loiDau) loiDau = `[${user.userId}] ${e.message}`;
+        }
+        await new Promise(r => setTimeout(r, 70));
+    }
+
+    let ketQua = `✅ <b>KẾT QUẢ GỬI CHAT</b>\n\n📤 Tổng: ${tongSo}\n✅ Thành công: ${thanhCong}\n❌ Thất bại: ${thatBai}`;
+    if (loiDau) ketQua += `\n\n⚠️ Lỗi đầu tiên: ${loiDau.substring(0, 200)}`;
+    bot.sendMessage(ADMIN_ID, ketQua, { parse_mode: 'HTML' });
+});
+
+// /guichat — Hướng dẫn khi thiếu nội dung
+bot.onText(/^\/guichat$/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    bot.sendMessage(ADMIN_ID, `📋 <b>LỆNH /guichat — Gửi cho người từng chat với Bot</b>
+
+<b>Cú pháp:</b>
+
+<b>1️⃣ Chỉ văn bản:</b>
+<code>/guichat Chào mọi người! Có tin mới...</code>
+
+<b>2️⃣ Văn bản + Ảnh:</b>
+<code>/guichat Nội dung | URL_ảnh</code>
+
+<b>3️⃣ Văn bản + Ảnh + Nút bấm:</b>
+<code>/guichat Nội dung | URL_ảnh | Text nút | URL_nút</code>
+
+<b>4️⃣ Văn bản + Nút bấm (không ảnh):</b>
+<code>/guichat Nội dung | | Text nút | URL_nút</code>
+
+<b>5️⃣ Reply ảnh + Nút bấm:</b>
+Reply 1 tấm ảnh rồi gõ:
+<code>/guichat Nội dung | Text nút | URL_nút</code>
+
+<b>Ví dụ:</b>
+<code>/guichat Tối nay 19h có buổi phát sóng LIVE! | https://link-anh.jpg | 🔴 Vào Zoom ngay | https://swcpass.com/zoom</code>
+
+<i>⚠️ Chỉ gửi cho user đã từng nhắn tin với bot (không spam người mới)</i>`, { parse_mode: 'HTML' });
 });
 
 bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
@@ -2757,7 +2908,10 @@ const TIN_NHAN_30_NGAY = [
 async function guiBaiVietNgauNhien() {
     try {
         const result = await Knowledge.aggregate([{ $sample: { size: 1 } }]);
-        if (!result || result.length === 0) return;
+        if (!result || result.length === 0) {
+            bot.sendMessage(ADMIN_ID, `⏰ <b>AUTO 21:00 — Bài viết ngẫu nhiên</b>\n📭 Thư viện trống! Dùng /post để thêm bài.`, { parse_mode: 'HTML' }).catch(() => {});
+            return;
+        }
         const baiViet = result[0];
         const tin = `📚 <b>BÀI VIẾT NỔI BẬT HÔM NAY</b>\n\n📌 <b>Tiêu đề:</b> ${baiViet.title}\n✍️ <b>Tác giả:</b> ${baiViet.authorName || 'SWC Academy'}\n\n📖 Bấm vào link bên dưới để xem toàn bộ nội dung bài phân tích chi tiết. Một kho tàng kiến thức đang chờ bạn khám phá! 👇\n\n🔗 <b>Đọc ngay:</b> https://swcpass.com/academy/chat.html?id=${baiViet._id}`;
         
@@ -2769,17 +2923,27 @@ async function guiBaiVietNgauNhien() {
         }
 
         // Gửi Toàn bộ User
+        let thanhCong = 0; let thatBai = 0;
         const danhSach = await User.find({ khongNhanBroadcast: { $ne: true }, userId: { $regex: /^\d+$/ } }).catch(() => []);
         for (const user of danhSach) {
-            if (baiViet.imageUrl) {
-                await bot.sendPhoto(user.userId, baiViet.imageUrl, { parse_mode: 'HTML', caption: tin }).catch(() => {});
-            } else {
-                await bot.sendMessage(user.userId, tin, { parse_mode: 'HTML' }).catch(() => {});
-            }
+            try {
+                if (baiViet.imageUrl) {
+                    try {
+                        await bot.sendPhoto(user.userId, baiViet.imageUrl, { parse_mode: 'HTML', caption: tin });
+                    } catch (photoErr) {
+                        await bot.sendMessage(user.userId, tin, { parse_mode: 'HTML' });
+                    }
+                } else {
+                    await bot.sendMessage(user.userId, tin, { parse_mode: 'HTML' });
+                }
+                thanhCong++;
+            } catch (e) { thatBai++; }
             await new Promise(r => setTimeout(r, 70));
         }
+        bot.sendMessage(ADMIN_ID, `⏰ <b>AUTO 21:00 — Bài viết ngẫu nhiên</b>\n📚 "${baiViet.title}"\n✅ ${thanhCong}/${danhSach.length} | ❌ ${thatBai}`, { parse_mode: 'HTML' }).catch(() => {});
         console.log(`✅ Đã gửi bài viết ngẫu nhiên: ${baiViet.title}`);
     } catch (error) {
+        bot.sendMessage(ADMIN_ID, `⏰ <b>AUTO 21:00 — LỖI</b>\n❌ ${error.message}`, { parse_mode: 'HTML' }).catch(() => {});
         console.log('Lỗi gửi bài ngẫu nhiên:', error.message);
     }
 }
