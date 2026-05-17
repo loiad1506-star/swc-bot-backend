@@ -38,13 +38,13 @@ const VIDEO_MOBILE = 'https://www.youtube.com/watch?v=SEB7RJrutxg';
 const VIDEO_PC = 'https://www.youtube.com/watch?v=gy_sxh9WCCM';
 
 const IMG_MAIN = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6';
-const IMG_PASS = 'https://swcpass.com/wp-content/uploads/2026/05/Gemini_Generated_Image_ebq0peebq0peebq0-scaled.png';
-const IMG_HANG = 'https://swcpass.com/wp-content/uploads/2026/05/A%CC%89nh-ma%CC%80n-hi%CC%80nh-2026-05-17-lu%CC%81c-22.30.41-1536x1014.png';
-const IMG_ROAD = 'https://swcpass.com/wp-content/uploads/2026/04/Gemini_Generated_Image_5m8fyi5m8fyi5m8f-1400x781.jpeg';
+const IMG_PASS = 'https://sf-static.upanhlaylink.com/view/image_2026051778be9184f0b07e50514f8c1a46f8311f.jpg';
+const IMG_HANG = 'https://sf-static.upanhlaylink.com/view/image_2026051790dcb2fb232e99d8d4cd7e3bc108a6da.jpg';
+const IMG_ROAD = 'https://sf-static.upanhlaylink.com/view/image_20260517527e944e0652ca6d996dd4f9cd42a987.jpg';
 const IMG_ROAD2 = 'https://swcpass.com/wp-content/uploads/2026/04/Gemini_Generated_Image_5m8fyi5m8fyi5m8f-1400x781.jpeg';
 const IMG_FIELD = 'https://photos.app.goo.gl/6SC4mNCBawpMfMgj6';
 const IMG_ATLAS = 'https://sf-static.upanhlaylink.com/view/image_202604060bbbadd39dbe1578382402c49482c216.jpg';
-const IMG_SPV = 'https://swcpass.com/wp-content/uploads/2026/04/Gemini_Generated_Image_7i42737i42737i42-scaled.png';
+const IMG_SPV = 'https://sf-static.upanhlaylink.com/view/image_202605171f7ed6ea4429c7df9870b7165eb3711b.jpg';
 
 const DEADLINE = '30/06/2026';
 const NOTIFY_GROUP_ID = process.env.NOTIFY_GROUP_ID || ADMIN_ID;
