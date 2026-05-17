@@ -1499,19 +1499,27 @@ async function guiToanBo(noiDung, anhUrl = null, chiBaoGomPheu = null) {
     const dieuKien = { khongNhanBroadcast: { $ne: true }, userId: { $regex: /^\d+$/ } };
     if (chiBaoGomPheu) dieuKien.giaiDoanPheu = { $in: Array.isArray(chiBaoGomPheu) ? chiBaoGomPheu : [chiBaoGomPheu] };
     const danhSach = await User.find(dieuKien);
-    let thanhCong = 0; let thatBai = 0;
+    let thanhCong = 0; let thatBai = 0; let loiDau = '';
     for (const user of danhSach) {
         try {
             if (anhUrl) {
-                await bot.sendPhoto(user.userId, anhUrl, { caption: noiDung, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+                try {
+                    await bot.sendPhoto(user.userId, anhUrl, { caption: noiDung, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+                } catch (photoErr) {
+                    // Ảnh lỗi → fallback gửi text
+                    await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+                }
             } else {
                 await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
             }
             thanhCong++;
-        } catch (e) { thatBai++; }
+        } catch (e) {
+            thatBai++;
+            if (!loiDau) loiDau = `[${user.userId}] ${e.message}`;
+        }
         await new Promise(r => setTimeout(r, 70));
     }
-    return { thanhCong, thatBai, tongSo: danhSach.length };
+    return { thanhCong, thatBai, tongSo: danhSach.length, loiDau };
 }
 
 // ==========================================================
@@ -1628,7 +1636,9 @@ bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
     const tongSo = await User.countDocuments({ userId: { $regex: /^\d+$/ }, khongNhanBroadcast: { $ne: true } });
     bot.sendMessage(ADMIN_ID, `⏳ Đang gửi tin cho ${tongSo} người (Telegram ID hợp lệ)...`);
     const kq = await guiToanBo(match[1], IMG_MAIN);
-    bot.sendMessage(ADMIN_ID, `✅ <b>KẾT QUẢ</b>\n📤 Tổng: ${kq.tongSo}\n✅ Thành công: ${kq.thanhCong}\n❌ Thất bại: ${kq.thatBai}`, { parse_mode: 'HTML' });
+    let ketQua = `✅ <b>KẾT QUẢ</b>\n📤 Tổng: ${kq.tongSo}\n✅ Thành công: ${kq.thanhCong}\n❌ Thất bại: ${kq.thatBai}`;
+    if (kq.loiDau) ketQua += `\n\n⚠️ Lỗi đầu tiên: ${kq.loiDau.substring(0, 200)}`;
+    bot.sendMessage(ADMIN_ID, ketQua, { parse_mode: 'HTML' });
 });
 
 bot.onText(/\/sendpheu (\w+) ([\s\S]+)/i, async (msg, match) => {
@@ -1681,6 +1691,331 @@ bot.onText(/\/thongbao ([\s\S]+)/i, async (msg, match) => {
         await bot.sendMessage(GROUP_USERNAME, `📢 <b>THÔNG BÁO TỪ BAN QUẢN TRỊ:</b>\n\n${match[1]}`, { parse_mode: 'HTML' });
         bot.sendMessage(ADMIN_ID, `✅ Đã gửi thông báo lên Group!`);
     } catch (e) { bot.sendMessage(ADMIN_ID, `❌ Lỗi: ${e.message}`); }
+});
+
+// ==========================================================
+// LỆNH TEST — CHỈ GỬI CHO ADMIN ĐỂ KIỂM TRA CHỨC NĂNG
+// ==========================================================
+
+// /test — Hiện toàn bộ lệnh test
+bot.onText(/\/test$/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    bot.sendMessage(ADMIN_ID, `🧪 <b>BẢNG LỆNH TEST — CHỈ GỬI CHO ADMIN</b>
+
+<b>📢 Test Broadcast (gửi riêng cho admin):</b>
+/test_sang — Test tin sáng (bài học 30 ngày)
+/test_trua — Test tin trưa (xoay vòng)
+/test_chieu — Test tin chiều (xoay vòng)
+/test_toi — Test tin tối (xoay vòng)
+/test_trietly — Test câu triết lý 6h sáng
+/test_nhachoc — Test nhắc học tập
+/test_nhacdautu — Test nhắc đầu tư đầu tháng
+/test_followup — Test follow-up chưa kích hoạt
+/test_baiviet — Test gửi bài viết ngẫu nhiên
+/test_imlang — Test tác động người im lặng
+
+<b>📊 Test Drip Funnel:</b>
+/test_drip1 — Test drip bước 1
+/test_drip3 — Test drip bước 3
+/test_drip7 — Test drip bước 7
+/test_drip14 — Test drip bước 14
+/test_drip21 — Test drip bước 21
+
+<b>🔧 Test Hệ thống:</b>
+/test_sendall — Test gửi cho TẤT CẢ (text nhỏ)
+/test_anh — Test gửi ảnh (kiểm tra URL ảnh)
+/test_menu — Test menu chính
+/test_thongke — Xem thống kê nhanh
+
+<i>⚠️ Tất cả lệnh test chỉ gửi tin cho admin, KHÔNG gửi cho user!</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST TIN SÁNG ---
+bot.onText(/\/test_sang/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const ngay = new Date().getDate();
+    const baiHoc = TIN_NHAN_30_NGAY[ngay] || TIN_NHAN_30_NGAY[1];
+    const daysLeft = getDaysLeft();
+    const tin = `🌅 <b>CHÀO BUỔI SÁNG — BÀI HỌC TÂM LÝ & ĐẦU TƯ</b>\n\n${baiHoc}\n\n⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống SWC!`;
+    try {
+        await bot.sendPhoto(ADMIN_ID, IMG_MAIN, { caption: tin, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    } catch (e) {
+        await bot.sendMessage(ADMIN_ID, tin, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    }
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test tin SÁNG hoàn tất (ngày ${ngay}/30)</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST TIN TRƯA ---
+bot.onText(/\/test_trua/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const ngay = new Date().getDate();
+    const idx = ngay % TIN_BUOI_TRUA.length;
+    const daysLeft = getDaysLeft();
+    const tin = TIN_BUOI_TRUA[idx](daysLeft);
+    const anhArr = [IMG_ROAD, IMG_FIELD, IMG_MAIN, IMG_ATLAS, IMG_HANG];
+    try {
+        await bot.sendPhoto(ADMIN_ID, anhArr[idx % anhArr.length], { caption: tin, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    } catch (e) {
+        await bot.sendMessage(ADMIN_ID, tin, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    }
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test tin TRƯA hoàn tất (mẫu ${idx + 1}/${TIN_BUOI_TRUA.length})</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST TIN CHIỀU ---
+bot.onText(/\/test_chieu/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const ngay = new Date().getDate();
+    const idx = ngay % TIN_BUOI_CHIEU.length;
+    const daysLeft = getDaysLeft();
+    const tin = TIN_BUOI_CHIEU[idx](daysLeft);
+    const anhArr = [IMG_FIELD, IMG_ATLAS, IMG_ROAD, IMG_MAIN, IMG_HANG];
+    try {
+        await bot.sendPhoto(ADMIN_ID, anhArr[idx % anhArr.length], { caption: tin, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    } catch (e) {
+        await bot.sendMessage(ADMIN_ID, tin, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    }
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test tin CHIỀU hoàn tất (mẫu ${idx + 1}/${TIN_BUOI_CHIEU.length})</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST TIN TỐI ---
+bot.onText(/\/test_toi/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const ngay = new Date().getDate();
+    const idx = ngay % TIN_BUOI_TOI.length;
+    const daysLeft = getDaysLeft();
+    const tin = TIN_BUOI_TOI[idx](daysLeft);
+    try {
+        await bot.sendPhoto(ADMIN_ID, IMG_HANG, { caption: tin, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    } catch (e) {
+        await bot.sendMessage(ADMIN_ID, tin, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    }
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test tin TỐI hoàn tất (mẫu ${idx + 1}/${TIN_BUOI_TOI.length})</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST CÂU TRIẾT LÝ ---
+bot.onText(/\/test_trietly/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const cauNoi = CAU_NOI_TRIET_LY[Math.floor(Math.random() * CAU_NOI_TRIET_LY.length)];
+    const text = `🌅 <b>CHÀO BUỔI SÁNG — SWC CAPITAL</b>\n\n${cauNoi}\n\n🎯 <i>Mỗi ngày một bước tiến — kiên nhẫn và kỷ luật sẽ đưa bạn đến đích.</i>`;
+    await bot.sendMessage(ADMIN_ID, text, {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }]
+            ]
+        }
+    });
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test câu triết lý 6h sáng hoàn tất</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST NHẮC HỌC TẬP ---
+bot.onText(/\/test_nhachoc/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const mau = MAU_NHAC_HOC[Math.floor(Math.random() * MAU_NHAC_HOC.length)];
+    const text = mau('Admin');
+    await bot.sendMessage(ADMIN_ID, text, {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '📰 Thư viện Kiến thức', url: 'https://swcpass.com/academy/chat.html' }],
+                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }],
+                [{ text: '🗺️ Danh mục RM1', url: ROAD_1M_URL }]
+            ]
+        }
+    });
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test nhắc học tập (7h sáng) hoàn tất</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST NHẮC ĐẦU TƯ ---
+bot.onText(/\/test_nhacdautu/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const text = `📊 <b>NHẮC NHỞ ĐẦU TƯ HÀNG THÁNG</b>\n\nĐầu tháng rồi! Đây là thời điểm vàng để:\n\n💰 Trích $100-$200 đầu tư vào cổ phiếu blue-chip Mỹ theo chiến lược RM1\n📈 Kiểm tra và cập nhật danh mục đầu tư\n🎯 Kỷ luật DCA — mỗi tháng đều đặn, không bỏ lỡ\n\nVí dụ: $150/tháng chỉ bằng 5,000đ/ngày — ít hơn 1 ly trà đá. Nhưng sau 20 năm với lãi kép = ~$300,000 (~7.5 tỷ VNĐ).\n\nQuyền lợi: Sở hữu cổ phiếu chuẩn Mỹ qua SPV — có giấy chứng nhận cổ đông, quyền cổ tức.\n\nBấm nút bên dưới để xem danh mục:`;
+    await bot.sendMessage(ADMIN_ID, text, {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '🗺️ Xem danh mục RM1', url: ROAD_1M_URL }],
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '💬 Vào Nhóm Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }],
+                [{ text: '🏠 Menu Chính', callback_data: 'menu_chinh' }]
+            ]
+        }
+    });
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test nhắc đầu tư đầu tháng hoàn tất</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST FOLLOW-UP CHƯA KÍCH HOẠT ---
+bot.onText(/\/test_followup/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const text = `👋 Chào Admin!\n\nBạn đã đăng ký SWC Academy nhưng chưa kích hoạt SWC Pass.\n\n🔓 Kích hoạt SWC Pass để:\n✅ Mở khoá toàn bộ khoá học nâng cao\n✅ Nhận tín hiệu đầu tư hàng tháng\n✅ Tham gia cộng đồng VIP\n\nChỉ cần bấm nút bên dưới — Admin sẽ kích hoạt ngay cho bạn! ⚡`;
+    await bot.sendMessage(ADMIN_ID, text, {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '💳 Kích hoạt SWC Pass', url: SWC_PASS_URL }],
+                [{ text: '🎓 Vào SWC Academy', url: 'https://swcpass.com/academy/' }],
+                [{ text: '💬 Hỏi Trợ Lý', callback_data: 'menu_chinh' }]
+            ]
+        }
+    });
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test follow-up chưa kích hoạt (15h) hoàn tất</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST BÀI VIẾT NGẪU NHIÊN ---
+bot.onText(/\/test_baiviet/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    try {
+        const result = await Knowledge.aggregate([{ $sample: { size: 1 } }]);
+        if (!result || result.length === 0) {
+            return bot.sendMessage(ADMIN_ID, '📭 Thư viện trống. Dùng /post để thêm bài trước.');
+        }
+        const baiViet = result[0];
+        const tin = `📚 <b>BÀI VIẾT NỔI BẬT HÔM NAY</b>\n\n📌 <b>Tiêu đề:</b> ${baiViet.title}\n✍️ <b>Tác giả:</b> ${baiViet.authorName || 'SWC Academy'}\n\n📖 Bấm vào link bên dưới để xem toàn bộ nội dung bài phân tích chi tiết. Một kho tàng kiến thức đang chờ bạn khám phá! 👇\n\n🔗 <b>Đọc ngay:</b> https://swcpass.com/academy/chat.html?id=${baiViet._id}`;
+        if (baiViet.imageUrl) {
+            await bot.sendPhoto(ADMIN_ID, baiViet.imageUrl, { parse_mode: 'HTML', caption: tin }).catch(() =>
+                bot.sendMessage(ADMIN_ID, tin, { parse_mode: 'HTML' })
+            );
+        } else {
+            await bot.sendMessage(ADMIN_ID, tin, { parse_mode: 'HTML' });
+        }
+        bot.sendMessage(ADMIN_ID, `🧪 <i>Test bài viết ngẫu nhiên (21h) hoàn tất — "${baiViet.title}"</i>`, { parse_mode: 'HTML' });
+    } catch (e) {
+        bot.sendMessage(ADMIN_ID, `❌ Lỗi test bài viết: ${e.message}`);
+    }
+});
+
+// --- TEST TÁC ĐỘNG NGƯỜI IM LẶNG ---
+bot.onText(/\/test_imlang/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const mauTin = [
+        (ten) => `${ten} ơi, dạo này thị trường đang có nhiều biến động thú vị. Ví dụ: lãi suất FED đang ở mức 3.625% — điều này ảnh hưởng trực tiếp đến dòng tiền toàn cầu. Anh/chị có muốn em cập nhật phân tích chi tiết không?`,
+        (ten) => `Chào ${ten}! Em vừa cập nhật phân tích vĩ mô tháng này. M2 đang ở Vùng Hoàng Kim 3-5% — đây là tín hiệu rất quan trọng cho nhà đầu tư. Anh/chị còn quan tâm không?`,
+        (ten) => `${ten} ơi, em chia sẻ 1 con số: gói Plus 5 năm chỉ $10/tháng — bằng giá 2 ly trà sữa. Nhưng 2 ly trà sữa mỗi tháng × 5 năm = 3 triệu VNĐ bay hơi. Cùng số tiền đó với SWC Pass = tấm bản đồ bảo vệ gia sản. Muốn em giải thích thêm không?`
+    ];
+    const tin = mauTin[Math.floor(Math.random() * mauTin.length)]('Admin');
+    const keyboard = { inline_keyboard: [[{ text: 'Muốn biết thêm', callback_data: 'menu_chinh' }], ...nutsLienKet().slice(-1)] };
+    await bot.sendMessage(ADMIN_ID, tin, { reply_markup: keyboard });
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test tác động người im lặng (10h) hoàn tất</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST DRIP FUNNEL ---
+bot.onText(/\/test_drip(\d+)/i, async (msg, match) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const buoc = parseInt(match[1]);
+    const fn = DRIP[buoc];
+    if (!fn) return bot.sendMessage(ADMIN_ID, `❌ Không có drip bước ${buoc}. Các bước hợp lệ: 1, 3, 7, 14, 21`);
+    const daysLeft = getDaysLeft();
+    const text = fn('Admin', daysLeft);
+    const img = [IMG_MAIN, IMG_ROAD, IMG_FIELD, IMG_ATLAS, IMG_HANG][Object.keys(DRIP).indexOf(String(buoc)) % 5];
+    try {
+        await bot.sendPhoto(ADMIN_ID, img, { caption: text, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    } catch (e) {
+        await bot.sendMessage(ADMIN_ID, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    }
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test DRIP bước ${buoc} hoàn tất</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST GỬI ẢNH (kiểm tra URL ảnh) ---
+bot.onText(/\/test_anh/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const anhList = [
+        { name: 'IMG_MAIN', url: IMG_MAIN },
+        { name: 'IMG_PASS', url: IMG_PASS },
+        { name: 'IMG_HANG', url: IMG_HANG },
+        { name: 'IMG_ROAD', url: IMG_ROAD },
+        { name: 'IMG_ROAD2', url: IMG_ROAD2 },
+        { name: 'IMG_FIELD', url: IMG_FIELD },
+        { name: 'IMG_ATLAS', url: IMG_ATLAS },
+        { name: 'IMG_SPV', url: IMG_SPV }
+    ];
+    let ketQua = '📸 <b>KẾT QUẢ TEST ẢNH:</b>\n\n';
+    for (const anh of anhList) {
+        try {
+            await bot.sendPhoto(ADMIN_ID, anh.url, { caption: `🧪 Test: ${anh.name}\n${anh.url}` });
+            ketQua += `✅ ${anh.name} — OK\n`;
+        } catch (e) {
+            ketQua += `❌ ${anh.name} — LỖI: ${e.message.substring(0, 80)}\n`;
+        }
+        await new Promise(r => setTimeout(r, 300));
+    }
+    ketQua += `\n⚠️ <i>Nếu ảnh nào bị LỖI, cần thay bằng direct image URL (không dùng Google Photos link)</i>`;
+    bot.sendMessage(ADMIN_ID, ketQua, { parse_mode: 'HTML' });
+});
+
+// --- TEST MENU ---
+bot.onText(/\/test_menu/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    await guiMenuChinh(ADMIN_ID);
+    bot.sendMessage(ADMIN_ID, `🧪 <i>Test menu chính hoàn tất</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST GỬI CHO TẤT CẢ (chỉ đếm, không gửi) ---
+bot.onText(/\/test_sendall/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const total = await User.countDocuments({ userId: { $regex: /^\d+$/ }, khongNhanBroadcast: { $ne: true } });
+    const blocked = await User.countDocuments({ khongNhanBroadcast: true });
+    const noId = await User.countDocuments({ userId: { $not: { $regex: /^\d+$/ } } });
+    const pheuMoi = await User.countDocuments({ giaiDoanPheu: 'moi', userId: { $regex: /^\d+$/ } });
+    const pheuQT = await User.countDocuments({ giaiDoanPheu: 'quan_tam', userId: { $regex: /^\d+$/ } });
+    const pheuNong = await User.countDocuments({ giaiDoanPheu: 'nong', userId: { $regex: /^\d+$/ } });
+    const pheuMua = await User.countDocuments({ giaiDoanPheu: 'da_mua', userId: { $regex: /^\d+$/ } });
+    
+    // Test gửi 1 tin cho admin để kiểm tra format
+    const tin = '🧪 <b>TEST BROADCAST</b>\n\nĐây là tin test. Nếu anh nhận được tin này nghĩa là hệ thống broadcast đang hoạt động tốt!';
+    await bot.sendMessage(ADMIN_ID, tin, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+    
+    bot.sendMessage(ADMIN_ID, `🧪 <b>PHÂN TÍCH BROADCAST</b>
+
+📤 Tổng user gửi được: <b>${total}</b>
+🚫 Đã chặn broadcast: ${blocked}
+⚠️ ID không hợp lệ (google_xxx): ${noId}
+
+<b>Phân bổ phễu:</b>
+🆕 Mới: ${pheuMoi}
+👀 Quan tâm: ${pheuQT}
+🔥 Nóng: ${pheuNong}
+✅ Đã mua: ${pheuMua}
+
+<i>Dùng /sendall [nội dung] để gửi thật cho ${total} người</i>`, { parse_mode: 'HTML' });
+});
+
+// --- TEST THỐNG KÊ NHANH ---
+bot.onText(/\/test_thongke/i, async (msg) => {
+    if (msg.from.id.toString() !== ADMIN_ID) return;
+    const total = await User.countDocuments();
+    const validId = await User.countDocuments({ userId: { $regex: /^\d+$/ } });
+    const invalidId = total - validId;
+    const coSDT = await User.countDocuments({ phone: { $ne: '' } });
+    const coEmail = await User.countDocuments({ googleEmail: { $ne: '' } });
+    const coPass = await User.countDocuments({ goiPass: { $ne: 'chua_co' } });
+    const hoatDong24h = await User.countDocuments({ lanCuoiHoatDong: { $gte: new Date(Date.now() - 86400000) } });
+    const hoatDong7d = await User.countDocuments({ lanCuoiHoatDong: { $gte: new Date(Date.now() - 7 * 86400000) } });
+    
+    bot.sendMessage(ADMIN_ID, `📊 <b>THỐNG KÊ CHI TIẾT</b>
+
+👥 Tổng users: <b>${total}</b>
+✅ Telegram ID hợp lệ: ${validId}
+⚠️ ID không hợp lệ: ${invalidId}
+📞 Có SĐT: ${coSDT}
+📧 Có Email: ${coEmail}
+💳 Có SWC Pass: ${coPass}
+📱 Hoạt động 24h: ${hoatDong24h}
+📅 Hoạt động 7 ngày: ${hoatDong7d}
+⏳ Countdown: còn ${getDaysLeft()} ngày
+
+<b>Lịch broadcast tự động:</b>
+06:00 — Câu triết lý (user có ≥1 tin nhắn)
+07:00 — Nhắc học tập (Pass member)
+08:00 — Bài học sáng (tất cả)
+09:00 — Nhắc đầu tư (ngày 1-5 tháng)
+10:00 — Tác động người im lặng
+12:00 — Tin trưa (tất cả)
+15:00 — Follow-up chưa kích hoạt
+19:30 — Tin chiều (tất cả)
+20:30 — Tin tối (nóng + quan_tam)
+21:00 — Bài viết ngẫu nhiên`, { parse_mode: 'HTML' });
 });
 
 // ==========================================================
