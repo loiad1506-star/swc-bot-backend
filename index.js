@@ -55,16 +55,32 @@ function getDaysLeft() {
     return diff > 0 ? diff : 0;
 }
 
-// NÚT BẤM TOÀN CỤC
-function nutsLienKet() {
-    return [
-        [{ text: '🎓 Vào SWC Academy', url: ACADEMY_URL }],
-        [{ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL }, { text: '💳 SWC Pass là gì?', url: SWC_PASS_URL }],
-        [{ text: '🗺️ Con đường $1,000,000', url: ROAD_1M_URL }, { text: '🏢 Dự án ATLAS', url: ATLAS_URL }],
-        [{ text: '📅 Sự kiện SWC', url: EVENT_URL }, { text: '📹 Zoom Meeting', url: ZOOM_URL }],
-        [{ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` }],
-        [{ text: '🏠 Quay về Menu Chính', callback_data: 'menu_chinh' }]
-    ];
+// NÚT BẤM TOÀN CỤC (Tự động chèn theo từ khoá)
+function nutsLienKet(text = '') {
+    if (!text) return [[{ text: '🏠 Quay về Menu Chính', callback_data: 'menu_chinh' }]];
+    
+    const t = text.toLowerCase();
+    let buttons = [];
+    
+    if (t.includes('academy') || t.includes('khoá học') || t.includes('học')) buttons.push({ text: '🎓 Vào SWC Academy', url: ACADEMY_URL });
+    if (t.includes('field') || t.includes('sân chơi') || t.includes('private')) buttons.push({ text: '🌐 Khám phá SWC Field', url: SWC_FIELD_URL });
+    if (t.includes('pass') || t.includes('thẻ') || t.includes('membership')) buttons.push({ text: '💳 SWC Pass là gì?', url: SWC_PASS_URL });
+    if (t.includes('atlas') || t.includes('dubai') || t.includes('bất động sản') || t.includes('bđs')) buttons.push({ text: '🏢 Dự án ATLAS', url: ATLAS_URL });
+    if (t.includes('sự kiện') || t.includes('chương trình')) buttons.push({ text: '📅 Sự kiện SWC', url: EVENT_URL });
+    if (t.includes('zoom') || t.includes('họp')) buttons.push({ text: '📹 Zoom Meeting', url: ZOOM_URL });
+    if (t.includes('nhóm chat') || t.includes('cộng đồng')) buttons.push({ text: '💬 Vào Nhóm Chat Cộng Đồng', url: `https://t.me/${GROUP_USERNAME.replace('@', '')}` });
+    if (t.includes('road') || t.includes('1m') || t.includes('triệu đô')) buttons.push({ text: '🗺️ Con đường $1,000,000', url: ROAD_1M_URL });
+    
+    const unique = []; const map = new Map();
+    for (const b of buttons) { if(!map.has(b.url)){ map.set(b.url, true); unique.push(b); } }
+    
+    let keyboard = [];
+    for (let i = 0; i < unique.length; i += 2) {
+        if (unique[i + 1]) keyboard.push([unique[i], unique[i + 1]]);
+        else keyboard.push([unique[i]]);
+    }
+    keyboard.push([{ text: '🏠 Quay về Menu Chính', callback_data: 'menu_chinh' }]);
+    return keyboard;
 }
 
 // ==========================================================
@@ -1160,6 +1176,67 @@ Cùng điểm đến. Nhưng ai đến trước?`;
         keyboard = [[{ text: '↩️ Quay lại danh sách câu hỏi', callback_data: 'faq_quay_lai' }], ...nutsLienKet()];
     }
 
+    // BROADCAST BUILDER CALLBACKS
+    if (data === 'bc_add_photo' && callbackQuery.from.id.toString() === ADMIN_ID) {
+        if (!adminBroadcastState[ADMIN_ID]) return;
+        adminBroadcastState[ADMIN_ID].step = 'waiting_photo';
+        bot.sendMessage(ADMIN_ID, "🖼️ <b>Vui lòng gửi 1 bức ảnh lên đây.</b> (Gửi trực tiếp ảnh, không gửi link)", { parse_mode: 'HTML' });
+        return;
+    }
+    if (data === 'bc_add_link' && callbackQuery.from.id.toString() === ADMIN_ID) {
+        if (!adminBroadcastState[ADMIN_ID]) return;
+        adminBroadcastState[ADMIN_ID].step = 'waiting_link';
+        bot.sendMessage(ADMIN_ID, "🔗 <b>Vui lòng gửi Tên Nút và Link.</b>\nĐịnh dạng: <code>Tên Nút | https://link.com</code>\nVD: <code>Vào Nhóm | https://t.me/nhom</code>", { parse_mode: 'HTML' });
+        return;
+    }
+    if (data === 'bc_cancel' && callbackQuery.from.id.toString() === ADMIN_ID) {
+        delete adminBroadcastState[ADMIN_ID];
+        bot.sendMessage(ADMIN_ID, "❌ Đã huỷ soạn thảo broadcast.");
+        return;
+    }
+    if (data === 'bc_send' && callbackQuery.from.id.toString() === ADMIN_ID) {
+        const state = adminBroadcastState[ADMIN_ID];
+        if (!state) return;
+        
+        bot.sendMessage(ADMIN_ID, "🚀 Đang tiến hành gửi...");
+        
+        let customKeyboard = [];
+        if (state.buttonText && state.buttonUrl) {
+            customKeyboard.push([{ text: state.buttonText, url: state.buttonUrl }]);
+        }
+        
+        const inlineKbd = nutsLienKet(state.text);
+        if (customKeyboard.length > 0) {
+            inlineKbd.unshift(customKeyboard[0]);
+        }
+        
+        if (state.type === 'sendall') {
+            const kq = await guiToanBo(state.text, state.photo, null, inlineKbd);
+            let ketQua = `✅ <b>KẾT QUẢ GỬI TẤT CẢ</b>\n📤 Tổng: ${kq.tongSo}\n✅ Thành công: ${kq.thanhCong}\n❌ Thất bại: ${kq.thatBai}`;
+            if (kq.loiDau) ketQua += `\n\n⚠️ Lỗi: ${kq.loiDau.substring(0, 200)}`;
+            bot.sendMessage(ADMIN_ID, ketQua, { parse_mode: 'HTML' });
+        } else if (state.type === 'guichat') {
+            const danhSach = await User.find({ soTinNhan: { $gte: 1 }, userId: { $regex: /^\d+$/ }, khongNhanBroadcast: { $ne: true } });
+            let thanhCong = 0; let thatBai = 0;
+            for (const user of danhSach) {
+                try {
+                    if (state.photo) {
+                        await bot.sendPhoto(user.userId, state.photo, { caption: state.text, parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKbd } }).catch(async () => {
+                            await bot.sendMessage(user.userId, state.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKbd } });
+                        });
+                    } else {
+                        await bot.sendMessage(user.userId, state.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKbd } });
+                    }
+                    thanhCong++;
+                } catch (e) { thatBai++; }
+                await new Promise(r => setTimeout(r, 70));
+            }
+            bot.sendMessage(ADMIN_ID, `✅ <b>KẾT QUẢ GỬI CHAT</b>\n📤 Tổng: ${danhSach.length}\n✅ Thành công: ${thanhCong}\n❌ Thất bại: ${thatBai}`, { parse_mode: 'HTML' });
+        }
+        delete adminBroadcastState[ADMIN_ID];
+        return;
+    }
+
     // ADMIN CALLBACKS
     else if (data === 'admin_thongke' && callbackQuery.from.id.toString() === ADMIN_ID) {
         const total = await User.countDocuments();
@@ -1288,11 +1365,41 @@ Cùng điểm đến. Nhưng ai đến trước?`;
     }
 });
 
+let adminBroadcastState = {};
+
 // ==========================================================
 // XỬ LÝ TIN NHẮN TỰ DO — TRỢ LÝ SWC & ADMIN
 // ==========================================================
 bot.on('message', async (msg) => {
     if (!msg.from || msg.from.is_bot || msg.chat.type !== 'private') return;
+
+    // XỬ LÝ TRẠNG THÁI BROADCAST CHO ADMIN
+    if (msg.from.id.toString() === ADMIN_ID && adminBroadcastState[ADMIN_ID] && adminBroadcastState[ADMIN_ID].step !== 'idle') {
+        const state = adminBroadcastState[ADMIN_ID];
+        if (state.step === 'waiting_photo') {
+            if (msg.photo) {
+                state.photo = msg.photo[msg.photo.length - 1].file_id;
+                state.step = 'idle';
+                bot.sendMessage(ADMIN_ID, "✅ Đã thêm hình ảnh thành công!");
+                return guiBanNhapBroadcast(ADMIN_ID);
+            } else {
+                return bot.sendMessage(ADMIN_ID, "⚠️ Vui lòng gửi một hình ảnh (không gửi link).");
+            }
+        }
+        if (state.step === 'waiting_link') {
+            const text = msg.text || msg.caption || '';
+            const parts = text.split('|').map(s => s.trim());
+            if (parts.length >= 2) {
+                state.buttonText = parts[0];
+                state.buttonUrl = parts[1];
+                state.step = 'idle';
+                bot.sendMessage(ADMIN_ID, "✅ Đã thêm nút thành công!");
+                return guiBanNhapBroadcast(ADMIN_ID);
+            } else {
+                return bot.sendMessage(ADMIN_ID, "⚠️ Sai định dạng. Vui lòng nhập: Tên Nút | https://link.com");
+            }
+        }
+    }
     if (msg.contact || (msg.text && msg.text.startsWith('/'))) return;
 
     const chatId = msg.chat.id;
@@ -1304,9 +1411,11 @@ bot.on('message', async (msg) => {
         const match = textGoc.match(/ID:\s*(\d+)/);
         if (match) {
             const targetId = match[1];
+            const tinPhanHoi = msg.text || msg.caption || '';
+            const kbd = { inline_keyboard: nutsLienKet(tinPhanHoi) };
             await bot.sendMessage(targetId,
-                `👨‍💻 <b>Phản hồi từ Đội ngũ Chuyên gia SWC:</b>\n\n${msg.text || msg.caption}`,
-                { parse_mode: 'HTML' }).catch(() => { });
+                `👨‍💻 <b>Phản hồi từ Đội ngũ Chuyên gia SWC:</b>\n\n${tinPhanHoi}`,
+                { parse_mode: 'HTML', reply_markup: kbd }).catch(() => { });
             bot.sendMessage(ADMIN_ID, `✅ Đã gửi phản hồi cho khách ID: <code>${targetId}</code>`, { parse_mode: 'HTML' });
             await User.updateOne({ userId: targetId }, {
                 $set: { adminPausedAiDen: new Date(Date.now() + 2 * 3600000) }
@@ -1354,8 +1463,9 @@ bot.on('message', async (msg) => {
         await new Promise(r => setTimeout(r, delay));
 
         const phanHoiAI = await goiClaude(user, noiDung);
-        await bot.sendMessage(chatId, phanHoiAI, { parse_mode: 'HTML' }).catch(() => {
-            bot.sendMessage(chatId, phanHoiAI);
+        const kbd = { inline_keyboard: nutsLienKet(phanHoiAI) };
+        await bot.sendMessage(chatId, phanHoiAI, { parse_mode: 'HTML', reply_markup: kbd }).catch(() => {
+            bot.sendMessage(chatId, phanHoiAI, { reply_markup: kbd });
         });
 
         // LUÔN chuyển tiếp TẤT CẢ tin nhắn cho Admin để theo dõi & can thiệp khi cần
@@ -1511,22 +1621,23 @@ async function tacDongNguoiImLang() {
 // ==========================================================
 function layGioVN() { return new Date(new Date().getTime() + 7 * 3600000); }
 
-async function guiToanBo(noiDung, anhUrl = null, chiBaoGomPheu = null) {
+async function guiToanBo(noiDung, anhUrl = null, chiBaoGomPheu = null, customKeyboard = null) {
     const dieuKien = { khongNhanBroadcast: { $ne: true }, userId: { $regex: /^\d+$/ } };
     if (chiBaoGomPheu) dieuKien.giaiDoanPheu = { $in: Array.isArray(chiBaoGomPheu) ? chiBaoGomPheu : [chiBaoGomPheu] };
     const danhSach = await User.find(dieuKien);
     let thanhCong = 0; let thatBai = 0; let loiDau = '';
+    const inlineKbd = customKeyboard || nutsLienKet(noiDung);
     for (const user of danhSach) {
         try {
             if (anhUrl) {
                 try {
-                    await bot.sendPhoto(user.userId, anhUrl, { caption: noiDung, parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+                    await bot.sendPhoto(user.userId, anhUrl, { caption: noiDung, parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKbd } });
                 } catch (photoErr) {
                     // Ảnh lỗi → fallback gửi text
-                    await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+                    await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKbd } });
                 }
             } else {
-                await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
+                await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKbd } });
             }
             thanhCong++;
         } catch (e) {
@@ -1651,152 +1762,45 @@ bot.onText(/\/(xoa|del)/i, async (msg) => {
     }
 });
 
-bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
+bot.onText(/\/(sendall|guichat)(?:\s+([\s\S]+))?/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    const tongSo = await User.countDocuments({ userId: { $regex: /^\d+$/ }, khongNhanBroadcast: { $ne: true } });
-    bot.sendMessage(ADMIN_ID, `⏳ Đang gửi tin cho ${tongSo} người (Telegram ID hợp lệ)...`);
-    const kq = await guiToanBo(match[1], IMG_MAIN);
-    let ketQua = `✅ <b>KẾT QUẢ</b>\n📤 Tổng: ${kq.tongSo}\n✅ Thành công: ${kq.thanhCong}\n❌ Thất bại: ${kq.thatBai}`;
-    if (kq.loiDau) ketQua += `\n\n⚠️ Lỗi đầu tiên: ${kq.loiDau.substring(0, 200)}`;
-    bot.sendMessage(ADMIN_ID, ketQua, { parse_mode: 'HTML' });
-});
-
-bot.onText(/\/sendpheu (\w+) ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    const kq = await guiToanBo(match[2], IMG_MAIN, match[1]);
-    bot.sendMessage(ADMIN_ID, `✅ Phễu "${match[1]}": ${kq.thanhCong}/${kq.tongSo} thành công, ${kq.thatBai} thất bại`);
-});
-
-// ==========================================================
-// /guichat — GỬI TIN CHO NGƯỜI TỪNG NHẮN TIN VỚI BOT
-// Hỗ trợ: văn bản + ảnh + nút bấm tùy chỉnh
-// ==========================================================
-// Cú pháp 1: /guichat [nội dung]
-// Cú pháp 2: /guichat [nội dung] | [URL ảnh]
-// Cú pháp 3: /guichat [nội dung] | [URL ảnh] | [text nút] | [URL nút]
-// Cú pháp 4: /guichat [nội dung] | | [text nút] | [URL nút]  (không ảnh, có nút)
-// Hoặc: Reply 1 tấm ảnh + caption /guichat [nội dung] | [text nút] | [URL nút]
-bot.onText(/\/guichat ([\s\S]+)/i, async (msg, match) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-
-    const parts = match[1].split('|').map(s => s.trim());
-    let noiDung = parts[0] || '';
-    let anhUrl = null;
-    let nutText = '';
-    let nutUrl = '';
-
-    // Kiểm tra nếu admin reply 1 tấm ảnh
-    if (msg.reply_to_message && msg.reply_to_message.photo) {
-        const photo = msg.reply_to_message.photo;
-        anhUrl = await bot.getFileLink(photo[photo.length - 1].file_id).catch(() => null);
-        // Cú pháp khi reply ảnh: /guichat [nội dung] | [text nút] | [URL nút]
-        if (parts[1]) nutText = parts[1];
-        if (parts[2]) nutUrl = parts[2];
-    } else {
-        // Cú pháp bình thường: /guichat [nội dung] | [URL ảnh] | [text nút] | [URL nút]
-        if (parts[1]) anhUrl = parts[1] || null;
-        if (parts[2]) nutText = parts[2];
-        if (parts[3]) nutUrl = parts[3];
+    const type = match[1].toLowerCase();
+    const text = match[2] ? match[2].trim() : '';
+    
+    if (!text) {
+        return bot.sendMessage(ADMIN_ID, `⚠️ Vui lòng nhập nội dung.\nVD: /${type} Chào mọi người...`);
     }
 
-    // Nếu anhUrl rỗng thì set null
-    if (!anhUrl || anhUrl.length < 5) anhUrl = null;
-
-    // Tạo keyboard
-    let keyboard = [];
-    if (nutText && nutUrl) {
-        keyboard.push([{ text: nutText, url: nutUrl }]);
-    }
-    // Luôn thêm nút Menu + Nhóm
-    keyboard.push(...nutsLienKet());
-
-    // Đếm user đã từng nhắn tin
-    const dieuKien = {
-        soTinNhan: { $gte: 1 },
-        userId: { $regex: /^\d+$/ },
-        khongNhanBroadcast: { $ne: true }
+    adminBroadcastState[ADMIN_ID] = {
+        type: type,
+        text: text,
+        photo: null,
+        buttonText: '',
+        buttonUrl: '',
+        step: 'idle'
     };
-    const danhSach = await User.find(dieuKien);
-    const tongSo = danhSach.length;
-
-    if (tongSo === 0) {
-        return bot.sendMessage(ADMIN_ID, '📭 Không có user nào từng nhắn tin với bot.');
-    }
-
-    // Xác nhận trước khi gửi
-    let xacNhan = `📤 <b>XÁC NHẬN GỬI TIN</b>\n\n`;
-    xacNhan += `👥 Số người nhận: <b>${tongSo}</b> (đã từng chat)\n`;
-    xacNhan += `📝 Nội dung: ${noiDung.substring(0, 200)}...\n`;
-    if (anhUrl) xacNhan += `🖼️ Có ảnh: ${anhUrl.substring(0, 60)}...\n`;
-    if (nutText) xacNhan += `🔗 Nút bấm: "${nutText}" → ${nutUrl.substring(0, 50)}\n`;
-    xacNhan += `\n⏳ Đang gửi...`;
-    await bot.sendMessage(ADMIN_ID, xacNhan, { parse_mode: 'HTML' });
-
-    // Bắt đầu gửi
-    let thanhCong = 0; let thatBai = 0; let loiDau = '';
-    for (const user of danhSach) {
-        try {
-            if (anhUrl) {
-                try {
-                    await bot.sendPhoto(user.userId, anhUrl, {
-                        caption: noiDung,
-                        parse_mode: 'HTML',
-                        reply_markup: { inline_keyboard: keyboard }
-                    });
-                } catch (photoErr) {
-                    // Ảnh lỗi → fallback text
-                    await bot.sendMessage(user.userId, noiDung, {
-                        parse_mode: 'HTML',
-                        reply_markup: { inline_keyboard: keyboard }
-                    });
-                }
-            } else {
-                await bot.sendMessage(user.userId, noiDung, {
-                    parse_mode: 'HTML',
-                    reply_markup: { inline_keyboard: keyboard }
-                });
-            }
-            thanhCong++;
-        } catch (e) {
-            thatBai++;
-            if (!loiDau) loiDau = `[${user.userId}] ${e.message}`;
-        }
-        await new Promise(r => setTimeout(r, 70));
-    }
-
-    let ketQua = `✅ <b>KẾT QUẢ GỬI CHAT</b>\n\n📤 Tổng: ${tongSo}\n✅ Thành công: ${thanhCong}\n❌ Thất bại: ${thatBai}`;
-    if (loiDau) ketQua += `\n\n⚠️ Lỗi đầu tiên: ${loiDau.substring(0, 200)}`;
-    bot.sendMessage(ADMIN_ID, ketQua, { parse_mode: 'HTML' });
+    guiBanNhapBroadcast(ADMIN_ID);
 });
 
-// /guichat — Hướng dẫn khi thiếu nội dung
-bot.onText(/^\/guichat$/i, async (msg) => {
-    if (msg.from.id.toString() !== ADMIN_ID) return;
-    bot.sendMessage(ADMIN_ID, `📋 <b>LỆNH /guichat — Gửi cho người từng chat với Bot</b>
-
-<b>Cú pháp:</b>
-
-<b>1️⃣ Chỉ văn bản:</b>
-<code>/guichat Chào mọi người! Có tin mới...</code>
-
-<b>2️⃣ Văn bản + Ảnh:</b>
-<code>/guichat Nội dung | URL_ảnh</code>
-
-<b>3️⃣ Văn bản + Ảnh + Nút bấm:</b>
-<code>/guichat Nội dung | URL_ảnh | Text nút | URL_nút</code>
-
-<b>4️⃣ Văn bản + Nút bấm (không ảnh):</b>
-<code>/guichat Nội dung | | Text nút | URL_nút</code>
-
-<b>5️⃣ Reply ảnh + Nút bấm:</b>
-Reply 1 tấm ảnh rồi gõ:
-<code>/guichat Nội dung | Text nút | URL_nút</code>
-
-<b>Ví dụ:</b>
-<code>/guichat Tối nay 19h có buổi phát sóng LIVE! | https://link-anh.jpg | 🔴 Vào Zoom ngay | https://swcpass.com/zoom</code>
-
-<i>⚠️ Chỉ gửi cho user đã từng nhắn tin với bot (không spam người mới)</i>`, { parse_mode: 'HTML' });
-});
+function guiBanNhapBroadcast(adminId) {
+    const state = adminBroadcastState[adminId];
+    if (!state) return;
+    
+    let preview = `📝 <b>BẢN NHÁP BROADCAST (${state.type === 'sendall' ? 'Tất cả' : 'Người từng chat'})</b>\n\n`;
+    preview += `<b>Nội dung:</b>\n${state.text.substring(0, 500)}${state.text.length > 500 ? '...' : ''}\n\n`;
+    if (state.photo) preview += `🖼️ <i>Đã đính kèm hình ảnh</i>\n`;
+    if (state.buttonText) preview += `🔗 <i>Nút Custom: ${state.buttonText} - ${state.buttonUrl}</i>\n`;
+    
+    const inline_keyboard = [
+        [{ text: '🖼️ Thêm hình ảnh', callback_data: 'bc_add_photo' }],
+        [{ text: '🔗 Thêm văn bản + Link', callback_data: 'bc_add_link' }]
+    ];
+    
+    inline_keyboard.push([{ text: `🚀 Gửi cho ${state.type === 'sendall' ? 'tất cả mọi người' : 'người từng chat'}`, callback_data: 'bc_send' }]);
+    inline_keyboard.push([{ text: '❌ Huỷ', callback_data: 'bc_cancel' }]);
+    
+    bot.sendMessage(adminId, preview, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
 
 bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
