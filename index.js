@@ -1472,7 +1472,8 @@ async function tacDongNguoiImLang() {
         khongNhanBroadcast: { $ne: true },
         goiPass: 'chua_co',
         lanCuoiHoatDong: { $lt: baBaSo },
-        giaiDoanPheu: { $in: ['quan_tam', 'nong'] }
+        giaiDoanPheu: { $in: ['quan_tam', 'nong'] },
+        userId: { $regex: /^\d+$/ }
     }).catch(() => []);
 
     const mauTin = [
@@ -1495,10 +1496,10 @@ async function tacDongNguoiImLang() {
 function layGioVN() { return new Date(new Date().getTime() + 7 * 3600000); }
 
 async function guiToanBo(noiDung, anhUrl = null, chiBaoGomPheu = null) {
-    const dieuKien = { khongNhanBroadcast: { $ne: true } };
+    const dieuKien = { khongNhanBroadcast: { $ne: true }, userId: { $regex: /^\d+$/ } };
     if (chiBaoGomPheu) dieuKien.giaiDoanPheu = { $in: Array.isArray(chiBaoGomPheu) ? chiBaoGomPheu : [chiBaoGomPheu] };
     const danhSach = await User.find(dieuKien);
-    let thanhCong = 0;
+    let thanhCong = 0; let thatBai = 0;
     for (const user of danhSach) {
         try {
             if (anhUrl) {
@@ -1507,69 +1508,87 @@ async function guiToanBo(noiDung, anhUrl = null, chiBaoGomPheu = null) {
                 await bot.sendMessage(user.userId, noiDung, { parse_mode: 'HTML', reply_markup: { inline_keyboard: nutsLienKet() } });
             }
             thanhCong++;
-        } catch (e) { }
+        } catch (e) { thatBai++; }
         await new Promise(r => setTimeout(r, 70));
     }
-    return thanhCong;
+    return { thanhCong, thatBai, tongSo: danhSach.length };
 }
+
+// ==========================================================
+// MẢNG TIN NHẮN XOAY VÒNG — BUỔI TRƯA / CHIỀU / TỐI
+// ==========================================================
+const TIN_BUOI_TRUA = [
+    (dl) => `☀️ <b>KIẾN THỨC TÀI CHÍNH BUỔI TRƯA</b>\n\nLãi kép — Kỳ quan thứ 8 (Einstein):\n$150/tháng × 20%/năm:\n📌 10 năm → ~$46,000\n📌 20 năm → ~$300,000\n📌 30 năm → ~$2,100,000\n\nBắt đầu SỚM + kỷ luật ĐỀU ĐẶN.\nCòn ${dl} ngày! 🚀`,
+    (dl) => `☀️ <b>GÓC NHÌN TÀI CHÍNH BUỔI TRƯA</b>\n\nBuffett: "Giá cả là thứ bạn trả. Giá trị là thứ bạn nhận."\n\nLy cà phê 50K/ngày = $600/năm bay hơi.\nCùng $600 đó đầu tư lãi kép 20 năm = hàng trăm triệu.\n\nCòn ${dl} ngày! 💡`,
+    (dl) => `☀️ <b>BÀI HỌC BUỔI TRƯA — 6 CHIẾC LỌ</b>\n\n💰 55% Thiết yếu\n📚 10% Giáo dục\n🎉 10% Hưởng thụ\n💸 10% Tiết kiệm\n📈 10% Tự do tài chính\n🤝 5% Cho đi\n\nNgười giàu phân bổ tiền TRƯỚC khi tiêu.\nCòn ${dl} ngày! ⏳`,
+    (dl) => `☀️ <b>TƯ DUY BUỔI TRƯA — CHUỖI THỨC ĂN</b>\n\n🏛️ Tầng 1: NHTW — In tiền\n🐋 Tầng 2: Cá Voi — Đi ngược đám đông\n🎰 Tầng 3: Market Maker\n🐺 Tầng 4: Smart Investors\n😵 Tầng 5: F0 — Mua bằng cảm xúc\n\n95% tự trade ở Tầng 5. SWC kéo bạn lên Tầng 4.\nCòn ${dl} ngày! 🎯`,
+    (dl) => `☀️ <b>PHÂN TÍCH VĨ MÔ BUỔI TRƯA</b>\n\n📊 FED: 3.625%\n📊 M2 YoY: +4.29% (Vùng Hoàng Kim)\n📊 DXY: 98-100\n📊 CPI: 2.4%\n\nTín hiệu: RÚT KIẾM, gom tài sản lõi.\nCòn ${dl} ngày! 📈`,
+    (dl) => `☀️ <b>BUỔI TRƯA — LẠM PHÁT</b>\n\nLạm phát 2.4%/năm ăn mòn tiền bạn.\n100 triệu ngân hàng = mất ~2.4 triệu/năm sức mua.\n\n❌ Tiết kiệm 30 năm: ~54,000 USD\n✅ Lãi kép SWC 30 năm: ~2,100,000 USD\nChênh lệch gần 40 lần!\nCòn ${dl} ngày! 💰`,
+    (dl) => `☀️ <b>CÂU CHUYỆN BUỔI TRƯA</b>\n\nAnh B, 35 tuổi, lương 15 triệu/tháng.\n10 năm = gần 2 tỷ đồng qua tay.\nTài khoản: gần trống.\n\nNếu trích $150/tháng từ 10 năm trước → đã có hơn 1 tỷ VNĐ.\n\nKhác biệt: KỶ LUẬT phân bổ tiền.\nCòn ${dl} ngày! 🚀`,
+    (dl) => `☀️ <b>SO SÁNH BUỔI TRƯA</b>\n\nCùng $10/tháng:\n❌ 2 ly trà sữa → bay hơi 30 phút\n❌ 1 tháng Netflix → giải trí rồi quên\n✅ SWC Pass → bản đồ bảo vệ gia sản 5 năm\n\n$10/tháng × 5 năm = tín hiệu đầu tư + SWC Field + cổ phiếu chuẩn Mỹ\nCòn ${dl} ngày! 💳`,
+    (dl) => `☀️ <b>TRIẾT LÝ BUỔI TRƯA</b>\n\nTư Mã Ý — Tam Quốc: Mài gươm 10 năm, vung 1 nhát.\n\nDCA $150/tháng × 10-15 năm:\n📌 Năm 10: ~$46,000\n📌 Năm 15: ~$145,000 (gấp 3!)\n📌 Năm 20: ~$300,000 (gấp 6.5!)\n\nKiên nhẫn là vũ khí mạnh nhất.\nCòn ${dl} ngày! ⚔️`,
+    (dl) => `☀️ <b>BUỔI TRƯA — SPV</b>\n\nSPV — Tấm khiên pháp lý:\n✅ Mỗi dự án 1 pháp nhân riêng\n✅ Sở hữu cổ phiếu HỢP PHÁP\n✅ Pháp luật Mỹ/EU bảo chứng\n✅ All-or-Nothing: không đủ KPI → hoàn 100%\n\nSWC KHÔNG GIỮ TIỀN. Tiền nằm trong app CÁ NHÂN.\nCòn ${dl} ngày! 🛡️`
+];
+
+const TIN_BUOI_CHIEU = [
+    (dl) => `🌆 <b>CẬP NHẬT BUỔI CHIỀU</b>\n\nVào Group cộng đồng:\n✅ Tiến độ ATLAS Dubai\n✅ Chiến lược Lãi Kép\n✅ Kết nối nhà đầu tư tinh hoa\n✅ Tín hiệu thị trường\n\nCòn ${dl} ngày! ⏳`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — ATLAS DUBAI</b>\n\nBĐS Dubai: 200 tỷ USD/năm.\nAtlas — "Grab của BĐS" — vòng Private.\nIP Share: 0.625 USD → Dự phóng 3.8 USD (gấp ~6 lần).\n\nCòn ${dl} ngày vào vòng Private! 🏢`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — DCA</b>\n\nTháng 3/2020 — COVID sập 35%:\n→ F0 bán tháo, mất 50% vốn\n→ Người DCA: "Sale 35%!" → mua thêm\n→ 12 tháng sau: lãi 100%\n\nCùng thị trường, khác hệ thống = khác kết quả.\nCòn ${dl} ngày! 📊`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — COMMERCIAL COWS</b>\n\nKhông mua cổ phiếu chờ bán thịt.\nMua để VẮT SỮA mỗi tháng (cổ tức).\n\nApple, Microsoft, Coca-Cola — trả cổ tức 20-30 năm.\nCổ tức > chi phí sinh hoạt = TỰ DO TÀI CHÍNH.\nCòn ${dl} ngày! 🐄`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — SWC FIELD</b>\n\n✅ Đầu tư vòng Private từ $50\n✅ Chỉ 1% dự án được chọn\n✅ All-or-Nothing bảo vệ vốn\n✅ SPV minh bạch — pháp lý Mỹ, EU\n\n$50 = tấm vé ngồi chung mâm Cá Mập.\nCòn ${dl} ngày! 🦈`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — QUYỀN CỔ ĐÔNG</b>\n\nĐầu tư qua SWC = cổ phiếu chuẩn Mỹ qua SPV:\n📜 Giấy chứng nhận cổ đông\n💰 Quyền nhận cổ tức\n🗳️ Quyền biểu quyết\n🚪 Quyền thoái vốn khi IPO\n\nTÀI SẢN THỰC — không phải token.\nCòn ${dl} ngày! 📋`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — CHI PHÍ CƠ HỘI</b>\n\nMỗi năm trì hoãn = 1 năm lãi kép VĨNH VIỄN mất đi.\n\nBắt đầu 25 tuổi vs 30 tuổi, $150/tháng:\n→ 25 tuổi → 50 tuổi: ~$300,000\n→ 30 tuổi → 50 tuổi: ~$145,000\nChênh: $155,000 vì 5 năm trì hoãn!\nCòn ${dl} ngày! ⏰`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — ĐẮC NHÂN TÂM</b>\n\nCarnegie: "Cách duy nhất thắng tranh luận là tránh tranh luận."\n\nĐầu tư cũng vậy — đừng tranh luận với thị trường.\nThị trường luôn đúng. Cảm xúc luôn sai.\n\nSWC giúp loại bỏ cảm xúc, hành động theo dữ liệu.\nCòn ${dl} ngày! 🧠`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — DÒNG TIỀN 4 MÙA</b>\n\n🌸 Xuân: Lãi suất hạ → CS/Crypto\n☀️ Hạ: BĐS sốt\n🍂 Thu: NHTW tăng lãi suất\n❄️ Đông: Tiết kiệm/Vàng/USD\n\nKẻ thắng = kẻ CHUẨN BỊ ĐÓN nước.\nCòn ${dl} ngày! 🗺️`,
+    (dl) => `🌆 <b>BUỔI CHIỀU — 17 TƯ DUY TRIỆU PHÚ</b>\n\n💡 Người giàu: "Tôi TẠO RA cuộc đời tôi"\n💡 Chơi để THẮNG\n💡 Suy nghĩ LỚN\n💡 Tập trung CƠ HỘI\n💡 Bắt tiền PHỤC VỤ mình\n\nBạn đang ở tư duy nào?\nCòn ${dl} ngày! 💎`
+];
+
+const TIN_BUOI_TOI = [
+    (dl) => `🔔 <b>NHẮC NHỞ TỐI — CÒN ${dl} NGÀY!</b>\n\n2 loại người:\nLoại 1: F0 stress, nhìn chart đỏ mắt...\nLoại 2: Có SWC Pass — ngủ ngon, hệ thống tự chạy 😴\n\nUltimate (Vĩnh viễn) đóng cửa vào ${DEADLINE}.\nKhông ngoại lệ.`,
+    (dl) => `🌙 <b>SUY NGẪM TỐI</b>\n\nHôm nay bạn đã làm gì cho tương lai tài chính?\n✅ Đọc 1 bài đầu tư?\n✅ Trích tiền vào quỹ?\n✅ Kiểm tra danh mục?\n\nMỗi ngày 1 hành động nhỏ = 365 bước/năm.\nCòn ${dl} ngày! 🎯`,
+    (dl) => `🌙 <b>TỐI — CÂU CHUYỆN LÃI KÉP</b>\n\nNếu tổ tiên gửi 1 xu vàng 200 năm trước với lãi kép 5%/năm...\nHôm nay bạn có hơn 17,000 xu vàng.\n\nLãi kép không nhanh. Nhưng KHÔNG BAO GIỜ DỪNG.\nCòn ${dl} ngày! ⏳`,
+    (dl) => `🌙 <b>TỐI — RỦI RO THỰC SỰ</b>\n\nRủi ro lớn nhất = KHÔNG ĐẦU TƯ.\nLạm phát 2.4%/năm × 20 năm = mất ~40% sức mua.\n100 triệu → chỉ còn sức mua 60 triệu.\n\nTiền mặt đang chết từ từ.\nCòn ${dl} ngày! 💸`,
+    (dl) => `🌙 <b>TỐI — ATLAS UPDATE</b>\n\n🏗️ GĐ1: MVP, thị trường UAE\n🌍 GĐ2: Mở rộng + AI định giá\n🚀 GĐ3: Singapore, HK, Anh, Pháp\n\nIP Share 0.625 USD → Dự phóng 3.8 USD (gấp ~6 lần)\nĐang ở GĐ1 — giá rẻ nhất.\nCòn ${dl} ngày! 🏢`,
+    (dl) => `🌙 <b>TỐI — BUFFETT</b>\n\n"Tôi luôn biết tôi sẽ giàu. Chưa bao giờ nghi ngờ." — Buffett\n\nÔng đầu tư từ 11 tuổi. Và nói bắt đầu QUÁ MUỘN.\nBạn bao nhiêu tuổi? Đã bắt đầu chưa?\nCòn ${dl} ngày! 📈`,
+    (dl) => `🌙 <b>TỐI — SWC PASS VS QUỸ MỞ</b>\n\nQuỹ mở: cắn xén 2% TỔNG tài sản/năm.\n1 tỷ → mất 20 triệu phí. 10 tỷ → 200 triệu.\n\nSWC Pass: $10/tháng CỐ ĐỊNH.\nKiếm triệu đô, phí vẫn $10.\nCòn ${dl} ngày! 💳`,
+    (dl) => `🌙 <b>TỐI — BẠN ĐANG Ở TẦNG NÀO?</b>\n\nTự đầu tư = giá thị trường (Tầng 2).\nSWC Pass = vòng Private, trước khi lên sàn (Tầng 1).\n\nAmazon: $0.30/cp (Private) vs $18/cp (Public) = lãi 60 lần.\nCòn ${dl} ngày vào vòng Private! 🎯`,
+    (dl) => `🌙 <b>TỐI — 4 BƯỚC TIẾN HÓA</b>\n\n1️⃣ Giảm chi tiêu — bịt lỗ hổng\n2️⃣ Tăng thu nhập — bơm nước\n3️⃣ Đầu tư — bắt tiền làm nô lệ\n4️⃣ Đòn bẩy — chỉ khi thắng 1-2-3\n\n90% làm NGƯỢC = tự sát.\nCòn ${dl} ngày! ⚡`,
+    (dl) => `🌙 <b>TỐI — ULTIMATE SẮP ĐÓNG</b>\n\nGói Ultimate ($2,600) — Vĩnh viễn:\n✅ Truy cập KHÔNG GIỚI HẠN mãi mãi\n✅ Di sản cho con cháu\n✅ 20 năm: chỉ $130/năm\n\n⚠️ ĐÓNG CỬA VĨNH VIỄN vào ${DEADLINE}.\nCòn ${dl} ngày! 💎`
+];
 
 setInterval(async () => {
     const gio = layGioVN();
     const h = gio.getUTCHours();
     const m = gio.getUTCMinutes();
     const daysLeft = getDaysLeft();
+    const ngay = gio.getUTCDate();
 
     if (h === 8 && m === 0) {
-        const ngay = new Date().getDate();
         const baiHoc = TIN_NHAN_30_NGAY[ngay] || TIN_NHAN_30_NGAY[1];
-        const tin = `🌅 <b>CHÀO BUỔI SÁNG — BÀI HỌC TÂM LÝ & ĐẦU TƯ</b>
-
-${baiHoc}
-
-⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống SWC!`;
+        const tin = `🌅 <b>CHÀO BUỔI SÁNG — BÀI HỌC TÂM LÝ & ĐẦU TƯ</b>\n\n${baiHoc}\n\n⏳ Còn <b>${daysLeft} ngày</b> để gia nhập hệ thống SWC!`;
         await guiToanBo(tin, IMG_MAIN);
     }
 
+    // BUỔI TRƯA — XOAY VÒNG 10 tin khác nhau theo ngày
     if (h === 12 && m === 0) {
-        const tin = `☀️ <b>KIẾN THỨC TÀI CHÍNH BUỔI TRƯA</b>
-
-Lãi kép — Kỳ quan thứ 8 của Thế giới (Einstein):
-
-Ví dụ dễ hiểu: Nếu anh/chị trích $150/tháng (bằng 2 bữa ăn nhà hàng) đầu tư với lãi kép 20%/năm:
-📌 10 năm → ~$46,000 (~1.2 tỷ VNĐ)
-📌 20 năm → ~$300,000 (~7.5 tỷ VNĐ)
-📌 30 năm → ~$2,100,000 (~52.5 tỷ VNĐ)
-
-Thông qua SPV chuẩn Mỹ, bạn sở hữu cổ phiếu hợp pháp — có giấy chứng nhận cổ đông.
-
-<b>Bí quyết:</b> Bắt đầu SỚM và kỷ luật ĐỀU ĐẶN.
-Còn ${daysLeft} ngày để bắt đầu hành trình! 🚀`;
-        await guiToanBo(tin, IMG_ROAD);
+        const idx = ngay % TIN_BUOI_TRUA.length;
+        const tin = TIN_BUOI_TRUA[idx](daysLeft);
+        const anhArr = [IMG_ROAD, IMG_FIELD, IMG_MAIN, IMG_ATLAS, IMG_HANG];
+        await guiToanBo(tin, anhArr[idx % anhArr.length]);
     }
 
+    // BUỔI CHIỀU — XOAY VÒNG 10 tin khác nhau theo ngày
     if (h === 19 && m === 30) {
-        const tin = `🌆 <b>THỜI GIAN CẬP NHẬT KIẾN THỨC BUỔI TỐI</b>
-
-Vào Group cộng đồng ngay để:
-✅ Cập nhật tiến độ dự án ATLAS Dubai (RWA)
-✅ Thảo luận chiến lược đầu tư Lãi Kép
-✅ Kết nối với 1,000+ nhà đầu tư tinh hoa
-✅ Nhận tín hiệu thị trường từ chuyên gia
-
-⏳ Còn <b>${daysLeft} ngày</b> để mua vị thế tốt nhất!`;
-        await guiToanBo(tin, IMG_FIELD);
+        const idx = ngay % TIN_BUOI_CHIEU.length;
+        const tin = TIN_BUOI_CHIEU[idx](daysLeft);
+        const anhArr = [IMG_FIELD, IMG_ATLAS, IMG_ROAD, IMG_MAIN, IMG_HANG];
+        await guiToanBo(tin, anhArr[idx % anhArr.length]);
     }
 
+    // BUỔI TỐI — XOAY VÒNG 10 tin khác nhau (chỉ gửi phễu nóng + quan_tam)
     if (h === 20 && m === 30) {
-        const tin = `🔔 <b>NHẮC NHỞ QUAN TRỌNG — CÒN ĐÚNG ${daysLeft} NGÀY!</b>
-
-Lúc này có 2 loại người:
-
-Loại 1: F0 đang lo lắng thị trường, nhìn chart đỏ mắt, stress...
-Loại 2: Đã sở hữu SWC Pass — <b>đang ngủ ngon trong khi hệ thống tự động chạy</b> 😴
-
-Gói <b>Ultimate (Vĩnh viễn)</b> — Giới hạn 1,000 suất.
-Sẽ <b>đóng cửa vĩnh viễn</b> vào ${DEADLINE}. Không có ngoại lệ.`;
+        const idx = ngay % TIN_BUOI_TOI.length;
+        const tin = TIN_BUOI_TOI[idx](daysLeft);
         await guiToanBo(tin, IMG_HANG, ['nong', 'quan_tam']);
     }
 
@@ -1606,16 +1625,16 @@ bot.onText(/\/(xoa|del)/i, async (msg) => {
 
 bot.onText(/\/sendall ([\s\S]+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    const danhSach = await User.find({});
-    bot.sendMessage(ADMIN_ID, `⏳ Đang gửi tin kèm ảnh cho ${danhSach.length} người...`);
-    const thanhCong = await guiToanBo(match[1], IMG_MAIN);
-    bot.sendMessage(ADMIN_ID, `✅ Gửi thành công: ${thanhCong}/${danhSach.length}`);
+    const tongSo = await User.countDocuments({ userId: { $regex: /^\d+$/ }, khongNhanBroadcast: { $ne: true } });
+    bot.sendMessage(ADMIN_ID, `⏳ Đang gửi tin cho ${tongSo} người (Telegram ID hợp lệ)...`);
+    const kq = await guiToanBo(match[1], IMG_MAIN);
+    bot.sendMessage(ADMIN_ID, `✅ <b>KẾT QUẢ</b>\n📤 Tổng: ${kq.tongSo}\n✅ Thành công: ${kq.thanhCong}\n❌ Thất bại: ${kq.thatBai}`, { parse_mode: 'HTML' });
 });
 
 bot.onText(/\/sendpheu (\w+) ([\s\S]+)/i, async (msg, match) => {
     if (msg.from.id.toString() !== ADMIN_ID) return;
-    const thanhCong = await guiToanBo(match[2], IMG_MAIN, match[1]);
-    bot.sendMessage(ADMIN_ID, `✅ Đã gửi cho phễu "${match[1]}": ${thanhCong} người`);
+    const kq = await guiToanBo(match[2], IMG_MAIN, match[1]);
+    bot.sendMessage(ADMIN_ID, `✅ Phễu "${match[1]}": ${kq.thanhCong}/${kq.tongSo} thành công, ${kq.thatBai} thất bại`);
 });
 
 bot.onText(/\/tracuu (\d+)/i, async (msg, match) => {
@@ -2266,7 +2285,7 @@ const CAU_NOI_TRIET_LY = [
 async function guiCauNoiTrietLy() {
     const cauNoi = CAU_NOI_TRIET_LY[Math.floor(Math.random() * CAU_NOI_TRIET_LY.length)];
     const text = `🌅 <b>CHÀO BUỔI SÁNG — SWC CAPITAL</b>\n\n${cauNoi}\n\n🎯 <i>Mỗi ngày một bước tiến — kiên nhẫn và kỷ luật sẽ đưa bạn đến đích.</i>`;
-    const danhSach = await User.find({ soTinNhan: { $gte: 1 } }).catch(() => []);
+    const danhSach = await User.find({ soTinNhan: { $gte: 1 }, userId: { $regex: /^\d+$/ } }).catch(() => []);
     for (const user of danhSach) {
         await bot.sendMessage(user.userId, text, {
             parse_mode: 'HTML',
@@ -2287,7 +2306,7 @@ async function guiCauNoiTrietLy() {
 // ==========================================================
 async function guiNhacDauTu() {
     const text = `📊 <b>NHẮC NHỞ ĐẦU TƯ HÀNG THÁNG</b>\n\nĐầu tháng rồi! Đây là thời điểm vàng để:\n\n💰 Trích $100-$200 đầu tư vào cổ phiếu blue-chip Mỹ theo chiến lược RM1\n📈 Kiểm tra và cập nhật danh mục đầu tư\n🎯 Kỷ luật DCA — mỗi tháng đều đặn, không bỏ lỡ\n\nVí dụ: $150/tháng chỉ bằng 5,000đ/ngày — ít hơn 1 ly trà đá. Nhưng sau 20 năm với lãi kép = ~$300,000 (~7.5 tỷ VNĐ).\n\nQuyền lợi: Sở hữu cổ phiếu chuẩn Mỹ qua SPV — có giấy chứng nhận cổ đông, quyền cổ tức.\n\nBấm nút bên dưới để xem danh mục:`;
-    const danhSach = await User.find({ khongNhanBroadcast: { $ne: true } }).catch(() => []);
+    const danhSach = await User.find({ khongNhanBroadcast: { $ne: true }, userId: { $regex: /^\d+$/ } }).catch(() => []);
     for (const user of danhSach) {
         await bot.sendMessage(user.userId, text, {
             parse_mode: 'HTML',
@@ -2316,7 +2335,7 @@ const MAU_NHAC_HOC = [
 ];
 
 async function guiNhacHocTap() {
-    const danhSach = await User.find({ goiPass: { $ne: 'chua_co' }, khongNhanBroadcast: { $ne: true } }).catch(() => []);
+    const danhSach = await User.find({ goiPass: { $ne: 'chua_co' }, khongNhanBroadcast: { $ne: true }, userId: { $regex: /^\d+$/ } }).catch(() => []);
     for (const user of danhSach) {
         const mau = MAU_NHAC_HOC[Math.floor(Math.random() * MAU_NHAC_HOC.length)];
         const text = mau(user.firstName || user.googleName || 'bạn');
@@ -2344,7 +2363,8 @@ async function followUpChuaKichHoat() {
         googleEmail: { $ne: '' },
         goiPass: 'chua_co',
         khongNhanBroadcast: { $ne: true },
-        verified: true
+        verified: true,
+        userId: { $regex: /^\d+$/ }
     }).catch(() => []);
 
     for (const user of danhSach) {
@@ -2414,7 +2434,7 @@ async function guiBaiVietNgauNhien() {
         }
 
         // Gửi Toàn bộ User
-        const danhSach = await User.find({ khongNhanBroadcast: { $ne: true } }).catch(() => []);
+        const danhSach = await User.find({ khongNhanBroadcast: { $ne: true }, userId: { $regex: /^\d+$/ } }).catch(() => []);
         for (const user of danhSach) {
             if (baiViet.imageUrl) {
                 await bot.sendPhoto(user.userId, baiViet.imageUrl, { parse_mode: 'HTML', caption: tin }).catch(() => {});
@@ -2464,6 +2484,6 @@ setInterval(async () => {
     // 15:00 chiều — Follow-up chưa kích hoạt Pass (2.3)
     if (h === 15 && m === 0) await followUpChuaKichHoat();
 
-    // 20:30 tối — Tự động lấy bài viết ngẫu nhiên từ Web gửi vào Nhóm & User
-    if (h === 20 && m === 30) await guiBaiVietNgauNhien();
+    // 21:00 tối — Bài viết ngẫu nhiên (DỜI TỪ 20:30 ĐỂ TRÁNH TRÙNG VỚI TIN TỐI)
+    if (h === 21 && m === 0) await guiBaiVietNgauNhien();
 }, 60000);
